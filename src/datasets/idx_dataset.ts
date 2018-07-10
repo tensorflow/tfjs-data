@@ -18,7 +18,7 @@
 
 import {Dataset} from '../dataset';
 import {DataSource} from '../datasource';
-import {IDXIterator} from '../iterators/idx_stream';
+import {IDXIterator} from '../iterators/idx_iterator';
 import {LazyIterator} from '../iterators/lazy_iterator';
 import {DataElement} from '../types';
 

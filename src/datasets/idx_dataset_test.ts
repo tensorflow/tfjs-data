@@ -16,9 +16,8 @@
  * =============================================================================
  */
 
-import * as tf from '@tensorflow/tfjs-core';
-
 import {FileDataSource, IDXDataset} from '..';
+import * as tf from '../../.yalc/@tensorflow/tfjs-core/dist';
 import {DataElementObject} from '../types';
 
 const values = [
@@ -55,7 +54,7 @@ function createTestIdxBlob(): Blob {
   return new Blob([buffer]);
 }
 
-describe('IdxDataset', () => {
+fdescribe('IdxDataset', () => {
   it('Produces a stream of DatasetElements containing tensors', async () => {
     const source = new FileDataSource(createTestIdxBlob(), {chunkSize: 22});
     const dataset = new IDXDataset(source);
@@ -65,14 +64,8 @@ describe('IdxDataset', () => {
     expect(result.length).toEqual(5);
     for (let i = 0; i < 5; i++) {
       const element = result[i] as DataElementObject;
-      const a = element['data'] as tf.Tensor;
-      const b = tf.tensor2d([1], [2, 3]);
-      console.log('wat');
-      console.log(a);
-      console.log(b);
       tf.test_util.expectArraysEqual(
-          element['data'] as tf.Tensor, tf.tensor2d([values[i]], [2, 3]));
-      tf.test_util.expectArraysEqual(a, b);
+          element['data'] as tf.Tensor, tf.tensor2d(values[i], [2, 3]));
     }
   });
 });
