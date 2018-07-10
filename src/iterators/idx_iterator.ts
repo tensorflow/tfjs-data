@@ -69,9 +69,9 @@ export class IDXIterator extends QueueIterator<tf.Tensor> {
     for (const d of this.recordShape) {
       this.recordBytes *= d;
     }
-    console.debug(
-        `Reading IDX file with ${this.numRecords} records of shape ` +
-        `${this.recordShape} taking ${this.recordBytes} bytes each.`);
+    // console.debug(
+    //     `Reading IDX file with ${this.numRecords} records of shape ` +
+    //     `${this.recordShape} taking ${this.recordBytes} bytes each.`);
     this.pumpImpl({
       value: chunkRemainder,
       done: false
@@ -109,7 +109,7 @@ export class IDXIterator extends QueueIterator<tf.Tensor> {
     // First make sure we have enough bytes, combining the carryover with the
     // current chunk, to create at least one record.
     const availableBytes = this.carryover.length + chunk.length;
-    if (availableBytes < this.recordBytes) {
+    if (availableBytes <= this.recordBytes) {
       const n = new Uint8Array(availableBytes);
       n.set(this.carryover);
       n.set(chunk, this.carryover.length);
@@ -125,7 +125,6 @@ export class IDXIterator extends QueueIterator<tf.Tensor> {
     let index = this.recordBytes - this.carryover.length;
     firstRecord.set(chunk.slice(0, index));
     const result = tf.Tensor.make(this.recordShape, {values: firstRecord});
-    result.print();
     this.outputQueue.push(result);
 
     // Slice further records out of the chunk
