@@ -16,7 +16,7 @@
  * =============================================================================
  */
 
-import * as tf from '../../.yalc/@tensorflow/tfjs-core/dist';
+import * as tf from '@tensorflow/tfjs-core/dist';
 
 import {LazyIterator, QueueIterator} from './lazy_iterator';
 

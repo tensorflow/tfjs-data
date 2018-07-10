@@ -20,7 +20,7 @@ import {Dataset} from '../dataset';
 import {DataSource} from '../datasource';
 import {IDXIterator} from '../iterators/idx_iterator';
 import {LazyIterator} from '../iterators/lazy_iterator';
-import {DataElement} from '../types';
+import {DataElementObject} from '../types';
 
 /**
  * A potentially large collection of Tensors parsed from an IDX source.
@@ -30,7 +30,7 @@ import {DataElement} from '../types';
  *
  * The results are not batched.
  */
-export class IDXDataset extends Dataset<DataElement> {
+export class IDXDataset extends Dataset<DataElementObject> {
   /**
    * Create an `IDXDataset`.
    *
@@ -44,8 +44,9 @@ export class IDXDataset extends Dataset<DataElement> {
     super();
   }
 
-  iterator(): LazyIterator<DataElement> {
+  iterator(): LazyIterator<DataElementObject> {
     const tensorStream = new IDXIterator(this.input.iterator());
-    return tensorStream.map(x => ({[this.columnName]: x}));
+    return tensorStream.map(
+        x => ({[this.columnName]: x} as any as DataElementObject));
   }
 }
