@@ -115,36 +115,34 @@ describe('CSVDataset', () => {
     });
   });
 
-  it('does map', done => {
-    const source = new FileDataSource(csvBlobWithHeadersExtra, {chunkSize: 10});
-    const datasetPromise =
+  // it('does map', async () => {
+  //   const source = 
+  //       new FileDataSource(csvBlobWithHeadersExtra, {chunkSize: 10});
+  //   const ds = await
+  //       CSVDataset.create(source, CsvHeaderConfig.READ_FIRST_LINE);
+  //   expect(ds.csvColumnNames).toEqual(['A', 'B', 'C']);
+  //   const csvIterator = ds.iterator();
+  //   console.log(await csvIterator.next());
+  //   console.log(await csvIterator.next());
+  //   console.log(await csvIterator.next());
+  //   console.log(await csvIterator.next());
+  //   console.log(await csvIterator.next());
+  //   console.log(await csvIterator.next());
+  //   console.log(await csvIterator.next());
+
+  // });
+
+  it('array of promises', async () => {
+    const source = 
+        new FileDataSource(csvBlobWithHeadersExtra, {chunkSize: 10});
+    const ds = await
         CSVDataset.create(source, CsvHeaderConfig.READ_FIRST_LINE);
-    datasetPromise.then(dataset => {
-      expect(dataset.csvColumnNames).toEqual(['A', 'B', 'C']);
-      const csvIterator = dataset.iterator();
-      console.log(csvIterator);
-      csvIterator.next().then(de => {
-        console.log(de);
-      });
-      csvIterator.next().then(de => {
-        console.log(de);
-      });
-      csvIterator.next().then(de => {
-        console.log(de);
-      });
-      csvIterator.next().then(de => {
-        console.log(de);
-      });
-      csvIterator.next().then(de => {
-        console.log(de);
-      });
-      csvIterator.next().then(de => {
-        console.log(de);
-      });
-      csvIterator.next().then(de => {
-        console.log(de);
-      });
-      expect(1).toEqual(1);
-    });
+    expect(ds.csvColumnNames).toEqual(['A', 'B', 'C']);
+    const csvIterator = ds.iterator();
+    const promises = [csvIterator.next(), csvIterator.next(),
+      csvIterator.next(),csvIterator.next(),csvIterator.next()];
+    const elements = await Promise.all(promises);
+    elements.forEach(x => console.log(x));
+
   });
 });
