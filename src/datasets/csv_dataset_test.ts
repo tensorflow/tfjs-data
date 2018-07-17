@@ -28,12 +28,23 @@ qrs,tu,
 v,w,x
 y,z`;
 
+const csvDataExtra = `A,B,C
+1,2,3
+2,2,3
+3,2,3
+4,2,3
+5,2,3
+6,2,3
+7,2,3`;
+
 const csvDataWithHeaders = `foo,bar,baz
 ` + csvData;
 
 const csvBlob = new Blob([csvData]);
 
 const csvBlobWithHeaders = new Blob([csvDataWithHeaders]);
+
+const csvBlobWithHeadersExtra = new Blob([csvDataExtra]);
 
 describe('CSVDataset', () => {
   it('produces a stream of dicts containing UTF8-decoded csv data', done => {
@@ -101,6 +112,39 @@ describe('CSVDataset', () => {
           })
           .then(done)
           .catch(done.fail);
+    });
+  });
+
+  it('does map', done => {
+    const source = new FileDataSource(csvBlobWithHeadersExtra, {chunkSize: 10});
+    const datasetPromise =
+        CSVDataset.create(source, CsvHeaderConfig.READ_FIRST_LINE);
+    datasetPromise.then(dataset => {
+      expect(dataset.csvColumnNames).toEqual(['A', 'B', 'C']);
+      const csvIterator = dataset.iterator();
+      console.log(csvIterator);
+      csvIterator.next().then(de => {
+        console.log(de);
+      });
+      csvIterator.next().then(de => {
+        console.log(de);
+      });
+      csvIterator.next().then(de => {
+        console.log(de);
+      });
+      csvIterator.next().then(de => {
+        console.log(de);
+      });
+      csvIterator.next().then(de => {
+        console.log(de);
+      });
+      csvIterator.next().then(de => {
+        console.log(de);
+      });
+      csvIterator.next().then(de => {
+        console.log(de);
+      });
+      expect(1).toEqual(1);
     });
   });
 });
