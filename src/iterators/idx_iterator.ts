@@ -16,14 +16,12 @@
  * =============================================================================
  */
 
-import * as tf from '@tensorflow/tfjs-core/dist';
+import * as tf from '@tensorflow/tfjs-core';
 
 import {LazyIterator, QueueIterator} from './lazy_iterator';
 
 // TODO(soergel): support dtypes beyond uint8, if there is any demand
 export class IDXIterator extends QueueIterator<tf.Tensor> {
-  private isInitialized = false;
-
   // A partial record at the end of an upstream chunk
   carryover: Uint8Array = new Uint8Array([]);
 
@@ -34,8 +32,13 @@ export class IDXIterator extends QueueIterator<tf.Tensor> {
   recordShape: number[];
   recordBytes = 1;
 
-  constructor(protected upstream: LazyIterator<Uint8Array>) {
+  private constructor(protected upstream: LazyIterator<Uint8Array>) {
     super();
+  }
+
+  static async create(upstream: LazyIterator<Uint8Array>) {
+    const result = new IDXIterator(upstream);
+    await result.readFirstChunk();
   }
 
   async readFirstChunk(): Promise<void> {
@@ -79,11 +82,6 @@ export class IDXIterator extends QueueIterator<tf.Tensor> {
   }
 
   async pump(): Promise<boolean> {
-    if (!this.isInitialized) {
-      await this.readFirstChunk();
-      this.isInitialized = true;
-      return true;
-    }
     const chunk = await this.upstream.next();
     return this.pumpImpl(chunk);
   }

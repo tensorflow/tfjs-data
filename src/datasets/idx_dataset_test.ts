@@ -16,7 +16,7 @@
  * =============================================================================
  */
 
-import * as tf from '@tensorflow/tfjs-core/dist';
+import * as tf from '@tensorflow/tfjs-core';
 
 import {FileDataSource, IDXDataset} from '..';
 import {DataElementObject} from '../types';
@@ -65,7 +65,7 @@ describe('IdxDataset', () => {
     expect(result.length).toEqual(5);
     for (let i = 0; i < 5; i++) {
       const element = result[i] as DataElementObject;
-      const elementData = element['data'] as any as tf.Tensor;
+      const elementData = element['data'] as tf.Tensor;
 
       tf.test_util.expectArraysEqual(
           elementData, tf.tensor2d(values[i], [2, 3]));

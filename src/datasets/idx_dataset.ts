@@ -34,7 +34,7 @@ export class IDXDataset extends Dataset<DataElementObject> {
   /**
    * Create an `IDXDataset`.
    *
-   * @param input A `DataSource` providing a chunked, UTF8-encoded byte stream.
+   * @param input A `DataSource` providing a chunked byte stream.
    * @param columnName The key to use in the resulting `DatasetElement`s
    *   (default 'data').
    */
@@ -44,9 +44,8 @@ export class IDXDataset extends Dataset<DataElementObject> {
     super();
   }
 
-  iterator(): LazyIterator<DataElementObject> {
-    const tensorStream = new IDXIterator(this.input.iterator());
-    return tensorStream.map(
-        x => ({[this.columnName]: x} as any as DataElementObject));
+  async iterator(): Promise<LazyIterator<DataElementObject>> {
+    const tensorStream = await IDXIterator.create(this.input.iterator());
+    return tensorStream.map(x => ({[this.columnName]: x}));
   }
 }
