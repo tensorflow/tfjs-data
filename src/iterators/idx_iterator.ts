@@ -36,9 +36,11 @@ export class IDXIterator extends QueueIterator<tf.Tensor> {
     super();
   }
 
-  static async create(upstream: LazyIterator<Uint8Array>) {
+  static async create(upstream: LazyIterator<Uint8Array>):
+      Promise<IDXIterator> {
     const result = new IDXIterator(upstream);
     await result.readFirstChunk();
+    return result;
   }
 
   async readFirstChunk(): Promise<void> {

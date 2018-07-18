@@ -45,7 +45,7 @@ export class IDXDataset extends Dataset<DataElementObject> {
   }
 
   async iterator(): Promise<LazyIterator<DataElementObject>> {
-    const tensorStream = await IDXIterator.create(this.input.iterator());
+    const tensorStream = await IDXIterator.create(await this.input.iterator());
     return tensorStream.map(x => ({[this.columnName]: x}));
   }
 }
