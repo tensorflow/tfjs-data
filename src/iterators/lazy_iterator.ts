@@ -160,11 +160,13 @@ export abstract class LazyIterator<T> {
    *   when the stream is exhausted.
    */
   async collectRemaining(): Promise<T[]> {
+    const stream = this.prefetch(100);
+    
     const result: T[] = [];
-    let x = await this.next();
+    let x = await stream.next();
     while (!x.done) {
       result.push(x.value);
-      x = await this.next();
+      x = await stream.next();
     }
     return result;
   }
