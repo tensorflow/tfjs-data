@@ -38,7 +38,7 @@ export class FileDataSource extends DataSource {
     super();
   }
 
-  iterator(): FileChunkIterator {
+  async iterator(): Promise<FileChunkIterator> {
     return new FileChunkIterator(this.input, this.options);
   }
 }
