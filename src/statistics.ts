@@ -16,7 +16,7 @@
  * =============================================================================
  */
 
-import * as tf from '@tensorflow/tfjs-core';
+import * as tf from '../.yalc/@tensorflow/tfjs-core/dist';
 
 import {Dataset} from './dataset';
 import {ElementArray, TabularRecord} from './types';

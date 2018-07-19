@@ -16,9 +16,10 @@
  * =============================================================================
  */
 
-import {iteratorFromConcatenatedFunction} from './lazy_iterator';
-import {PrefetchIterator} from './lazy_iterator';
-import {TestIntegerIterator} from './lazy_iterator_test';
+// tslint:disable:max-line-length
+import {iteratorFromConcatenatedFunction, PrefetchIterator} from './stateless_iterator';
+import {TestIntegerIterator} from './stateless_iterator_test';
+// tslint:enable:max-line-length
 
 describe('PrefetchIterator', () => {
   it('fetches a stream completely (stream size < buffer size)', done => {

@@ -16,11 +16,11 @@
  * =============================================================================
  */
 
-import * as tf from '@tensorflow/tfjs-core';
+import * as tf from '../.yalc/@tensorflow/tfjs-core/dist';
 
 // tslint:disable:max-line-length
 import {Dataset} from './dataset';
-import {LazyIterator} from './iterators/lazy_iterator';
+import {LazyIterator} from './stateless_iterators/stateless_iterator';
 import {BatchArray, DataElement, DatasetBatch, ElementArray, TabularRecord} from './types';
 // tslint:enable:max-line-length
 

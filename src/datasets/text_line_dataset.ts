@@ -18,7 +18,7 @@
 
 import {Dataset} from '../dataset';
 import {DataSource} from '../datasource';
-import {LazyIterator} from '../iterators/lazy_iterator';
+import {LazyIterator} from '../stateless_iterators/stateless_iterator';
 
 /**
  * Represents a potentially large collection of text lines.
@@ -39,6 +39,6 @@ export class TextLineDataset extends Dataset<string> {
     const inputIterator = this.input.iterator();
     const utf8Iterator = inputIterator.decodeUTF8();
     const lineIterator = utf8Iterator.split('\n');
-    return lineIterator;
+    return lineIterator.strictOrder();
   }
 }

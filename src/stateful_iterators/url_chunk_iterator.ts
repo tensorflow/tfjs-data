@@ -18,7 +18,7 @@
 
 import {ByteChunkIterator} from './byte_chunk_iterator';
 import {FileChunkIterator} from './file_chunk_iterator';
-import {QueueIterator} from './lazy_iterator';
+import {OneToManyIterator, StatefulOneToManyIterator} from './stateful_iterator';
 
 // We wanted multiple inheritance, e.g.
 //   class URLIterator extends QueueIterator<Uint8Array>, ByteChunkIterator
@@ -33,7 +33,7 @@ export class URLChunkIterator extends ByteChunkIterator {
     this.impl = new URLChunkIteratorImpl(url, options);
   }
 
-  async next() {
+  async statefulNext() {
     return this.impl.next();
   }
 }
@@ -45,7 +45,7 @@ export class URLChunkIterator extends ByteChunkIterator {
  * the first element from the stream.  This is because the Fetch API does not
  * yet reliably provide a reader stream for the response body.
  */
-class URLChunkIteratorImpl extends QueueIterator<Uint8Array> {
+class URLChunkIteratorImpl extends StatefulOneToManyIterator<Uint8Array> {
   private blobPromise: Promise<Blob>;
   private fileChunkIterator: FileChunkIterator;
 
@@ -70,7 +70,7 @@ class URLChunkIteratorImpl extends QueueIterator<Uint8Array> {
     });
   }
 
-  async pump(): Promise<boolean> {
+  async statefulPump(): Promise<boolean> {
     if (this.fileChunkIterator == null) {
       const blob = await this.blobPromise;
       this.fileChunkIterator = new FileChunkIterator(blob, this.options);

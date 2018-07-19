@@ -35,6 +35,17 @@ const csvBlob = new Blob([csvData]);
 
 const csvBlobWithHeaders = new Blob([csvDataWithHeaders]);
 
+const csvDataExtra = `A,B,C
+1,2,3
+2,2,3
+3,2,3
+4,2,3
+5,2,3
+6,2,3
+7,2,3`;
+
+const csvBlobWithHeadersExtra = new Blob([csvDataExtra]);
+
 describe('CSVDataset', () => {
   it('produces a stream of dicts containing UTF8-decoded csv data', done => {
     const source = new FileDataSource(csvBlob, {chunkSize: 10});
@@ -102,5 +113,26 @@ describe('CSVDataset', () => {
           .then(done)
           .catch(done.fail);
     });
+  });
+
+  it('array of promises', async () => {
+    const source = new FileDataSource(csvBlobWithHeadersExtra, {chunkSize: 10});
+    const ds = await CSVDataset.create(source, CsvHeaderConfig.READ_FIRST_LINE);
+    expect(ds.csvColumnNames).toEqual(['A', 'B', 'C']);
+    const csvIterator = ds.iterator();
+    /*const promises = [
+      csvIterator.next(), csvIterator.next(), csvIterator.next(),
+      csvIterator.next(), csvIterator.next()
+    ];*/
+    const a = csvIterator.next();
+    console.log('WAT WAT', await a);
+    const b = csvIterator.next();
+    const c = csvIterator.next();
+    const d = csvIterator.next();
+    const e = csvIterator.next();
+    const f = csvIterator.next();
+    const promises = [a, b, c, d, e, f];
+    const elements = await Promise.all(promises);
+    elements.forEach(x => console.log(x));
   });
 });

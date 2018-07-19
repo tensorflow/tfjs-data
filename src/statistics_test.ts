@@ -15,8 +15,9 @@
  * =============================================================================
  */
 
-import * as tf from '@tensorflow/tfjs-core';
 import {describeWithFlags} from '@tensorflow/tfjs-core/dist/jasmine_util';
+
+import * as tf from '../.yalc/@tensorflow/tfjs-core/dist';
 
 import {Dataset} from '.';
 import {TestDataset} from './dataset_test';

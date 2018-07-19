@@ -17,8 +17,7 @@
  */
 
 import {DataSource} from '../datasource';
-import {ByteChunkIterator} from '../iterators/byte_chunk_iterator';
-import {URLChunkIterator} from '../iterators/url_chunk_iterator';
+import {URLChunkIterator} from '../stateful_iterators/url_chunk_iterator';
 
 /*
  * Represents a URL readable as a stream of binary data chunks.
@@ -41,7 +40,7 @@ export class URLDataSource extends DataSource {
   // will download the URL anew for each call to iterator().  Since we have
   // to treat the downloaded file as a blob anyway, we may as well retain it--
   // but that raises GC issues.  Also we may want a persistent disk cache.
-  iterator(): ByteChunkIterator {
+  iterator(): URLChunkIterator {
     return new URLChunkIterator(this.url, this.options);
   }
 }

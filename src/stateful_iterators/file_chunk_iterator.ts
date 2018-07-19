@@ -18,6 +18,7 @@
 
 // inspired by https://github.com/maxogden/filereader-stream
 import {ByteChunkIterator} from './byte_chunk_iterator';
+import {StatefulIteratorResult} from './stateful_iterator';
 
 export interface FileChunkIteratorOptions {
   /** The byte offset at which to begin reading the File or Blob. Default 0. */
@@ -26,6 +27,9 @@ export interface FileChunkIteratorOptions {
   chunkSize?: number;
 }
 
+interface FileChunkIteratorState {
+  readonly offset: number;
+}
 /**
  * Provide a stream of chunks from a File or Blob.
  * @param file The source File or Blob.
@@ -33,23 +37,34 @@ export interface FileChunkIteratorOptions {
  * @returns a lazy Iterator of Uint8Arrays containing sequential chunks of the
  *   input file.
  */
-export class FileChunkIterator extends ByteChunkIterator {
-  offset: number;
-  chunkSize: number;
+export class FileChunkIterator extends
+    ByteChunkIterator<FileChunkIteratorState> {
+  readonly chunkSize: number;
 
   constructor(
       protected file: File|Blob,
       protected options: FileChunkIteratorOptions = {}) {
     super();
-    this.offset = options.offset || 0;
     // default 1MB chunk has tolerable perf on large files
-    this.chunkSize = options.chunkSize || 1024 * 1024;
+    this.chunkSize = this.options.chunkSize || 1024 * 1024;
   }
 
-  async next(): Promise<IteratorResult<Uint8Array>> {
-    if (this.offset >= this.file.size) {
-      return {value: null, done: true};
+  initialState() {
+    const offset = this.options.offset || 0;
+    return {offset};
+  }
+
+  async statefulNext(state: FileChunkIteratorState):
+      Promise<StatefulIteratorResult<Uint8Array, FileChunkIteratorState>> {
+    if (state.offset >= this.file.size) {
+      console.log('File done at offset ', state.offset);
+      return {value: null, done: true, state};
     }
+    const start = state.offset;
+    const end = start + this.chunkSize;
+
+    console.log(`Prepared chunk: ${start} - ${end}`);
+
     const chunk = new Promise<Uint8Array>((resolve, reject) => {
       // TODO(soergel): is this a performance issue?
       const fileReader = new FileReader();
@@ -73,14 +88,12 @@ export class FileChunkIterator extends ByteChunkIterator {
         return reject(new Error(event.type));
       };
       // TODO(soergel): better handle onabort, onerror
-      const end = this.offset + this.chunkSize;
       // Note if end > this.file.size, we just get a small last chunk.
-      const slice = this.file.slice(this.offset, end);
+      const slice = this.file.slice(start, end);
       // We can't use readAsText here (even if we know the file is text)
       // because the slice boundary may fall within a multi-byte character.
       fileReader.readAsArrayBuffer(slice);
-      this.offset = end;
     });
-    return {value: (await chunk), done: false};
+    return {value: (await chunk), done: false, state: {offset: end}};
   }
 }

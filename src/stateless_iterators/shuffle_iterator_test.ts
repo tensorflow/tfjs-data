@@ -16,10 +16,11 @@
  * =============================================================================
  */
 
-import {ChainedIterator, iteratorFromItems} from './lazy_iterator';
-import {iteratorFromConcatenatedFunction} from './lazy_iterator';
-import {ShuffleIterator} from './lazy_iterator';
-import {TestIntegerIterator} from './lazy_iterator_test';
+// tslint:disable:max-line-length
+import {ChainedIterator, iteratorFromConcatenatedFunction, iteratorFromItems, ShuffleIterator} from './stateless_iterator';
+import {TestIntegerIterator} from './stateless_iterator_test';
+
+// tslint:enable:max-line-length
 
 const LONG_STREAM_LENGTH = 100;
 const SHORT_STREAM_LENGTH = 15;

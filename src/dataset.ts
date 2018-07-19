@@ -16,16 +16,16 @@
  * =============================================================================
  */
 
-import * as tf from '@tensorflow/tfjs-core';
+// tslint:disable:max-line-length
+import * as tf from '@tensorflow/tfjs-core/dist';
 import * as seedrandom from 'seedrandom';
 
 import {BatchDataset} from './batch_dataset';
-// tslint:disable:max-line-length
-import {iteratorFromFunction, iteratorFromZipped, LazyIterator, ZipMismatchMode} from './iterators/lazy_iterator';
-import {iteratorFromConcatenated} from './iterators/lazy_iterator';
-import {iteratorFromItems} from './iterators/lazy_iterator';
+import {iteratorFromZipped, ZipMismatchMode} from './stateful_iterators/zip_iterator';
+import {iteratorFromConcatenated, iteratorFromFunction, iteratorFromItems, LazyIterator} from './stateless_iterators/stateless_iterator';
 import {DataElement, DatasetContainer} from './types';
 import {deepMap, isIterable} from './util/deep_map';
+// tslint:enable:max-line-length
 
 // TODO(soergel): consider vectorized operations within the pipeline.
 

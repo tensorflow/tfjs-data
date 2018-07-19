@@ -21,7 +21,7 @@ import {describeWithFlags} from '@tensorflow/tfjs-core/dist/jasmine_util';
 
 // tslint:disable:max-line-length
 import {Dataset, datasetFromElements, datasetFromIteratorFn, zip} from './dataset';
-import {iteratorFromFunction, iteratorFromItems, LazyIterator} from './iterators/lazy_iterator';
+import {iteratorFromFunction, iteratorFromItems, LazyIterator} from './stateless_iterators/stateless_iterator';
 import {DataElementObject, DatasetContainer} from './types';
 
 // tslint:enable:max-line-length
