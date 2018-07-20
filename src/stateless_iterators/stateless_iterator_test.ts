@@ -17,14 +17,14 @@
  */
 
 // tslint:disable:max-line-length
+import {imposeStrictOrder, iteratorFromConcatenated, iteratorFromConcatenatedFunction, OrderedLazyIterator} from '../stateful_iterators/stateful_iterator';
+
 import {iteratorFromIncrementing, LazyIterator} from './stateless_iterator';
-import {iteratorFromConcatenated} from './stateless_iterator';
-import {iteratorFromConcatenatedFunction} from './stateless_iterator';
 import {iteratorFromFunction, iteratorFromItems} from './stateless_iterator';
 
 // tslint:enable:max-line-length
 
-export class TestIntegerIterator extends LazyIterator<number> {
+export class TestIntegerIterator extends OrderedLazyIterator<number> {
   currentIndex = 0;
   data: number[];
 
@@ -33,7 +33,7 @@ export class TestIntegerIterator extends LazyIterator<number> {
     this.data = Array.from({length}, (v, k) => k);
   }
 
-  async next(): Promise<IteratorResult<number>> {
+  async orderedNext(): Promise<IteratorResult<number>> {
     if (this.currentIndex >= this.length) {
       return {value: null, done: true};
     }
@@ -43,14 +43,14 @@ export class TestIntegerIterator extends LazyIterator<number> {
     // This purposely scrambles the order in which these promises are resolved,
     // to demonstrate that the various methods still process the stream
     // in the correct order.
-    if (Math.random() < 0.1) {
-      await new Promise(res => setTimeout(res, 1));
+    if (Math.random() < 0.2) {
+      await new Promise(res => setTimeout(res, Math.random() * 4));
     }
     return {value: result, done: false};
   }
 }
 
-describe('LazyIterator', () => {
+fdescribe('LazyIterator', () => {
   it('collects all stream elements into an array', done => {
     const readIterator = new TestIntegerIterator();
     readIterator.collectRemaining()
@@ -63,6 +63,7 @@ describe('LazyIterator', () => {
 
   it('reads chunks in order', done => {
     const readIterator = new TestIntegerIterator();
+    // const orderedStream = imposeStrictOrder(readIterator);
     readIterator.collectRemaining()
         .then(result => {
           expect(result.length).toEqual(100);
@@ -74,21 +75,19 @@ describe('LazyIterator', () => {
         .catch(done.fail);
   });
 
-  it('filters elements', done => {
+  fit('filters elements', async () => {
     const readIterator = new TestIntegerIterator().filter(x => x % 2 === 0);
-    readIterator.collectRemaining()
-        .then(result => {
-          expect(result.length).toEqual(50);
-          for (let i = 0; i < 50; i++) {
-            expect(result[i]).toEqual(2 * i);
-          }
-        })
-        .then(done)
-        .catch(done.fail);
+    // const orderedStream = imposeStrictOrder(readIterator);
+    const result = await readIterator.collectRemaining();
+    expect(result.length).toEqual(50);
+    for (let i = 0; i < 50; i++) {
+      expect(result[i]).toEqual(2 * i);
+    }
   });
 
   it('maps elements', done => {
     const readIterator = new TestIntegerIterator().map(x => `item ${x}`);
+    // const orderedStream = imposeStrictOrder(readIterator);
     readIterator.collectRemaining()
         .then(result => {
           expect(result.length).toEqual(100);
@@ -103,6 +102,7 @@ describe('LazyIterator', () => {
   it('flatmaps simple elements', done => {
     const readStream = new TestIntegerIterator().flatmap(
         x => [`item ${x} A`, `item ${x} B`, `item ${x} C`]);
+    // const orderedStream = imposeStrictOrder(readStream);
     readStream.collectRemaining()
         .then(result => {
           expect(result.length).toEqual(300);
@@ -123,7 +123,8 @@ describe('LazyIterator', () => {
              {foo: `foo ${x} B`, bar: `bar ${x} B`},
              {foo: `foo ${x} C`, bar: `bar ${x} C`},
     ]);
-    readStream.collectRemaining()
+    const orderedStream = imposeStrictOrder(readStream);
+    orderedStream.collectRemaining()
         .then(result => {
           expect(result.length).toEqual(300);
           for (let i = 0; i < 100; i++) {
@@ -146,7 +147,8 @@ describe('LazyIterator', () => {
             [`foo ${x} B`, `bar ${x} B`],
             [`foo ${x} C`, `bar ${x} C`],
     ]);
-    readStream.collectRemaining()
+    const orderedStream = imposeStrictOrder(readStream);
+    orderedStream.collectRemaining()
         .then(result => {
           expect(result.length).toEqual(300);
           for (let i = 0; i < 100; i++) {
@@ -160,7 +162,7 @@ describe('LazyIterator', () => {
   });
 
   it('batches elements', done => {
-    const readIterator = new TestIntegerIterator().batch(8);
+    const readIterator = imposeStrictOrder(new TestIntegerIterator().batch(8));
     readIterator.collectRemaining()
         .then(result => {
           expect(result.length).toEqual(13);
@@ -205,7 +207,8 @@ describe('LazyIterator', () => {
 
   it('can skip a certain number of elements', done => {
     const readIterator = new TestIntegerIterator().skip(88).take(8);
-    readIterator.collectRemaining()
+    const orderedStream = imposeStrictOrder(readIterator);
+    orderedStream.collectRemaining()
         .then(result => {
           expect(result).toEqual([88, 89, 90, 91, 92, 93, 94, 95]);
         })

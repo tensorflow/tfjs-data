@@ -1,3 +1,5 @@
+import {ByteChunkIterator} from './stateful_iterators/byte_chunk_iterator';
+
 /**
  * @license
  * Copyright 2018 Google LLC. All Rights Reserved.
@@ -15,8 +17,6 @@
  *
  * =============================================================================
  */
-
-import {ByteChunkIterator} from './iterators/byte_chunk_iterator';
 
 /**
  * Represents a data source readable as a stream of binary data chunks.

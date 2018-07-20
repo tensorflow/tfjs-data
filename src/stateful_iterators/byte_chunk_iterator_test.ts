@@ -26,9 +26,11 @@ const testBlob = new Blob([runes]);
 
 describe('ByteChunkIterator.decodeUTF8()', () => {
   it('Correctly reassembles split characters', done => {
-    const byteChunkIterator = new FileChunkIterator(testBlob, {chunkSize: 50});
-    const utf8Iterator = byteChunkIterator.decodeUTF8();
     expect(testBlob.size).toEqual(323);
+
+    const byteChunkIterator = new FileChunkIterator(testBlob, {chunkSize: 50});
+    // console.log('aoeu ' + byteChunkIterator.next());
+    const utf8Iterator = byteChunkIterator.decodeUTF8();
 
     utf8Iterator.collectRemaining()
         .then((result: string[]) => {
@@ -42,6 +44,18 @@ describe('ByteChunkIterator.decodeUTF8()', () => {
               result.map(x => x.length).reduce((a, b) => a + b);
           expect(totalCharacters).toEqual(109);
           expect(result.join('')).toEqual(runes);
+        })
+        .then(done)
+        .catch(done.fail);
+  });
+
+  it('Reads the entire file and then closes the stream', done => {
+    const readIterator = new FileChunkIterator(testBlob, {chunkSize: 50});
+    readIterator.collectRemaining()
+        .then(result => {
+          expect(result.length).toEqual(7);
+          const totalBytes = result.map(x => x.length).reduce((a, b) => a + b);
+          expect(totalBytes).toEqual(323);
         })
         .then(done)
         .catch(done.fail);

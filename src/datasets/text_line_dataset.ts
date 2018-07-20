@@ -39,6 +39,6 @@ export class TextLineDataset extends Dataset<string> {
     const inputIterator = await this.input.iterator();
     const utf8Iterator = inputIterator.decodeUTF8();
     const lineIterator = utf8Iterator.split('\n');
-    return lineIterator.strictOrder();
+    return lineIterator;
   }
 }

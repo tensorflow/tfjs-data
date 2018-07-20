@@ -288,6 +288,7 @@ describeWithFlags('Dataset', tf.test_util.CPU_ENVS, () => {
       const ds = new TestDataset();
       expect(tf.memory().numTensors).toEqual(0);
       const result = await ds.skip(15).collectAll();
+      console.log('Skip result: ', result);
       // The test dataset had 100 elements; we skipped 15; 85 remain.
       expect(result.length).toEqual(85);
       // Each element of the test dataset contains 2 Tensors;

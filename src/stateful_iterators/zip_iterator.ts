@@ -17,6 +17,7 @@
  */
 
 // tslint:disable:max-line-length
+import {LazyIterator} from '../stateless_iterators/stateless_iterator';
 import {DataElement, IteratorContainer} from '../types';
 import {deepMapAndAwaitAll, DeepMapAsyncResult} from '../util/deep_map';
 
@@ -108,7 +109,8 @@ export class ZipIterator extends StatefulLazyIterator<DataElement, ZipState> {
     let iteratorsDone = 0;
 
     function getNext(container: IteratorContainer): DeepMapAsyncResult {
-      if (container instanceof OrderedLazyIterator) {
+      // console.log('deepmap getnext: ', container);
+      if (container instanceof LazyIterator) {
         const result = container.next();
         return {
           value: result.then(x => {
@@ -124,9 +126,8 @@ export class ZipIterator extends StatefulLazyIterator<DataElement, ZipState> {
         return {value: null, recurse: true};
       }
     }
-
+    // console.log('Going to deepMap: ', this.iterators);
     const mapped = await deepMapAndAwaitAll(this.iterators, getNext);
-
     if (numIterators === iteratorsDone) {
       // The streams have all ended.
       return {value: null, done: true, state: {count: state.count++}};
@@ -145,6 +146,7 @@ export class ZipIterator extends StatefulLazyIterator<DataElement, ZipState> {
       }
     }
 
-    return {value: mapped, done: false, state: {count: state.count++}};
+    const result = {value: mapped, done: false, state: {count: state.count++}};
+    return result;
   }
 }

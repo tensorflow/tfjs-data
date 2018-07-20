@@ -18,6 +18,7 @@
 
 import {Dataset} from '../dataset';
 import {DataSource} from '../datasource';
+import {imposeStrictOrder} from '../stateful_iterators/stateful_iterator';
 import {LazyIterator} from '../stateless_iterators/stateless_iterator';
 import {DataElement, ElementArray} from '../types';
 
@@ -83,7 +84,7 @@ export class CSVDataset extends Dataset<DataElement> {
     } else {
       this._csvColumnNames = csvColumnNames;
     }
-    console.log('Found column headers: ' + this._csvColumnNames);
+    // console.log('Found column headers: ' + this._csvColumnNames);
   }
 
   /**
@@ -101,7 +102,7 @@ export class CSVDataset extends Dataset<DataElement> {
       csvColumnNames: CsvHeaderConfig|string[] = CsvHeaderConfig.NUMBERED) {
     const result = new CSVDataset(input);
     await result.setCsvColumnNames(csvColumnNames);
-    console.log('Done finding column names');
+    // console.log('Done finding column names');
     return result;
   }
 
@@ -110,13 +111,13 @@ export class CSVDataset extends Dataset<DataElement> {
     if (this.hasHeaderLine) {
       // We previously read the first line to get the headers.
       // Now that we're providing data, skip it.
-      lines = lines.skip(1);
+      lines = imposeStrictOrder(lines).skip(1);
     }
     return lines.map(x => this.makeDataElement(x));
   }
 
   makeDataElement(line: string): DataElement {
-    console.log('Got line: ' + line);
+    // console.log('Got line: ' + line);
     // TODO(soergel): proper CSV parsing with escaping, quotes, etc.
     // TODO(soergel): alternate separators, e.g. for TSV
     const values = line.split(',');

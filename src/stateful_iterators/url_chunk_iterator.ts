@@ -28,7 +28,8 @@ import {FileChunkIterator, FileChunkIteratorOptions} from './file_chunk_iterator
  * yet reliably provide a reader stream for the response body.
  */
 export async function urlChunkIterator(
-    url: RequestInfo, fileOptions: FileChunkIteratorOptions = {}) {
+    url: RequestInfo,
+    fileOptions: FileChunkIteratorOptions = {}): Promise<FileChunkIterator> {
   const response = await fetch(url);
   if (response.ok) {
     const blob = await response.blob();

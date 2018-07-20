@@ -18,13 +18,16 @@
 
 import * as utf8 from 'utf8';
 
+import {applyMixins} from '../util/mixins';
+
 // tslint:disable:max-line-length
-import {OrderedLazyIterator, StatefulLazyIterator, StatefulOneToManyIterator, StatefulPumpResult} from './stateful_iterator';
+import {OrderedLazyIterator, StatefulOneToManyIterator, StatefulPumpResult} from './stateful_iterator';
+import {StringChunkIterator} from './string_iterator';
 
 // tslint:enable:max-line-length
 
-export abstract class ByteChunkIterator<S> extends
-    StatefulLazyIterator<Uint8Array, S> {
+export abstract class ByteChunkIterator extends
+    OrderedLazyIterator<Uint8Array> {
   /**
    * Decode a stream of UTF8-encoded byte arrays to a stream of strings.
    *
@@ -34,7 +37,7 @@ export abstract class ByteChunkIterator<S> extends
    * character may span the boundary between chunks.  This naturally happens,
    * for instance, when reading fixed-size byte arrays from a file.
    */
-  decodeUTF8(): OrderedLazyIterator<string> {
+  decodeUTF8(): StringChunkIterator {
     return new Utf8Iterator(this);
   }
 }
@@ -50,29 +53,6 @@ interface Utf8IteratorState {
   readonly partial: Uint8Array;
   // The number of bytes of that array that are populated so far.
   readonly partialBytesValid: number;
-}
-
-// We wanted multiple inheritance, e.g.
-//   class Utf8Iterator
-//     extends StatefulOneToManyIterator<string, {}>, StringChunkIterator
-// but the TypeScript mixin approach is a bit hacky, so we take this adapter
-// approach instead.
-
-class Utf8Iterator extends StatefulLazyIterator<string, Utf8IteratorState> {
-  private impl: Utf8IteratorImpl;
-
-  constructor(upstream: StatefulLazyIterator<Uint8Array, {}>) {
-    super();
-    this.impl = new Utf8IteratorImpl(upstream);
-  }
-
-  initialState() {
-    return this.impl.initialState();
-  }
-
-  async statefulNext(state: Utf8IteratorState) {
-    return this.impl.statefulNext(state);
-  }
 }
 
 /**
@@ -96,16 +76,17 @@ class Utf8Iterator extends StatefulLazyIterator<string, Utf8IteratorState> {
  *   naturally happens, for instance, when reading fixed-size byte arrays from a
  *   file.
  */
-class Utf8IteratorImpl extends
-    StatefulOneToManyIterator<string, Utf8IteratorState> {
-  constructor(protected readonly upstream:
-                  StatefulLazyIterator<Uint8Array, {}>) {
+class Utf8Iterator extends StatefulOneToManyIterator<string, Utf8IteratorState>
+    implements StringChunkIterator {
+  constructor(protected readonly upstream: OrderedLazyIterator<Uint8Array>) {
     super();
+    // console.log('Created UTF8 based on: ', upstream);
   }
 
   initialState() {
     return {partial: new Uint8Array([]), partialBytesValid: 0};
   }
+
   async statefulPump(state: Utf8IteratorState):
       Promise<StatefulPumpResult<Utf8IteratorState>> {
     const chunkResult = await this.upstream.next();
@@ -162,9 +143,13 @@ class Utf8IteratorImpl extends
       newState = {partial, partialBytesValid};
     }
 
-    return {pumpDidWork: false, state: newState};
+    return {pumpDidWork: true, state: newState};
   }
+
+  // StringChunkIterator
+  split: (separator: string) => StringChunkIterator;
 }
+applyMixins(Utf8Iterator, [StringChunkIterator]);
 
 function utfWidth(firstByte: number): number {
   if (firstByte >= 252) {

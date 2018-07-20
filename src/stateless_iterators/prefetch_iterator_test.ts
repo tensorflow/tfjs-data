@@ -17,8 +17,11 @@
  */
 
 // tslint:disable:max-line-length
-import {iteratorFromConcatenatedFunction, PrefetchIterator} from './stateless_iterator';
-import {TestIntegerIterator} from './stateless_iterator_test';
+import {iteratorFromConcatenatedFunction} from '../stateless_iterators/stateless_iterator';
+import {TestIntegerIterator} from '../stateless_iterators/stateless_iterator_test';
+
+import {PrefetchIterator} from './stateless_iterator';
+
 // tslint:enable:max-line-length
 
 describe('PrefetchIterator', () => {
@@ -30,7 +33,23 @@ describe('PrefetchIterator', () => {
       expectedResult[j] = j;
     }
 
-    prefetchIterator.collectRemaining()
+    prefetchIterator.collectRemainingInOrder()
+        .then(result => {
+          expect(result).toEqual(expectedResult);
+        })
+        .then(done)
+        .catch(done.fail);
+  });
+
+  it('fetches a stream completely (stream size > buffer size)', done => {
+    const prefetchIterator =
+        new PrefetchIterator(new TestIntegerIterator(), 50);
+    const expectedResult: number[] = [];
+    for (let j = 0; j < 100; j++) {
+      expectedResult[j] = j;
+    }
+
+    prefetchIterator.collectRemainingInOrder()
         .then(result => {
           expect(result).toEqual(expectedResult);
         })

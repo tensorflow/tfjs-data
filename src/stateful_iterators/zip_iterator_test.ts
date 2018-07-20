@@ -23,83 +23,68 @@ import {iteratorFromZipped, ZipMismatchMode} from './zip_iterator';
 
 // tslint:enable:max-line-length
 
-describe('StatefulLazyIterator', () => {
-  it('can be created by zipping an array of streams', async done => {
-    try {
-      const a = new TestIntegerIterator();
-      const b = new TestIntegerIterator().map(x => x * 10);
-      const c = new TestIntegerIterator().map(x => 'string ' + x);
-      const readStream = iteratorFromZipped([a, b, c]);
-      const result = await readStream.collectRemaining();
-      expect(result.length).toEqual(100);
+describe('ZipIterator', () => {
+  it('can be created by zipping an array of streams', async () => {
+    const a = new TestIntegerIterator();
+    const b = new TestIntegerIterator().map(x => x * 10);
+    const c = new TestIntegerIterator().map(x => 'string ' + x);
+    const readStream = iteratorFromZipped([a, b, c]);
+    const result = await readStream.collectRemaining();
+    expect(result.length).toEqual(100);
 
-      // each result has the form [x, x * 10, 'string ' + x]
+    // each result has the form [x, x * 10, 'string ' + x]
 
-      for (const e of result) {
-        const ee = e as DataElementArray;
-        expect(ee[1]).toEqual(ee[0] as number * 10);
-        expect(ee[2]).toEqual('string ' + ee[0]);
-      }
-      done();
-    } catch (e) {
-      done.fail();
+    for (const e of result) {
+      const ee = e as DataElementArray;
+      expect(ee[1]).toEqual(ee[0] as number * 10);
+      expect(ee[2]).toEqual('string ' + ee[0]);
     }
   });
 
-  it('can be created by zipping a dict of streams', async done => {
-    try {
-      const a = new TestIntegerIterator();
-      const b = new TestIntegerIterator().map(x => x * 10);
-      const c = new TestIntegerIterator().map(x => 'string ' + x);
-      const readStream = iteratorFromZipped({a, b, c});
-      const result = await readStream.collectRemaining();
-      expect(result.length).toEqual(100);
+  it('can be created by zipping a dict of streams', async () => {
+    const a = new TestIntegerIterator();
+    const b = new TestIntegerIterator().map(x => x * 10);
+    const c = new TestIntegerIterator().map(x => 'string ' + x);
+    const readStream = iteratorFromZipped({a, b, c});
+    const result = await readStream.collectRemaining();
+    expect(result.length).toEqual(100);
 
-      // each result has the form {a: x, b: x * 10, c: 'string ' + x}
+    // each result has the form {a: x, b: x * 10, c: 'string ' + x}
 
-      for (const e of result) {
-        const ee = e as DataElementObject;
-        expect(ee['b']).toEqual(ee['a'] as number * 10);
-        expect(ee['c']).toEqual('string ' + ee['a']);
-      }
-      done();
-    } catch (e) {
-      done.fail();
+    for (const e of result) {
+      const ee = e as DataElementObject;
+      expect(ee['b']).toEqual(ee['a'] as number * 10);
+      expect(ee['c']).toEqual('string ' + ee['a']);
     }
   });
 
-  it('can be created by zipping a nested structure of streams', async done => {
-    try {
-      const a = new TestIntegerIterator().map(x => ({'a': x, 'constant': 12}));
-      const b = new TestIntegerIterator().map(
-          x => ({'b': x * 10, 'array': [x * 100, x * 200]}));
-      const c = new TestIntegerIterator().map(x => ({'c': 'string ' + x}));
-      const readStream = iteratorFromZipped([a, b, c]);
-      const result = await readStream.collectRemaining();
-      expect(result.length).toEqual(100);
+  it('can be created by zipping a nested structure of streams', async () => {
+    const a = new TestIntegerIterator().map(x => ({'a': x, 'constant': 12}));
+    const b = new TestIntegerIterator().map(
+        x => ({'b': x * 10, 'array': [x * 100, x * 200]}));
+    const c = new TestIntegerIterator().map(x => ({'c': 'string ' + x}));
+    const readStream = iteratorFromZipped([a, b, c]);
+    const result = await readStream.collectRemaining();
+    expect(result.length).toEqual(100);
 
-      // each result has the form
-      // [
-      //   {a: x, 'constant': 12}
-      //   {b: x * 10, 'array': [x * 100, x * 200]},
-      //   {c: 'string ' + x}
-      // ]
+    // each result has the form
+    // [
+    //   {a: x, 'constant': 12}
+    //   {b: x * 10, 'array': [x * 100, x * 200]},
+    //   {c: 'string ' + x}
+    // ]
 
-      for (const e of result) {
-        const ee = e as DataElementArray;
-        const aa = ee[0] as DataElementObject;
-        const bb = ee[1] as DataElementObject;
-        const cc = ee[2] as DataElementObject;
-        expect(aa['constant']).toEqual(12);
-        expect(bb['b']).toEqual(aa['a'] as number * 10);
-        expect(bb['array']).toEqual([
-          aa['a'] as number * 100, aa['a'] as number * 200
-        ]);
-        expect(cc['c']).toEqual('string ' + aa['a']);
-      }
-      done();
-    } catch (e) {
-      done.fail();
+    for (const e of result) {
+      const ee = e as DataElementArray;
+      const aa = ee[0] as DataElementObject;
+      const bb = ee[1] as DataElementObject;
+      const cc = ee[2] as DataElementObject;
+      expect(aa['constant']).toEqual(12);
+      expect(bb['b']).toEqual(aa['a'] as number * 10);
+      expect(bb['array']).toEqual([
+        aa['a'] as number * 100, aa['a'] as number * 200
+      ]);
+      expect(cc['c']).toEqual('string ' + aa['a']);
     }
   });
 
@@ -118,44 +103,34 @@ describe('StatefulLazyIterator', () => {
   });
 
   it('zip can be told to terminate when the shortest stream terminates',
-     async done => {
-       try {
-         const a = new TestIntegerIterator(10);
-         const b = new TestIntegerIterator(3);
-         const c = new TestIntegerIterator(2);
-         const readStream =
-             iteratorFromZipped([a, b, c], ZipMismatchMode.SHORTEST);
-         const result = await readStream.collectRemaining();
-         expect(result.length).toEqual(2);
-         done();
-       } catch (e) {
-         done.fail();
-       }
+     async () => {
+       const a = new TestIntegerIterator(10);
+       const b = new TestIntegerIterator(3);
+       const c = new TestIntegerIterator(2);
+       const readStream =
+           iteratorFromZipped([a, b, c], ZipMismatchMode.SHORTEST);
+       const result = await readStream.collectRemaining();
+       expect(result.length).toEqual(2);
      });
 
   it('zip can be told to terminate when the longest stream terminates',
-     async done => {
-       try {
-         const a = new TestIntegerIterator(10);
-         const b = new TestIntegerIterator(3);
-         const c = new TestIntegerIterator(2);
-         const readStream =
-             iteratorFromZipped([a, b, c], ZipMismatchMode.LONGEST);
-         const result = await readStream.collectRemaining();
-         expect(result.length).toEqual(10);
-         expect(result[9]).toEqual([9, null, null]);
-         done();
-       } catch (e) {
-         done.fail();
-       }
+     async () => {
+       const a = new TestIntegerIterator(10);
+       const b = new TestIntegerIterator(3);
+       const c = new TestIntegerIterator(2);
+       const readStream =
+           iteratorFromZipped([a, b, c], ZipMismatchMode.LONGEST);
+       const result = await readStream.collectRemaining();
+       expect(result.length).toEqual(10);
+       expect(result[9]).toEqual([9, null, null]);
      });
 
   /**
-   * This test demonstrates behavior that is intrinsic to the tf.data zip() API,
-   * but that may not be what users ultimately want when zipping dicts.
+   * This test demonstrates behavior that is intrinsic to the tf.data zip()
+   * API, but that may not be what users ultimately want when zipping dicts.
    * This may merit a convenience function (e.g., maybe flatZip()).
    */
-  it('zipping DataElement streams requires manual merge', async done => {
+  it('zipping DataElement streams requires manual merge', async () => {
     function naiveMerge(xs: DataElement[]): DataElement {
       const result = {};
       for (const x of xs) {
@@ -165,29 +140,23 @@ describe('StatefulLazyIterator', () => {
       return result;
     }
 
-    try {
-      const a = new TestIntegerIterator().map(x => ({'a': x}));
-      const b = new TestIntegerIterator().map(x => ({'b': x * 10}));
-      const c = new TestIntegerIterator().map(x => ({'c': 'string ' + x}));
-      const zippedStream = iteratorFromZipped([a, b, c]);
-      // At first, each result has the form
-      // [{a: x}, {b: x * 10}, {c: 'string ' + x}]
+    const a = new TestIntegerIterator().map(x => ({'a': x}));
+    const b = new TestIntegerIterator().map(x => ({'b': x * 10}));
+    const c = new TestIntegerIterator().map(x => ({'c': 'string ' + x}));
+    const zippedStream = iteratorFromZipped([a, b, c]);
+    // At first, each result has the form
+    // [{a: x}, {b: x * 10}, {c: 'string ' + x}]
 
-      const readStream =
-          zippedStream.map(e => naiveMerge(e as DataElementArray));
-      // Now each result has the form {a: x, b: x * 10, c: 'string ' + x}
+    const readStream = zippedStream.map(e => naiveMerge(e as DataElementArray));
+    // Now each result has the form {a: x, b: x * 10, c: 'string ' + x}
 
-      const result = await readStream.collectRemaining();
-      expect(result.length).toEqual(100);
+    const result = await readStream.collectRemaining();
+    expect(result.length).toEqual(100);
 
-      for (const e of result) {
-        const ee = e as DataElementObject;
-        expect(ee['b']).toEqual(ee['a'] as number * 10);
-        expect(ee['c']).toEqual('string ' + ee['a']);
-      }
-      done();
-    } catch (e) {
-      done.fail();
+    for (const e of result) {
+      const ee = e as DataElementObject;
+      expect(ee['b']).toEqual(ee['a'] as number * 10);
+      expect(ee['c']).toEqual('string ' + ee['a']);
     }
   });
 });

@@ -18,7 +18,8 @@
 
 // tslint:disable:max-line-length
 import {DataSource} from '../datasource';
-import {FileChunkIterator, FileChunkIteratorOptions} from '../stateful_iterators/file_chunk_iterator';
+import {ByteChunkIterator} from '../stateful_iterators/byte_chunk_iterator';
+import {FileChunkIteratorOptions} from '../stateful_iterators/file_chunk_iterator';
 import {urlChunkIterator} from '../stateful_iterators/url_chunk_iterator';
 // tslint:enable:max-line-length
 
@@ -43,7 +44,7 @@ export class URLDataSource extends DataSource {
   // will download the URL anew for each call to iterator().  Since we have
   // to treat the downloaded file as a blob anyway, we may as well retain it--
   // but that raises GC issues.  Also we may want a persistent disk cache.
-  async iterator(): Promise<FileChunkIterator> {
+  async iterator(): Promise<ByteChunkIterator> {
     return urlChunkIterator(this.url, this.fileOptions);
   }
 }

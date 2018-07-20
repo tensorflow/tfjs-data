@@ -17,8 +17,15 @@
  */
 
 // inspired by https://github.com/maxogden/filereader-stream
+
+// tslint:disable:max-line-length
+import {applyMixins} from '../util/mixins';
+
 import {ByteChunkIterator} from './byte_chunk_iterator';
-import {StatefulIteratorResult} from './stateful_iterator';
+import {StatefulIteratorResult, StatefulLazyIterator} from './stateful_iterator';
+import {StringChunkIterator} from './string_iterator';
+
+// tslint:enable:max-line-length
 
 export interface FileChunkIteratorOptions {
   /** The byte offset at which to begin reading the File or Blob. Default 0. */
@@ -27,7 +34,7 @@ export interface FileChunkIteratorOptions {
   chunkSize?: number;
 }
 
-interface FileChunkIteratorState {
+export interface FileChunkIteratorState {
   readonly offset: number;
 }
 /**
@@ -38,7 +45,8 @@ interface FileChunkIteratorState {
  *   input file.
  */
 export class FileChunkIterator extends
-    ByteChunkIterator<FileChunkIteratorState> {
+    StatefulLazyIterator<Uint8Array, FileChunkIteratorState> implements
+        ByteChunkIterator {
   readonly chunkSize: number;
 
   constructor(
@@ -46,24 +54,30 @@ export class FileChunkIterator extends
       protected options: FileChunkIteratorOptions = {}) {
     super();
     // default 1MB chunk has tolerable perf on large files
-    this.chunkSize = this.options.chunkSize || 1024 * 1024;
+    this.chunkSize = options.chunkSize || 1024 * 1024;
+
+    // override here because the super() call didn't have access to options.
+    this.lastStateful = Promise.resolve({
+      value: null,
+      done: false,
+      state: {offset: options.offset ? options.offset : 0}
+    });
   }
 
   initialState() {
-    const offset = this.options.offset || 0;
-    return {offset};
+    return {offset: 0};
   }
 
   async statefulNext(state: FileChunkIteratorState):
       Promise<StatefulIteratorResult<Uint8Array, FileChunkIteratorState>> {
     if (state.offset >= this.file.size) {
-      console.log('File done at offset ', state.offset);
+      // console.log('File done at offset ', state.offset);
       return {value: null, done: true, state};
     }
     const start = state.offset;
     const end = start + this.chunkSize;
 
-    console.log(`Prepared chunk: ${start} - ${end}`);
+    // console.log(`Prepared chunk: ${start} - ${end}`);
 
     const chunk = new Promise<Uint8Array>((resolve, reject) => {
       // TODO(soergel): is this a performance issue?
@@ -94,6 +108,12 @@ export class FileChunkIterator extends
       // because the slice boundary may fall within a multi-byte character.
       fileReader.readAsArrayBuffer(slice);
     });
-    return {value: (await chunk), done: false, state: {offset: end}};
+    const x = await chunk;
+    // console.log('file returning chunk: ', x);
+    return {value: x, done: false, state: {offset: end}};
   }
+
+  // ByteChunkIterator
+  decodeUTF8: () => StringChunkIterator;
 }
+applyMixins(FileChunkIterator, [ByteChunkIterator]);

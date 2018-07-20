@@ -18,8 +18,9 @@
  */
 
 // tslint:disable:max-line-length
-import {ChainedIterator, iteratorFromItems} from '../stateless_iterators/stateless_iterator';
+import {iteratorFromItems} from '../stateless_iterators/stateless_iterator';
 import {TestIntegerIterator} from '../stateless_iterators/stateless_iterator_test';
+import {ChainedIterator} from './stateful_iterator';
 // tslint:enable:max-line-length
 
 const SHORT_STREAM_LENGTH = 15;

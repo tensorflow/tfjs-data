@@ -17,6 +17,7 @@
  */
 
 import {FileDataSource} from '../sources/file_data_source';
+import {imposeStrictOrder} from '../stateful_iterators/stateful_iterator';
 
 import {CSVDataset, CsvHeaderConfig} from './csv_dataset';
 
@@ -55,7 +56,7 @@ describe('CSVDataset', () => {
        expect(dataset.csvColumnNames).toEqual(['foo', 'bar', 'baz']);
 
        const iter = await dataset.iterator();
-       const result = await iter.collectRemaining();
+       const result = await imposeStrictOrder(iter).collectRemaining();
 
        expect(result).toEqual([
          {'foo': 'ab', 'bar': 'cd', 'baz': 'ef'},
@@ -75,7 +76,7 @@ describe('CSVDataset', () => {
 
     expect(dataset.csvColumnNames).toEqual(['foo', 'bar', 'baz']);
     const iter = await dataset.iterator();
-    const result = await iter.collectRemaining();
+    const result = await imposeStrictOrder(iter).collectRemaining();
 
     expect(result).toEqual([
       {'foo': 'ab', 'bar': 'cd', 'baz': 'ef'},
@@ -93,7 +94,7 @@ describe('CSVDataset', () => {
     const dataset = await CSVDataset.create(source);
     expect(dataset.csvColumnNames).toEqual(['0', '1', '2']);
     const iter = await dataset.iterator();
-    const result = await iter.collectRemaining();
+    const result = await imposeStrictOrder(iter).collectRemaining();
 
     expect(result).toEqual([
       {'0': 'ab', '1': 'cd', '2': 'ef'},
@@ -110,13 +111,12 @@ describe('CSVDataset', () => {
     const source = new FileDataSource(csvBlobWithHeadersExtra, {chunkSize: 10});
     const ds = await CSVDataset.create(source, CsvHeaderConfig.READ_FIRST_LINE);
     expect(ds.csvColumnNames).toEqual(['A', 'B', 'C']);
-    const csvIterator = ds.iterator();
+    const csvIterator = await ds.iterator();
     /*const promises = [
       csvIterator.next(), csvIterator.next(), csvIterator.next(),
       csvIterator.next(), csvIterator.next()
     ];*/
     const a = csvIterator.next();
-    console.log('WAT WAT', await a);
     const b = csvIterator.next();
     const c = csvIterator.next();
     const d = csvIterator.next();

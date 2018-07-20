@@ -21,8 +21,9 @@ import * as tf from '@tensorflow/tfjs-core/dist';
 import * as seedrandom from 'seedrandom';
 
 import {BatchDataset} from './batch_dataset';
+import {imposeStrictOrder, iteratorFromConcatenated} from './stateful_iterators/stateful_iterator';
 import {iteratorFromZipped, ZipMismatchMode} from './stateful_iterators/zip_iterator';
-import {iteratorFromConcatenated, iteratorFromFunction, iteratorFromItems, LazyIterator} from './stateless_iterators/stateless_iterator';
+import {iteratorFromFunction, iteratorFromItems, LazyIterator} from './stateless_iterators/stateless_iterator';
 import {DataElement, DatasetContainer} from './types';
 import {deepMapAndAwaitAll, isIterable} from './util/deep_map';
 
@@ -68,7 +69,8 @@ export abstract class Dataset<T extends DataElement> {
   filter(filterer: (value: T) => boolean): Dataset<T> {
     const base = this;
     return datasetFromIteratorFn(async () => {
-      return (await base.iterator()).filter(x => tf.tidy(() => filterer(x)));
+      return imposeStrictOrder(await base.iterator())
+          .filter(x => tf.tidy(() => filterer(x)));
     });
   }
 
@@ -116,8 +118,8 @@ export abstract class Dataset<T extends DataElement> {
   concatenate(dataset: Dataset<T>): Dataset<T> {
     const base = this;
     return datasetFromIteratorFn(
-        async () =>
-            (await base.iterator()).concatenate(await dataset.iterator()));
+        async () => imposeStrictOrder(await base.iterator())
+                        .concatenate(await dataset.iterator()));
   }
 
   /**
@@ -136,7 +138,8 @@ export abstract class Dataset<T extends DataElement> {
     return datasetFromIteratorFn(async () => {
       const iteratorIterator = iteratorFromFunction(
           async () => ({value: await base.iterator(), done: false}));
-      return iteratorFromConcatenated(iteratorIterator.take(count));
+      return iteratorFromConcatenated(
+          imposeStrictOrder(iteratorIterator.take(count)));
     });
   }
 
@@ -168,7 +171,7 @@ export abstract class Dataset<T extends DataElement> {
   skip(count: number): Dataset<T> {
     const base = this;
     return datasetFromIteratorFn(
-        async () => (await base.iterator()).skip(count));
+        async () => imposeStrictOrder(await base.iterator()).skip(count));
   }
 
   // TODO(soergel): deep sharded shuffle, where supported

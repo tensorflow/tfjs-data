@@ -17,10 +17,47 @@
  */
 
 // tslint:disable:max-line-length
-import {LazyIterator} from '../stateless_iterators/stateless_iterator';
+
+import * as tf from '@tensorflow/tfjs-core';
+import {getTensorsInContainer, isTensorInList} from '@tensorflow/tfjs-core/dist/tensor_util';
+
+import {iteratorFromFunction, iteratorFromItems, LazyIterator} from '../stateless_iterators/stateless_iterator';
 import {GrowingRingBuffer} from '../util/growing_ring_buffer';
 import {RingBuffer} from '../util/ring_buffer';
 // tslint:enable:max-line-length
+
+/**
+ * Create a `LazyIterator` by concatenating underlying streams, which are
+ * themselves provided as a stream.
+ *
+ * This can also be thought of as a "stream flatten" operation.
+ *
+ * @param baseIterators A stream of streams to be concatenated.
+ */
+export function iteratorFromConcatenated<T>(
+    baseIterators: OrderedLazyIterator<LazyIterator<T>>): LazyIterator<T> {
+  return ChainedIterator.create(baseIterators);
+}
+
+/**
+ * Create a `LazyIterator` by concatenating streams produced by calling a
+ * stream-generating function a given number of times.
+ *
+ * Since a `LazyIterator` is read-once, it cannot be repeated, but this
+ * function can be used to achieve a similar effect:
+ *
+ *   LazyIterator.ofConcatenatedFunction(() => new MyIterator(), 6);
+ *
+ * @param iteratorFunc: A function that produces a new stream on each call.
+ * @param count: The number of times to call the function.
+ */
+export function iteratorFromConcatenatedFunction<T>(
+    iteratorFunc: () => IteratorResult<LazyIterator<T>>,
+    count: number): LazyIterator<T> {
+  return iteratorFromConcatenated(
+      imposeStrictOrder(iteratorFromFunction(iteratorFunc).take(count)));
+}
+
 export interface OrderedIteratorResult<T> extends IteratorResult<T> {}
 
 export interface StatefulIteratorResult<T, S> extends OrderedIteratorResult<T> {
@@ -28,7 +65,7 @@ export interface StatefulIteratorResult<T, S> extends OrderedIteratorResult<T> {
 }
 
 export abstract class OrderedLazyIterator<T> extends LazyIterator<T> {
-  protected lastRead: Promise<OrderedIteratorResult<T>>;
+  private lastRead: Promise<OrderedIteratorResult<T>>;
 
   constructor() {
     super();
@@ -36,30 +73,261 @@ export abstract class OrderedLazyIterator<T> extends LazyIterator<T> {
   }
 
   async next(): Promise<IteratorResult<T>> {
-    const x = await this.lastRead;
-    console.log('Last read was', x);
-    this.lastRead = this.orderedNext(x);
+    this.lastRead = this.advance(this.lastRead);
     return this.lastRead;
   }
 
-  abstract async orderedNext(prev: OrderedIteratorResult<T>):
-      Promise<OrderedIteratorResult<T>>;
+  private async advance(t: Promise<OrderedIteratorResult<T>>):
+      Promise<OrderedIteratorResult<T>> {
+    await t;
+    return this.orderedNext();
+  }
+
+  abstract async orderedNext(): Promise<OrderedIteratorResult<T>>;
+
+  /**
+   * Filters this stream according to `predicate`.
+   *
+   * @param predicate A function mapping a stream element to a boolean or a
+   * `Promise` for one.
+   *
+   * @returns A `LazyIterator` of elements for which the predicate was true.
+   */
+  filter(predicate: (value: T) => boolean): OrderedLazyIterator<T> {
+    return new FilterIterator(this, predicate);
+  }
+
+  /**
+   * Maps this stream through a 1-to-many transform.
+   *
+   * @param predicate A function mapping a stream element to an array of
+   *   transformed elements.
+   *
+   * @returns A `DataStream` of transformed elements.
+   */
+  flatmap<O>(transform: (value: T) => O[]): OrderedLazyIterator<O> {
+    return new FlatmapIterator(this, transform);
+  }
+
+  /**
+   * Groups elements into batches.
+   *
+   * @param batchSize The number of elements desired per batch.
+   * @param smallLastBatch Whether to emit the final batch when it has fewer
+   *   than batchSize elements. Default true.
+   * @returns A `LazyIterator` of batches of elements, represented as arrays
+   *   of the original element type.
+   */
+  batch(batchSize: number, smallLastBatch = true): OrderedLazyIterator<T[]> {
+    return new BatchIterator(this, batchSize, smallLastBatch);
+  }
+
+  /**
+   * Concatenate this `LazyIterator` with another.
+   *
+   * @param iterator A `LazyIterator` to be concatenated onto this one.
+   * @returns A `LazyIterator`.
+   */
+  concatenate(iterator: LazyIterator<T>): OrderedLazyIterator<T> {
+    return ChainedIterator.create(
+        imposeStrictOrder(iteratorFromItems([this, iterator])));
+  }
+
+  /**
+   * Skips the first `count` items in this stream.
+   *
+   * @param count The number of items to skip.  If a negative or undefined value
+   *   is given, the entire stream is returned unaltered.
+   */
+  skip(count: number): LazyIterator<T> {
+    if (count < 0 || count == null) {
+      return this;
+    }
+    return new SkipIterator(this, count);
+  }
+}
+
+export function imposeStrictOrder<T>(upstream: LazyIterator<T>):
+    OrderedLazyIterator<T> {
+  if (upstream instanceof OrderedLazyIterator) {
+    return upstream;
+  }
+  return new ForceOrderedLazyIterator(upstream);
+}
+
+class ForceOrderedLazyIterator<T> extends OrderedLazyIterator<T> {
+  constructor(private readonly upstream: LazyIterator<T>) {
+    super();
+  }
+
+  async orderedNext(): Promise<OrderedIteratorResult<T>> {
+    const item = await this.upstream.next();
+    // console.log(item);
+    return item as OrderedIteratorResult<T>;
+  }
+}
+class SkipIterator<T> extends OrderedLazyIterator<T> {
+  count = 0;
+  constructor(protected upstream: LazyIterator<T>, protected maxCount: number) {
+    super();
+  }
+
+  async orderedNext(): Promise<IteratorResult<T>> {
+    // TODO(soergel): consider tradeoffs of reading in parallel, eg. collecting
+    // next() promises in an Array and then waiting for Promise.all() of those.
+    // Benefit: pseudo-parallel execution.  Drawback: maybe delayed GC.
+    while (this.count++ < this.maxCount) {
+      const skipped = await this.upstream.next();
+      console.log('skipped: ', skipped);
+      // short-circuit if upstream is already empty
+      if (skipped.done) {
+        return skipped;
+      }
+      tf.dispose(skipped.value as {});
+    }
+    const result = await this.upstream.next();
+
+    console.log('skip returning: ', result);
+    return result;
+  }
+}
+
+class BatchIterator<T> extends OrderedLazyIterator<T[]> {
+  constructor(
+      protected upstream: LazyIterator<T>, protected batchSize: number,
+      protected enableSmallLastBatch = true) {
+    super();
+  }
+  async orderedNext(): Promise<IteratorResult<T[]>> {
+    const batch: T[] = [];
+    while (batch.length < this.batchSize) {
+      const item = await this.upstream.next();
+      if (item.done) {
+        if (this.enableSmallLastBatch && batch.length > 0) {
+          return {value: batch, done: false};
+        }
+        return {value: null, done: true};
+      }
+      batch.push(item.value);
+    }
+    return {value: batch, done: false};
+  }
+}
+
+class FilterIterator<T> extends OrderedLazyIterator<T> {
+  constructor(
+      protected upstream: LazyIterator<T>,
+      protected predicate: (value: T) => boolean) {
+    super();
+  }
+  async orderedNext(): Promise<IteratorResult<T>> {
+    while (true) {
+      const item = await this.upstream.next();
+      if (item.done || this.predicate(item.value)) {
+        // console.log('Passed filter: ', item);
+        // go to the end of the line to avoid unexpected shuffling
+        return Promise.resolve().then(() => item);
+      }
+      tf.dispose(item.value as {});
+    }
+  }
+}
+
+// Iterators that maintain a queue of pending items
+// ============================================================================
+
+/**
+ * A base class for transforming streams that operate by maintaining an
+ * output queue of elements that are ready to return via next().  This is
+ * commonly required when the transformation is 1-to-many:  A call to next()
+ * may trigger a call to the underlying stream, which will produce many mapped
+ * elements of this stream-- of which we need to return only one, so we have to
+ * queue the rest.
+ */
+export abstract class OneToManyIterator<T> extends OrderedLazyIterator<T> {
+  protected outputQueue: RingBuffer<T>;
+
+  constructor() {
+    super();
+    this.outputQueue = new GrowingRingBuffer<T>();
+  }
+  /**
+   * Read one or more chunks from upstream and process them, possibly reading or
+   * writing a carryover, and adding processed items to the output queue.  Note
+   * it's possible that no items are added to the queue on a given
+   * pump() call, even if the upstream stream is not closed (e.g., because items
+   * are filtered).
+   *
+   * @return `true` if any action was taken, i.e. fetching items from the
+   *   upstream source OR adding items to the output queue.  `false` if the
+   *   upstream source is exhausted AND nothing was added to the queue (i.e.,
+   *   any remaining carryover).
+   */
+  protected abstract async pump(): Promise<boolean>;
+
+  async orderedNext(): Promise<IteratorResult<T>> {
+    // Fetch so that the queue contains at least one item if possible.
+    // If the upstream source is exhausted, AND there are no items left in the
+    // output queue, then this stream is also exhausted.
+    while (this.outputQueue.length() === 0) {
+      // TODO(soergel): consider parallel reads.
+      if (!await this.pump()) {
+        return {value: null, done: true};
+      }
+    }
+    return {value: this.outputQueue.shift(), done: false};
+  }
+}
+
+class FlatmapIterator<I, O> extends OneToManyIterator<O> {
+  constructor(
+      protected upstream: LazyIterator<I>,
+      protected transform: (value: I) => O[]) {
+    super();
+  }
+
+  async pump(): Promise<boolean> {
+    const item = await this.upstream.next();
+    if (item.done) {
+      return false;
+    }
+    const inputTensors = getTensorsInContainer(item.value as {});
+    // Careful: the transform may mutate the item in place.
+    // that's why we have to remember the input Tensors above, and then below
+    // dispose only those that were not passed through to the output.
+    // Note too that the transform function is responsible for tidying any
+    // intermediate Tensors.  Here we are concerned only about the inputs.
+    const mappedArray = this.transform(item.value);
+    const outputTensors = getTensorsInContainer(mappedArray as {});
+    this.outputQueue.pushAll(mappedArray);
+
+    // TODO(soergel) faster intersection, and deduplicate outputTensors
+    // TODO(soergel) move to tf.disposeExcept(in, out)?
+    for (const t of inputTensors) {
+      if (!isTensorInList(t, outputTensors)) {
+        t.dispose();
+      }
+    }
+
+    return true;
+  }
 }
 
 export abstract class StatefulLazyIterator<T, S> extends
     OrderedLazyIterator<T> {
+  protected lastStateful: Promise<StatefulIteratorResult<T, S>>;
   constructor() {
     super();
-    this.lastRead =
+    this.lastStateful =
         Promise.resolve({value: null, done: false, state: this.initialState()});
   }
 
   abstract initialState(): S;
 
-  async orderedNext(prev: StatefulIteratorResult<T, S>):
-      Promise<OrderedIteratorResult<T>> {
-    this.lastRead = this.statefulNext(prev.state);
-    return this.lastRead;
+  async orderedNext(): Promise<OrderedIteratorResult<T>> {
+    // console.log('calling statefulNext: ', prev);
+    this.lastStateful = this.statefulNext((await this.lastStateful).state);
+    return this.lastStateful;
   }
 
   abstract async statefulNext(state: S): Promise<StatefulIteratorResult<T, S>>;
@@ -116,5 +384,42 @@ export abstract class StatefulOneToManyIterator<T, S> extends
       }
     }
     return {value: this.outputQueue.shift(), done: false, state};
+  }
+}
+
+/**
+ * Provides a `LazyIterator` that concatenates a stream of underlying streams.
+ *
+ * Doing this in a concurrency-safe way requires some trickery.  In particular,
+ * we want this stream to return the elements from the underlying streams in
+ * the correct order according to when next() was called, even if the resulting
+ * Promises resolve in a different order.
+ */
+export class ChainedIterator<T> extends OrderedLazyIterator<T> {
+  private iterator: LazyIterator<T> = null;
+  private moreIterators: LazyIterator<LazyIterator<T>>;
+
+  static create<T>(iterators: OrderedLazyIterator<LazyIterator<T>>):
+      ChainedIterator<T> {
+    const c = new ChainedIterator<T>();
+    c.moreIterators = iterators;
+    return c;
+  }
+
+  async orderedNext(): Promise<IteratorResult<T>> {
+    if (this.iterator == null) {
+      const iteratorResult = await this.moreIterators.next();
+      if (iteratorResult.done) {
+        // No more streams to stream from.
+        return {value: null, done: true};
+      }
+      this.iterator = iteratorResult.value;
+    }
+    const itemResult = await this.iterator.next();
+    if (itemResult.done) {
+      this.iterator = null;
+      return this.orderedNext();
+    }
+    return itemResult;
   }
 }

@@ -27,7 +27,7 @@ export class RingBuffer<T> {
   protected end = 0;    // exclusive
   protected doubledCapacity: number;
 
-  protected data: T[];
+  public data: T[];
 
   /**
    * Constructs a `RingBuffer`.
