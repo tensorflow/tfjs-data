@@ -16,13 +16,15 @@
  * =============================================================================
  */
 
+// tslint:disable:max-line-length
+import {imposeStrictOrder, OrderedLazyIterator} from '../iterators/ordered_iterators/ordered_iterator';
 import {DataSource} from '../sources/datasource';
-import {imposeStrictOrder} from '../stateful_iterators/stateful_iterator';
-import {LazyIterator} from '../stateless_iterators/stateless_iterator';
 import {DataElement, ElementArray} from '../types';
 
-import {Dataset} from './dataset';
+import {OrderedDataset} from './ordered_dataset';
 import {TextLineDataset} from './text_line_dataset';
+
+// tslint:enable:max-line-length
 
 export enum CsvHeaderConfig {
   READ_FIRST_LINE,
@@ -40,7 +42,7 @@ export enum CsvHeaderConfig {
  *
  * The results are not batched.
  */
-export class CSVDataset extends Dataset<DataElement> {
+export class CSVDataset extends OrderedDataset<DataElement> {
   base: TextLineDataset;
   private hasHeaderLine = false;
   private _csvColumnNames: string[];
@@ -104,7 +106,7 @@ export class CSVDataset extends Dataset<DataElement> {
     return result;
   }
 
-  async iterator(): Promise<LazyIterator<DataElement>> {
+  async iterator(): Promise<OrderedLazyIterator<DataElement>> {
     let lines = await this.base.iterator();
     if (this.hasHeaderLine) {
       // We previously read the first line to get the headers.

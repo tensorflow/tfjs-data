@@ -17,18 +17,19 @@
  */
 
 // tslint:disable:max-line-length
-import {Dataset} from '../datasets/dataset';
-import {LazyIterator} from '../stateless_iterators/stateless_iterator';
-import {Container, DataElement, IteratorContainer} from '../types';
-import {deepMapAndAwaitAll, DeepMapAsyncResult} from '../util/deep_map';
+import {OrderedDataset} from '../../datasets/ordered_dataset';
+import {Container, DataElement, OrderedIteratorContainer} from '../../types';
+import {deepMapAndAwaitAll, DeepMapAsyncResult} from '../../util/deep_map';
+import {LazyIterator} from '../lazy_iterator';
+import {OrderedLazyIterator} from '../ordered_iterators/ordered_iterator';
 
-import {OrderedLazyIterator, StatefulIteratorResult, StatefulLazyIterator} from './stateful_iterator';
+import {StatefulIteratorResult, StatefulLazyIterator} from './stateful_iterator';
 // tslint:enable:max-line-length
 
 /**
  * A nested structure of Datasets, used as the input to zip().
  */
-export type DatasetContainer = Container<Dataset<DataElement>>;
+export type DatasetContainer = Container<OrderedDataset<DataElement>>;
 
 /**
  * Create a `LazyIterator` by zipping together an array, dict, or nested
@@ -53,7 +54,7 @@ export type DatasetContainer = Container<Dataset<DataElement>>;
  *   streams, until all streams are exhausted.
  */
 export function iteratorFromZipped(
-    iterators: IteratorContainer,
+    iterators: OrderedIteratorContainer,
     mismatchMode: ZipMismatchMode =
         ZipMismatchMode.FAIL): OrderedLazyIterator<DataElement> {
   return new ZipIterator(iterators, mismatchMode);
@@ -98,7 +99,7 @@ export interface ZipState {
  */
 export class ZipIterator extends StatefulLazyIterator<DataElement, ZipState> {
   constructor(
-      protected readonly iterators: IteratorContainer,
+      protected readonly iterators: OrderedIteratorContainer,
       protected readonly mismatchMode: ZipMismatchMode = ZipMismatchMode.FAIL) {
     super();
   }
@@ -114,7 +115,7 @@ export class ZipIterator extends StatefulLazyIterator<DataElement, ZipState> {
     let numIterators = 0;
     let iteratorsDone = 0;
 
-    function getNext(container: IteratorContainer): DeepMapAsyncResult {
+    function getNext(container: OrderedIteratorContainer): DeepMapAsyncResult {
       if (container instanceof LazyIterator) {
         const result = container.next();
         return {

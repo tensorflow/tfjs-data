@@ -20,15 +20,15 @@
 import * as tf from '@tensorflow/tfjs-core';
 import {describeWithFlags} from '@tensorflow/tfjs-core/dist/jasmine_util';
 
-import {iteratorFromFunction} from '../stateful_iterators/stateful_iterator';
-import {DatasetContainer} from '../stateful_iterators/zip_iterator';
+import {iteratorFromFunction} from '../iterators/ordered_iterators/ordered_iterator';
+import {DatasetContainer} from '../iterators/stateful_iterators/zip_iterator';
 
-import {datasetFromElements, datasetFromIteratorFn} from './dataset';
+import {datasetFromElements, datasetFromOrderedIteratorFn} from './ordered_dataset';
 import {zip} from './zip_dataset';
 
 // tslint:enable:max-line-length
 
-describeWithFlags('Zip Dataset', tf.test_util.CPU_ENVS, () => {
+describeWithFlags('Zip OrderedDataset', tf.test_util.CPU_ENVS, () => {
   it('can be created by zipping an array of datasets with primitive elements',
      async () => {
        const a = datasetFromElements([1, 2, 3]);
@@ -140,13 +140,13 @@ describeWithFlags('Zip Dataset', tf.test_util.CPU_ENVS, () => {
      async done => {
        try {
          let count = 0;
-         const a =
-             datasetFromIteratorFn(async () => iteratorFromFunction(() => {
-                                     if (count > 2) {
-                                       throw new Error('propagate me!');
-                                     }
-                                     return {value: count++, done: false};
-                                   }));
+         const a = datasetFromOrderedIteratorFn(
+             async () => iteratorFromFunction(() => {
+               if (count > 2) {
+                 throw new Error('propagate me!');
+               }
+               return {value: count++, done: false};
+             }));
          const b = datasetFromElements([3, 4, 5, 6]);
          // tslint:disable-next-line:no-any
          await zip([a, b]).collectAll();

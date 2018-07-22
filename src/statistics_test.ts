@@ -19,13 +19,13 @@ import * as tf from '@tensorflow/tfjs-core';
 import {describeWithFlags} from '@tensorflow/tfjs-core/dist/jasmine_util';
 
 import {Dataset} from '.';
-import {TestDataset} from './datasets/dataset_test';
+import {TestOrderedDataset} from './datasets/ordered_dataset_test';
 import {computeDatasetStatistics, scaleTo01} from './statistics';
 import {TabularRecord} from './types';
 
 describeWithFlags('makeDatasetStatistics', tf.test_util.ALL_ENVS, () => {
   it('computes numeric min and max over numbers, arrays, and Tensors', done => {
-    const ds = new TestDataset().skip(55) as Dataset<TabularRecord>;
+    const ds = new TestOrderedDataset().skip(55) as Dataset<TabularRecord>;
     computeDatasetStatistics(ds)
         .then(stats => {
           expect(stats['number'].min).toEqual(55);
@@ -43,7 +43,7 @@ describeWithFlags('makeDatasetStatistics', tf.test_util.ALL_ENVS, () => {
 
 describeWithFlags('scaleTo01', tf.test_util.ALL_ENVS, () => {
   it('scales numeric data to the [0, 1] interval', done => {
-    const ds = new TestDataset().skip(55) as Dataset<TabularRecord>;
+    const ds = new TestOrderedDataset().skip(55) as Dataset<TabularRecord>;
     const scaleFn = scaleTo01(55, 99 * 99 * 99);
     const scaledDataset = ds.map(x => ({'Tensor': scaleFn(x['Tensor'])}));
 

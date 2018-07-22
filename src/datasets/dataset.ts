@@ -18,13 +18,11 @@
 
 // tslint:disable:max-line-length
 import * as tf from '@tensorflow/tfjs-core';
-import * as seedrandom from 'seedrandom';
 
-import {imposeStrictOrder, iteratorFromConcatenated, iteratorFromItems} from '../stateful_iterators/stateful_iterator';
-import {iteratorFromAsyncFunction, LazyIterator} from '../stateless_iterators/stateless_iterator';
+import {iteratorFromAsyncFunction, LazyIterator} from '../iterators/lazy_iterator';
+import {imposeStrictOrder, iteratorFromConcatenated} from '../iterators/ordered_iterators/ordered_iterator';
 import {DataElement} from '../types';
-
-import {BatchDataset} from './batch_dataset';
+// tslint:enable:max-line-length
 
 // TODO(soergel): consider vectorized operations within the pipeline.
 
@@ -58,22 +56,6 @@ export abstract class Dataset<T extends DataElement> {
   // abstract isDeterministic(): boolean;
 
   /**
-   * Filters this dataset according to `predicate`.
-   *
-   * @param predicate A function mapping a dataset element to a boolean or a
-   * `Promise` for one.
-   *
-   * @returns A `Dataset` of elements for which the predicate was true.
-   */
-  filter(filterer: (value: T) => boolean): Dataset<T> {
-    const base = this;
-    return datasetFromIteratorFn(async () => {
-      return imposeStrictOrder(await base.iterator())
-          .filter(x => tf.tidy(() => filterer(x)));
-    });
-  }
-
-  /**
    * Maps this dataset through a 1-to-1 transform.
    *
    * @param transform A function mapping a dataset element to a transformed
@@ -86,39 +68,6 @@ export abstract class Dataset<T extends DataElement> {
     return datasetFromIteratorFn(async () => {
       return (await base.iterator()).map(x => tf.tidy(() => transform(x)));
     });
-  }
-
-  /**
-   * Groups elements into batches and arranges their values in columnar form.
-   *
-   * It is assumed that each of the incoming dataset elements has the same set
-   * of keys.  For each key, the resulting BatchDataset provides a BatchElement
-   * collecting all of the incoming values for that key.  Incoming strings are
-   * grouped into a string[].  Incoming Tensors are grouped into a new Tensor
-   * where the 0'th axis is the batch dimension.  These columnar representations
-   * for each key can be zipped together to reconstruct the original
-   * dataset elements.
-   *
-   * @param batchSize The number of elements desired per batch.
-   * @param smallLastBatch Whether to emit the final batch when it has fewer
-   *   than batchSize elements. Default true.
-   * @returns A `BatchDataset`, from which a stream of batches can be obtained.
-   */
-  batch(batchSize: number, smallLastBatch = true): BatchDataset {
-    return new BatchDataset(this, batchSize, smallLastBatch);
-  }
-
-  /**
-   * Concatenates this `Dataset` with another.
-   *
-   * @param dataset A `Dataset` to be concatenated onto this one.
-   * @returns A `Dataset`.
-   */
-  concatenate(dataset: Dataset<T>): Dataset<T> {
-    const base = this;
-    return datasetFromIteratorFn(
-        async () => imposeStrictOrder(await base.iterator())
-                        .concatenate(await dataset.iterator()));
   }
 
   /**
@@ -155,50 +104,6 @@ export abstract class Dataset<T extends DataElement> {
     const base = this;
     return datasetFromIteratorFn(
         async () => (await base.iterator()).take(count));
-  }
-
-  /**
-   * Creates a `Dataset` that skips `count` elements from this dataset.
-   *
-   * @param count: The number of elements of this dataset that should be skipped
-   *   to form the new dataset.  If `count` is greater than the size of this
-   *   dataset, the new dataset will contain no elements.  If `count`
-   *   is `undefined` or negative, skips the entire dataset.
-   *
-   * @returns A `Dataset`.
-   */
-  skip(count: number): Dataset<T> {
-    const base = this;
-    return datasetFromIteratorFn(
-        async () => imposeStrictOrder(await base.iterator()).skip(count));
-  }
-
-  // TODO(soergel): deep sharded shuffle, where supported
-
-  /**
-   * Randomly shuffles the elements of this dataset.
-   *
-   * @param bufferSize: An integer specifying the number of elements from this
-   *   dataset from which the new dataset will sample.
-   * @param seed: (Optional.) An integer specifying the random seed that will
-   *   be used to create the distribution.
-   * @param reshuffleEachIteration: (Optional.) A boolean, which if true
-   *   indicates that the dataset should be pseudorandomly reshuffled each time
-   *   it is iterated over. (Defaults to `true`.)
-   * @returns A `Dataset`.
-   */
-  shuffle(bufferSize: number, seed?: string, reshuffleEachIteration = true):
-      Dataset<T> {
-    const base = this;
-    const random = seedrandom.alea(seed || performance.now().toString());
-    return datasetFromIteratorFn(async () => {
-      let seed2 = random.int32();
-      if (reshuffleEachIteration) {
-        seed2 += random.int32();
-      }
-      return imposeStrictOrder(await base.iterator())
-          .shuffle(bufferSize, seed2.toString());
-    });
   }
 
   /**
@@ -262,12 +167,4 @@ export function datasetFromIteratorFn<T extends DataElement>(
     }
   }
   ();
-}
-
-/**
- * Create a `Dataset` from an array of elements.
- */
-export function datasetFromElements<T extends DataElement>(items: T[]):
-    Dataset<T> {
-  return datasetFromIteratorFn(async () => iteratorFromItems(items));
 }

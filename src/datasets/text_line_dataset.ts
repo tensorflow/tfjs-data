@@ -16,17 +16,18 @@
  * =============================================================================
  */
 
+// tslint:disable:max-line-length
+import {OrderedLazyIterator} from '../iterators/ordered_iterators/ordered_iterator';
 import {DataSource} from '../sources/datasource';
-import {LazyIterator} from '../stateless_iterators/stateless_iterator';
-
-import {Dataset} from './dataset';
+import {OrderedDataset} from './ordered_dataset';
+// tslint:enable:max-line-length
 
 /**
  * Represents a potentially large collection of text lines.
  *
  * The results are not batched.
  */
-export class TextLineDataset extends Dataset<string> {
+export class TextLineDataset extends OrderedDataset<string> {
   /**
    * Create a `TextLineDataset`.
    *
@@ -36,7 +37,7 @@ export class TextLineDataset extends Dataset<string> {
     super();
   }
 
-  async iterator(): Promise<LazyIterator<string>> {
+  async iterator(): Promise<OrderedLazyIterator<string>> {
     const inputIterator = await this.input.iterator();
     const utf8Iterator = inputIterator.decodeUTF8();
     const lineIterator = utf8Iterator.split('\n');

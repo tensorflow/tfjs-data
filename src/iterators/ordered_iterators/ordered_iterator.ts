@@ -21,9 +21,9 @@ import * as tf from '@tensorflow/tfjs-core';
 import {getTensorsInContainer, isTensorInList} from '@tensorflow/tfjs-core/dist/tensor_util';
 import * as seedrandom from 'seedrandom';
 
-import {LazyIterator} from '../stateless_iterators/stateless_iterator';
-import {GrowingRingBuffer} from '../util/growing_ring_buffer';
-import {RingBuffer} from '../util/ring_buffer';
+import {GrowingRingBuffer} from '../../util/growing_ring_buffer';
+import {RingBuffer} from '../../util/ring_buffer';
+import {LazyIterator} from '../lazy_iterator';
 // tslint:enable:max-line-length
 
 /**
@@ -85,11 +85,43 @@ export function iteratorFromConcatenatedFunction<T>(
 
 export interface OrderedIteratorResult<T> extends IteratorResult<T> {}
 
-export interface StatefulIteratorResult<T, S> extends OrderedIteratorResult<T> {
-  state: S;
-}
-
 export abstract class OrderedLazyIterator<T> extends LazyIterator<T> {
+  /**
+   * Maps this stream through a 1-to-1 transform.
+   *
+   * @param predicate A function mapping a stream element to a transformed
+   *   element.
+   *
+   * @returns A `LazyIterator` of transformed elements.
+   */
+  map<O>(transform: (value: T) => O): OrderedLazyIterator<O> {
+    return new AlreadyOrderedIterator(super.map(transform));
+  }
+
+  /**
+   * Limits this stream to return at most `count` items.
+   *
+   * @param count The maximum number of items to provide from the stream.  If a
+   *   negative or undefined value is given, the entire stream is returned
+   *   unaltered.
+   */
+  take(count: number): OrderedLazyIterator<T> {
+    return new AlreadyOrderedIterator(super.take(count));
+  }
+
+  /**
+   * Prefetch the first `bufferSize` items in this stream.
+   *
+   * Note this prefetches Promises, but makes no guarantees about when those
+   * Promises resolve.
+   *
+   * @param bufferSize: An integer specifying the number of elements to be
+   *   prefetched.
+   */
+  prefetch(bufferSize: number): OrderedLazyIterator<T> {
+    return new AlreadyOrderedIterator(super.prefetch(bufferSize));
+  }
+
   /**
    * Filters this stream according to `predicate`.
    *
@@ -144,7 +176,7 @@ export abstract class OrderedLazyIterator<T> extends LazyIterator<T> {
    * @param count The number of items to skip.  If a negative or undefined value
    *   is given, the entire stream is returned unaltered.
    */
-  skip(count: number): LazyIterator<T> {
+  skip(count: number): OrderedLazyIterator<T> {
     if (count < 0 || count == null) {
       return this;
     }
@@ -166,45 +198,12 @@ export abstract class OrderedLazyIterator<T> extends LazyIterator<T> {
   }
 }
 
-export abstract class EnforcedOrderedLazyIterator<T> extends
-    OrderedLazyIterator<T> {
-  private lastRead: Promise<OrderedIteratorResult<T>>;
-
-  constructor() {
-    super();
-    this.lastRead = Promise.resolve({value: null, done: false});
-  }
-
-  async next(): Promise<IteratorResult<T>> {
-    this.lastRead = this.advance(this.lastRead);
-    return this.lastRead;
-  }
-
-  private async advance(t: Promise<OrderedIteratorResult<T>>):
-      Promise<OrderedIteratorResult<T>> {
-    await t;
-    return this.orderedNext();
-  }
-
-  abstract async orderedNext(): Promise<OrderedIteratorResult<T>>;
-}
-
-export function imposeStrictOrder<T>(upstream: LazyIterator<T>):
-    OrderedLazyIterator<T> {
-  if (upstream instanceof OrderedLazyIterator) {
-    return upstream;
-  }
-  return new ForceOrderedLazyIterator(upstream);
-}
-
-class ForceOrderedLazyIterator<T> extends EnforcedOrderedLazyIterator<T> {
+class AlreadyOrderedIterator<T> extends OrderedLazyIterator<T> {
   constructor(private readonly upstream: LazyIterator<T>) {
     super();
   }
-
-  async orderedNext(): Promise<OrderedIteratorResult<T>> {
-    const item = await this.upstream.next();
-    return item as OrderedIteratorResult<T>;
+  next() {
+    return this.upstream.next();
   }
 }
 
@@ -241,13 +240,56 @@ class FunctionCallIterator<T> extends OrderedLazyIterator<T> {
   }
 }
 
-class SkipIterator<T> extends EnforcedOrderedLazyIterator<T> {
+/******* Serial ********/
+
+export abstract class SerialLazyIterator<T> extends OrderedLazyIterator<T> {
+  private lastRead: Promise<OrderedIteratorResult<T>>;
+
+  constructor() {
+    super();
+    this.lastRead = Promise.resolve({value: null, done: false});
+  }
+
+  async next(): Promise<IteratorResult<T>> {
+    this.lastRead = this.advance(this.lastRead);
+    return this.lastRead;
+  }
+
+  private async advance(t: Promise<OrderedIteratorResult<T>>):
+      Promise<OrderedIteratorResult<T>> {
+    await t;
+    return this.serialNext();
+  }
+
+  abstract async serialNext(): Promise<OrderedIteratorResult<T>>;
+}
+
+export function imposeStrictOrder<T>(upstream: LazyIterator<T>):
+    OrderedLazyIterator<T> {
+  if (upstream instanceof OrderedLazyIterator) {
+    return upstream;
+  }
+  return new ForceSerialLazyIterator(upstream);
+}
+
+class ForceSerialLazyIterator<T> extends SerialLazyIterator<T> {
+  constructor(private readonly upstream: LazyIterator<T>) {
+    super();
+  }
+
+  async serialNext(): Promise<OrderedIteratorResult<T>> {
+    const item = await this.upstream.next();
+    return item as OrderedIteratorResult<T>;
+  }
+}
+
+export class SkipIterator<T> extends SerialLazyIterator<T> {
   count = 0;
   constructor(protected upstream: LazyIterator<T>, protected maxCount: number) {
     super();
   }
 
-  async orderedNext(): Promise<IteratorResult<T>> {
+  async serialNext(): Promise<IteratorResult<T>> {
     // TODO(soergel): consider tradeoffs of reading in parallel, eg. collecting
     // next() promises in an Array and then waiting for Promise.all() of those.
     // Benefit: pseudo-parallel execution.  Drawback: maybe delayed GC.
@@ -264,13 +306,13 @@ class SkipIterator<T> extends EnforcedOrderedLazyIterator<T> {
   }
 }
 
-class BatchIterator<T> extends EnforcedOrderedLazyIterator<T[]> {
+class BatchIterator<T> extends SerialLazyIterator<T[]> {
   constructor(
       protected upstream: LazyIterator<T>, protected batchSize: number,
       protected enableSmallLastBatch = true) {
     super();
   }
-  async orderedNext(): Promise<IteratorResult<T[]>> {
+  async serialNext(): Promise<IteratorResult<T[]>> {
     const batch: T[] = [];
     while (batch.length < this.batchSize) {
       const item = await this.upstream.next();
@@ -286,13 +328,13 @@ class BatchIterator<T> extends EnforcedOrderedLazyIterator<T[]> {
   }
 }
 
-class FilterIterator<T> extends EnforcedOrderedLazyIterator<T> {
+class FilterIterator<T> extends SerialLazyIterator<T> {
   constructor(
       protected upstream: LazyIterator<T>,
       protected predicate: (value: T) => boolean) {
     super();
   }
-  async orderedNext(): Promise<IteratorResult<T>> {
+  async serialNext(): Promise<IteratorResult<T>> {
     while (true) {
       const item = await this.upstream.next();
       if (item.done || this.predicate(item.value)) {
@@ -315,8 +357,7 @@ class FilterIterator<T> extends EnforcedOrderedLazyIterator<T> {
  * elements of this stream-- of which we need to return only one, so we have to
  * queue the rest.
  */
-export abstract class OneToManyIterator<T> extends
-    EnforcedOrderedLazyIterator<T> {
+export abstract class OneToManyIterator<T> extends SerialLazyIterator<T> {
   protected outputQueue: RingBuffer<T>;
 
   constructor() {
@@ -337,7 +378,7 @@ export abstract class OneToManyIterator<T> extends
    */
   protected abstract async pump(): Promise<boolean>;
 
-  async orderedNext(): Promise<IteratorResult<T>> {
+  async serialNext(): Promise<IteratorResult<T>> {
     // Fetch so that the queue contains at least one item if possible.
     // If the upstream source is exhausted, AND there are no items left in the
     // output queue, then this stream is also exhausted.
@@ -385,79 +426,6 @@ class FlatmapIterator<I, O> extends OneToManyIterator<O> {
   }
 }
 
-export abstract class StatefulLazyIterator<T, S> extends
-    EnforcedOrderedLazyIterator<T> {
-  protected lastStateful: Promise<StatefulIteratorResult<T, S>>;
-  constructor() {
-    super();
-    this.lastStateful =
-        Promise.resolve({value: null, done: false, state: this.initialState()});
-  }
-
-  abstract initialState(): S;
-
-  async orderedNext(): Promise<OrderedIteratorResult<T>> {
-    this.lastStateful = this.statefulNext((await this.lastStateful).state);
-    return this.lastStateful;
-  }
-
-  abstract async statefulNext(state: S): Promise<StatefulIteratorResult<T, S>>;
-}
-
-export interface StatefulPumpResult<S> {
-  pumpDidWork: boolean;
-  state: S;
-}
-
-/**
- * A base class for transforming streams that operate by maintaining an
- * output queue of elements that are ready to return via next().  This is
- * commonly required when the transformation is 1-to-many:  A call to next()
- * may trigger a call to the underlying stream, which will produce many mapped
- * elements of this stream-- of which we need to return only one, so we have to
- * queue the rest.
- */
-export abstract class StatefulOneToManyIterator<T, S> extends
-    StatefulLazyIterator<T, S> {
-  // This bit of non-threaded state is safe because we know the statefulNext
-  // calls are strictly sequenced.
-  protected outputQueue: RingBuffer<T>;
-
-  constructor() {
-    super();
-    this.outputQueue = new GrowingRingBuffer<T>();
-  }
-
-  /**
-   * Read one or more chunks from upstream and process them, possibly reading or
-   * writing a carryover, and adding processed items to the output queue.  Note
-   * it's possible that no items are added to the queue on a given
-   * pump() call, even if the upstream stream is not closed (e.g., because items
-   * are filtered).
-   *
-   * @return `true` if any action was taken, i.e. fetching items from the
-   *   upstream source OR adding items to the output queue.  `false` if the
-   *   upstream source is exhausted AND nothing was added to the queue (i.e.,
-   *   any remaining carryover).
-   */
-  protected abstract async statefulPump(state: S):
-      Promise<StatefulPumpResult<S>>;
-
-  async statefulNext(state: S): Promise<StatefulIteratorResult<T, S>> {
-    // Fetch so that the queue contains at least one item if possible.
-    // If the upstream source is exhausted, AND there are no items left in the
-    // output queue, then this stream is also exhausted.
-    while (this.outputQueue.length() === 0) {
-      const {pumpDidWork, state: newState} = await this.statefulPump(state);
-      state = newState;
-      if (!pumpDidWork) {
-        return {value: null, done: true, state};
-      }
-    }
-    return {value: this.outputQueue.shift(), done: false, state};
-  }
-}
-
 /**
  * Provides a `LazyIterator` that concatenates a stream of underlying streams.
  *
@@ -466,7 +434,7 @@ export abstract class StatefulOneToManyIterator<T, S> extends
  * the correct order according to when next() was called, even if the resulting
  * Promises resolve in a different order.
  */
-export class ChainedIterator<T> extends EnforcedOrderedLazyIterator<T> {
+export class ChainedIterator<T> extends SerialLazyIterator<T> {
   private iterator: LazyIterator<T> = null;
   private moreIterators: LazyIterator<LazyIterator<T>>;
 
@@ -477,7 +445,7 @@ export class ChainedIterator<T> extends EnforcedOrderedLazyIterator<T> {
     return c;
   }
 
-  async orderedNext(): Promise<IteratorResult<T>> {
+  async serialNext(): Promise<IteratorResult<T>> {
     if (this.iterator == null) {
       const iteratorResult = await this.moreIterators.next();
       if (iteratorResult.done) {
@@ -489,7 +457,7 @@ export class ChainedIterator<T> extends EnforcedOrderedLazyIterator<T> {
     const itemResult = await this.iterator.next();
     if (itemResult.done) {
       this.iterator = null;
-      return this.orderedNext();
+      return this.serialNext();
     }
     return itemResult;
   }
@@ -501,7 +469,7 @@ export class ChainedIterator<T> extends EnforcedOrderedLazyIterator<T> {
  * in randomized order.  Mixing naturally improves as the buffer size
  * increases.
  */
-export class ShuffleIterator<T> extends EnforcedOrderedLazyIterator<T> {
+export class ShuffleIterator<T> extends SerialLazyIterator<T> {
   private random: seedrandom.prng;
   private upstreamExhausted = false;
   // TODO protected
@@ -535,7 +503,7 @@ export class ShuffleIterator<T> extends EnforcedOrderedLazyIterator<T> {
     return this.randomInt(this.buffer.length());
   }
 
-  async orderedNext(): Promise<IteratorResult<T>> {
+  async serialNext(): Promise<IteratorResult<T>> {
     if (!this.upstreamExhausted) {
       await this.refill();
     }

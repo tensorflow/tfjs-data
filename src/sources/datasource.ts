@@ -1,4 +1,3 @@
-import {ByteChunkIterator} from '../stateful_iterators/byte_chunk_iterator';
 
 /**
  * @license
@@ -17,6 +16,10 @@ import {ByteChunkIterator} from '../stateful_iterators/byte_chunk_iterator';
  *
  * =============================================================================
  */
+
+// tslint:disable:max-line-length
+import {ByteChunkIterator} from '../iterators/stateful_iterators/byte_chunk_iterator';
+// tslint:enable:max-line-length
 
 /**
  * Represents a data source readable as a stream of binary data chunks.

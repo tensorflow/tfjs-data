@@ -1,3 +1,4 @@
+
 /**
  * @license
  * Copyright 2018 Google LLC. All Rights Reserved.
@@ -17,8 +18,7 @@
  */
 
 // tslint:disable:max-line-length
-import {imposeStrictOrder, iteratorFromConcatenated, iteratorFromConcatenatedFunction, iteratorFromFunction, iteratorFromIncrementing, iteratorFromItems, OrderedLazyIterator} from '../stateful_iterators/stateful_iterator';
-
+import {iteratorFromConcatenated, iteratorFromConcatenatedFunction, iteratorFromFunction, iteratorFromIncrementing, iteratorFromItems, OrderedLazyIterator} from './ordered_iterators/ordered_iterator';
 // tslint:enable:max-line-length
 
 export class TestIntegerIterator extends OrderedLazyIterator<number> {
@@ -40,8 +40,8 @@ export class TestIntegerIterator extends OrderedLazyIterator<number> {
     // This purposely scrambles the order in which these promises are resolved,
     // to demonstrate that the various methods still process the stream
     // in the correct order.
-    if (Math.random() < 0.2) {
-      await new Promise(res => setTimeout(res, Math.random() * 4));
+    if (Math.random() < 0.1) {
+      await new Promise(res => setTimeout(res, 1));
     }
     return {value: result, done: false};
   }
@@ -60,7 +60,6 @@ describe('LazyIterator', () => {
 
   it('reads chunks in order', done => {
     const readIterator = new TestIntegerIterator();
-    // const orderedStream = imposeStrictOrder(readIterator);
     readIterator.collectRemaining()
         .then(result => {
           expect(result.length).toEqual(100);
@@ -74,7 +73,6 @@ describe('LazyIterator', () => {
 
   it('filters elements', async () => {
     const readIterator = new TestIntegerIterator().filter(x => x % 2 === 0);
-    // const orderedStream = imposeStrictOrder(readIterator);
     const result = await readIterator.collectRemaining();
     expect(result.length).toEqual(50);
     for (let i = 0; i < 50; i++) {
@@ -84,7 +82,6 @@ describe('LazyIterator', () => {
 
   it('maps elements', done => {
     const readIterator = new TestIntegerIterator().map(x => `item ${x}`);
-    // const orderedStream = imposeStrictOrder(readIterator);
     readIterator.collectRemaining()
         .then(result => {
           expect(result.length).toEqual(100);
@@ -99,7 +96,6 @@ describe('LazyIterator', () => {
   it('flatmaps simple elements', done => {
     const readStream = new TestIntegerIterator().flatmap(
         x => [`item ${x} A`, `item ${x} B`, `item ${x} C`]);
-    // const orderedStream = imposeStrictOrder(readStream);
     readStream.collectRemaining()
         .then(result => {
           expect(result.length).toEqual(300);
@@ -120,8 +116,7 @@ describe('LazyIterator', () => {
              {foo: `foo ${x} B`, bar: `bar ${x} B`},
              {foo: `foo ${x} C`, bar: `bar ${x} C`},
     ]);
-    const orderedStream = imposeStrictOrder(readStream);
-    orderedStream.collectRemaining()
+    readStream.collectRemaining()
         .then(result => {
           expect(result.length).toEqual(300);
           for (let i = 0; i < 100; i++) {
@@ -144,8 +139,7 @@ describe('LazyIterator', () => {
             [`foo ${x} B`, `bar ${x} B`],
             [`foo ${x} C`, `bar ${x} C`],
     ]);
-    const orderedStream = imposeStrictOrder(readStream);
-    orderedStream.collectRemaining()
+    readStream.collectRemaining()
         .then(result => {
           expect(result.length).toEqual(300);
           for (let i = 0; i < 100; i++) {
@@ -159,7 +153,7 @@ describe('LazyIterator', () => {
   });
 
   it('batches elements', done => {
-    const readIterator = imposeStrictOrder(new TestIntegerIterator().batch(8));
+    const readIterator = new TestIntegerIterator().batch(8);
     readIterator.collectRemaining()
         .then(result => {
           expect(result.length).toEqual(13);
@@ -204,8 +198,7 @@ describe('LazyIterator', () => {
 
   it('can skip a certain number of elements', done => {
     const readIterator = new TestIntegerIterator().skip(88).take(8);
-    const orderedStream = imposeStrictOrder(readIterator);
-    orderedStream.collectRemaining()
+    readIterator.collectRemaining()
         .then(result => {
           expect(result).toEqual([88, 89, 90, 91, 92, 93, 94, 95]);
         })

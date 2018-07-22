@@ -17,8 +17,9 @@
  */
 
 // tslint:disable:max-line-length
-import {TestIntegerIterator} from '../stateless_iterators/stateless_iterator_test';
-import {DataElement, DataElementArray, DataElementObject} from '../types';
+import {DataElement, DataElementArray, DataElementObject} from '../../types';
+import {TestIntegerIterator} from '../lazy_iterator_test';
+
 import {iteratorFromZipped, ZipMismatchMode} from './zip_iterator';
 
 // tslint:enable:max-line-length

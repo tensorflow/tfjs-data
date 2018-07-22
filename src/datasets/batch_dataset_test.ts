@@ -15,13 +15,15 @@
  * =============================================================================
  */
 
-import * as tf from '@tensorflow/tfjs-core';
+// tslint:disable:max-line-length
+import * as tf from '@tensorflow/tfjs-core/';
 import {describeWithFlags} from '@tensorflow/tfjs-core/dist/jasmine_util';
-import {TestDataset} from './dataset_test';
+import {TestOrderedDataset} from './ordered_dataset_test';
+// tslint:enable:max-line-length
 
-describeWithFlags('Dataset.batch()', tf.test_util.CPU_ENVS, () => {
+describeWithFlags('OrderedDataset.batch()', tf.test_util.CPU_ENVS, () => {
   it('batches entries into column-oriented DatasetBatches', async () => {
-    const ds = new TestDataset();
+    const ds = new TestOrderedDataset();
     const bds = ds.batch(8);
     const batchIterator = await bds.iterator();
     const result = await batchIterator.collectRemaining();
@@ -38,7 +40,7 @@ describeWithFlags('Dataset.batch()', tf.test_util.CPU_ENVS, () => {
   });
 
   it('creates a small last batch', async () => {
-    const ds = new TestDataset();
+    const ds = new TestOrderedDataset();
     const bds = ds.batch(8);
 
     const batchIterator = await bds.iterator();

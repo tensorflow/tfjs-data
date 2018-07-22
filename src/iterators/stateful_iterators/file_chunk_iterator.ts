@@ -19,7 +19,8 @@
 // inspired by https://github.com/maxogden/filereader-stream
 
 // tslint:disable:max-line-length
-import {applyMixins} from '../util/mixins';
+
+import {applyMixins} from '../../util/mixins';
 
 import {ByteChunkIterator} from './byte_chunk_iterator';
 import {StatefulIteratorResult, StatefulLazyIterator} from './stateful_iterator';

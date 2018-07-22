@@ -17,9 +17,9 @@
  */
 
 // tslint:disable:max-line-length
-import {ByteChunkIterator} from '../stateful_iterators/byte_chunk_iterator';
-import {FileChunkIteratorOptions} from '../stateful_iterators/file_chunk_iterator';
-import {urlChunkIterator} from '../stateful_iterators/url_chunk_iterator';
+import {ByteChunkIterator} from '../iterators/stateful_iterators/byte_chunk_iterator';
+import {FileChunkIteratorOptions} from '../iterators/stateful_iterators/file_chunk_iterator';
+import {urlChunkIterator} from '../iterators/stateful_iterators/url_chunk_iterator';
 
 import {DataSource} from './datasource';
 // tslint:enable:max-line-length

@@ -17,10 +17,10 @@
  */
 
 // tslint:disable:max-line-length
-import {iteratorFromConcatenatedFunction} from '../stateful_iterators/stateful_iterator';
-import {TestIntegerIterator} from './stateless_iterator_test';
 
-import {PrefetchIterator} from './stateless_iterator';
+import {PrefetchIterator} from './lazy_iterator';
+import {TestIntegerIterator} from './lazy_iterator_test';
+import {iteratorFromConcatenatedFunction} from './ordered_iterators/ordered_iterator';
 
 // tslint:enable:max-line-length
 

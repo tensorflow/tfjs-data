@@ -19,16 +19,13 @@
 // tslint:disable:max-line-length
 import * as tf from '@tensorflow/tfjs-core';
 import {describeWithFlags} from '@tensorflow/tfjs-core/dist/jasmine_util';
-
-import {iteratorFromItems} from '../stateful_iterators/stateful_iterator';
-import {LazyIterator} from '../stateless_iterators/stateless_iterator';
+import {LazyIterator} from '../iterators/lazy_iterator';
+import {iteratorFromItems, OrderedLazyIterator} from '../iterators/ordered_iterators/ordered_iterator';
 import {DataElementObject} from '../types';
-
-import {Dataset, datasetFromElements} from './dataset';
-
+import {Dataset} from './dataset';
 // tslint:enable:max-line-length
 
-class TestObjectIterator extends LazyIterator<{}> {
+class TestObjectIterator extends OrderedLazyIterator<{}> {
   data = Array.from({length: 100}, (v, k) => k);
   currentIndex = 0;
 
@@ -62,68 +59,6 @@ export class TestDataset extends Dataset<DataElementObject> {
 }
 
 describeWithFlags('Dataset', tf.test_util.CPU_ENVS, () => {
-  it('can be concatenated', done => {
-    const a = datasetFromElements([{'item': 1}, {'item': 2}, {'item': 3}]);
-    const b = datasetFromElements([{'item': 4}, {'item': 5}, {'item': 6}]);
-    a.concatenate(b)
-        .collectAll()
-        .then(result => {
-          expect(result).toEqual([
-            {'item': 1}, {'item': 2}, {'item': 3}, {'item': 4}, {'item': 5},
-            {'item': 6}
-          ]);
-        })
-        .then(done)
-        .catch(done.fail);
-  });
-
-  it('can be created by concatenating multiple underlying datasets via reduce',
-     async done => {
-       const a = datasetFromElements([{'item': 1}, {'item': 2}]);
-       const b = datasetFromElements([{'item': 3}, {'item': 4}]);
-       const c = datasetFromElements([{'item': 5}, {'item': 6}]);
-       const concatenated = [a, b, c].reduce((a, b) => a.concatenate(b));
-       concatenated.collectAll()
-           .then(result => {
-             expect(result).toEqual([
-               {'item': 1}, {'item': 2}, {'item': 3}, {'item': 4}, {'item': 5},
-               {'item': 6}
-             ]);
-           })
-           .then(done)
-           .catch(done.fail);
-     });
-
-  it('can be repeated a fixed number of times', done => {
-    const a = datasetFromElements([{'item': 1}, {'item': 2}, {'item': 3}]);
-    a.repeat(4)
-        .collectAll()
-        .then(result => {
-          expect(result).toEqual([
-            {'item': 1},
-            {'item': 2},
-            {'item': 3},
-            {'item': 1},
-            {'item': 2},
-            {'item': 3},
-            {'item': 1},
-            {'item': 2},
-            {'item': 3},
-            {'item': 1},
-            {'item': 2},
-            {'item': 3},
-          ]);
-        })
-        .then(done)
-        .catch(done.fail);
-  });
-
-  it('can be repeated indefinitely', done => {
-    const a = datasetFromElements([{'item': 1}, {'item': 2}, {'item': 3}]);
-    a.repeat().take(234).collectAll().then(done).catch(done.fail);
-    done();
-  });
-
   it('can be repeated with state in a closure', done => {
     // This tests a tricky bug having to do with 'this' being set properly.
     // See
@@ -150,37 +85,6 @@ describeWithFlags('Dataset', tf.test_util.CPU_ENVS, () => {
       expect(items.length).toEqual(100);
       // The test dataset has 100 elements, each containing 2 Tensors.
       expect(tf.memory().numTensors).toEqual(200);
-      done();
-    } catch (e) {
-      done.fail(e);
-    }
-  });
-
-  it('skip does not leak Tensors', async done => {
-    try {
-      const ds = new TestDataset();
-      expect(tf.memory().numTensors).toEqual(0);
-      const result = await ds.skip(15).collectAll();
-      // The test dataset had 100 elements; we skipped 15; 85 remain.
-      expect(result.length).toEqual(85);
-      // Each element of the test dataset contains 2 Tensors;
-      // 85 elements remain, so 2 * 85 = 170 Tensors remain.
-      expect(tf.memory().numTensors).toEqual(170);
-      done();
-    } catch (e) {
-      done.fail(e);
-    }
-  });
-
-  it('filter does not leak Tensors', async done => {
-    try {
-      const ds = new TestDataset();
-      expect(tf.memory().numTensors).toEqual(0);
-      await ds.filter(x => ((x['number'] as number) % 2 === 0)).collectAll();
-      // Each element of the test dataset contains 2 Tensors.
-      // There were 100 elements, but we filtered out half of them.
-      // Thus 50 * 2 = 100 Tensors remain.
-      expect(tf.memory().numTensors).toEqual(100);
       done();
     } catch (e) {
       done.fail(e);

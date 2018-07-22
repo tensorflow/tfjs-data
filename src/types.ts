@@ -19,8 +19,8 @@
 // tslint:disable:max-line-length
 import * as tf from '@tensorflow/tfjs-core';
 import {TensorContainer, TensorContainerArray, TensorContainerObject} from '@tensorflow/tfjs-core/dist/tensor_types';
+import {OrderedLazyIterator} from './iterators/ordered_iterators/ordered_iterator';
 
-import {LazyIterator} from './stateless_iterators/stateless_iterator';
 // tslint:enable:max-line-length
 
 // TODO(soergel): clean up the |string union type throughout when Tensor
@@ -72,9 +72,10 @@ export interface ContainerObject<T> {
 export interface ContainerArray<T> extends Array<ContainerOrT<T>> {}
 
 /**
- * A nested structure of LazyIterators, used as the input to zip().
+ * A nested structure of OrderedLazyIterators, used as the input to zip().
  */
-export type IteratorContainer = Container<LazyIterator<DataElement>>;
+export type OrderedIteratorContainer =
+    Container<OrderedLazyIterator<DataElement>>;
 
 /**
  * A map from string keys (aka column names) to values for a batch of elements.

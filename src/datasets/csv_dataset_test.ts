@@ -17,7 +17,6 @@
  */
 
 import {FileDataSource} from '../sources/file_data_source';
-import {imposeStrictOrder} from '../stateful_iterators/stateful_iterator';
 
 import {CSVDataset, CsvHeaderConfig} from './csv_dataset';
 
@@ -56,7 +55,7 @@ describe('CSVDataset', () => {
        expect(dataset.csvColumnNames).toEqual(['foo', 'bar', 'baz']);
 
        const iter = await dataset.iterator();
-       const result = await imposeStrictOrder(iter).collectRemaining();
+       const result = await iter.collectRemaining();
 
        expect(result).toEqual([
          {'foo': 'ab', 'bar': 'cd', 'baz': 'ef'},
@@ -76,7 +75,7 @@ describe('CSVDataset', () => {
 
     expect(dataset.csvColumnNames).toEqual(['foo', 'bar', 'baz']);
     const iter = await dataset.iterator();
-    const result = await imposeStrictOrder(iter).collectRemaining();
+    const result = await iter.collectRemaining();
 
     expect(result).toEqual([
       {'foo': 'ab', 'bar': 'cd', 'baz': 'ef'},
@@ -94,7 +93,7 @@ describe('CSVDataset', () => {
     const dataset = await CSVDataset.create(source);
     expect(dataset.csvColumnNames).toEqual(['0', '1', '2']);
     const iter = await dataset.iterator();
-    const result = await imposeStrictOrder(iter).collectRemaining();
+    const result = await iter.collectRemaining();
 
     expect(result).toEqual([
       {'0': 'ab', '1': 'cd', '2': 'ef'},
@@ -107,7 +106,7 @@ describe('CSVDataset', () => {
     ]);
   });
 
-  it('array of promises', async () => {
+  it('emits rows in order despite async requests', async () => {
     const source = new FileDataSource(csvBlobWithHeadersExtra, {chunkSize: 10});
     const ds = await CSVDataset.create(source, CsvHeaderConfig.READ_FIRST_LINE);
     expect(ds.csvColumnNames).toEqual(['A', 'B', 'C']);
@@ -117,6 +116,10 @@ describe('CSVDataset', () => {
       csvIterator.next(), csvIterator.next()
     ];
     const elements = await Promise.all(promises);
-    elements.forEach(x => console.log(x));
+    expect(elements[0].value).toEqual({A: 1, B: 2, C: 3});
+    expect(elements[1].value).toEqual({A: 2, B: 2, C: 3});
+    expect(elements[2].value).toEqual({A: 3, B: 2, C: 3});
+    expect(elements[3].value).toEqual({A: 4, B: 2, C: 3});
+    expect(elements[4].value).toEqual({A: 5, B: 2, C: 3});
   });
 });

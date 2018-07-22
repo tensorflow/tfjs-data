@@ -1,3 +1,4 @@
+
 /**
  * @license
  * Copyright 2018 Google LLC. All Rights Reserved.
@@ -17,9 +18,8 @@
  */
 
 // tslint:disable:max-line-length
-import {ChainedIterator, iteratorFromConcatenatedFunction, iteratorFromItems, ShuffleIterator} from '../stateful_iterators/stateful_iterator';
-import {TestIntegerIterator} from '../stateless_iterators/stateless_iterator_test';
-
+import {TestIntegerIterator} from '../lazy_iterator_test';
+import {ChainedIterator, iteratorFromConcatenatedFunction, iteratorFromItems, ShuffleIterator} from '../ordered_iterators/ordered_iterator';
 // tslint:enable:max-line-length
 
 const LONG_STREAM_LENGTH = 100;

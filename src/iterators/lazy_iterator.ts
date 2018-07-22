@@ -18,7 +18,6 @@
 
 // tslint:disable:max-line-length
 import {getTensorsInContainer, isTensorInList} from '@tensorflow/tfjs-core/dist/tensor_util';
-
 import {RingBuffer} from '../util/ring_buffer';
 // tslint:enable:max-line-length
 

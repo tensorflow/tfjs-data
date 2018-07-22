@@ -17,9 +17,11 @@
  */
 
 // tslint:disable:max-line-length
-import {applyMixins} from '../util/mixins';
 
-import {EnforcedOrderedLazyIterator, OrderedLazyIterator, StatefulOneToManyIterator, StatefulPumpResult} from './stateful_iterator';
+import {applyMixins} from '../../util/mixins';
+import {OrderedLazyIterator, SerialLazyIterator} from '../ordered_iterators/ordered_iterator';
+
+import {StatefulOneToManyIterator, StatefulPumpResult} from './stateful_iterator';
 
 // tslint:enable:max-line-length
 
@@ -28,8 +30,7 @@ export interface StringCarryover {
   readonly carryover: string;
 }
 
-export abstract class StringChunkIterator extends
-    EnforcedOrderedLazyIterator<string> {
+export abstract class StringChunkIterator extends SerialLazyIterator<string> {
   /**
    * Splits a string stream on a given separator.
    *

@@ -16,18 +16,18 @@
  * =============================================================================
  */
 
+// tslint:disable:max-line-length
 import * as utf8 from 'utf8';
 
-import {applyMixins} from '../util/mixins';
+import {applyMixins} from '../../util/mixins';
+import {OrderedLazyIterator, SerialLazyIterator} from '../ordered_iterators/ordered_iterator';
 
-// tslint:disable:max-line-length
-import {EnforcedOrderedLazyIterator, OrderedLazyIterator, StatefulOneToManyIterator, StatefulPumpResult} from './stateful_iterator';
+import {StatefulOneToManyIterator, StatefulPumpResult} from './stateful_iterator';
 import {StringChunkIterator} from './string_iterator';
 
 // tslint:enable:max-line-length
 
-export abstract class ByteChunkIterator extends
-    EnforcedOrderedLazyIterator<Uint8Array> {
+export abstract class ByteChunkIterator extends SerialLazyIterator<Uint8Array> {
   /**
    * Decode a stream of UTF8-encoded byte arrays to a stream of strings.
    *
@@ -148,6 +148,7 @@ class Utf8Iterator extends StatefulOneToManyIterator<string, Utf8IteratorState>
   // StringChunkIterator
   split: (separator: string) => StringChunkIterator;
 }
+
 applyMixins(Utf8Iterator, [StringChunkIterator]);
 
 function utfWidth(firstByte: number): number {
