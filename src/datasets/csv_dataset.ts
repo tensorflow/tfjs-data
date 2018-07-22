@@ -17,7 +17,7 @@
  */
 
 // tslint:disable:max-line-length
-import {imposeStrictOrder, OrderedLazyIterator} from '../iterators/ordered_iterator';
+import {makeSerial, OrderedLazyIterator} from '../iterators/ordered_iterator';
 import {DataSource} from '../sources/datasource';
 import {DataElement, ElementArray} from '../types';
 
@@ -111,7 +111,7 @@ export class CSVDataset extends OrderedDataset<DataElement> {
     if (this.hasHeaderLine) {
       // We previously read the first line to get the headers.
       // Now that we're providing data, skip it.
-      lines = imposeStrictOrder(lines).skip(1);
+      lines = makeSerial(lines).skip(1);
     }
     return lines.map(x => this.makeDataElement(x));
   }

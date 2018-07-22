@@ -28,7 +28,7 @@ describeWithFlags('OrderedDataset.batch()', tf.test_util.CPU_ENVS, () => {
     const ds = new TestOrderedDataset();
     const bds = ds.batch(8);
     const batchIterator = await bds.iterator();
-    const result = await batchIterator.collectRemaining();
+    const result = await batchIterator.collect();
 
     expect(result.length).toEqual(13);
     result.slice(0, 12).forEach(batch => {
@@ -46,7 +46,7 @@ describeWithFlags('OrderedDataset.batch()', tf.test_util.CPU_ENVS, () => {
     const bds = ds.batch(8);
 
     const batchIterator = await bds.iterator();
-    const result = await batchIterator.collectRemaining();
+    const result = await batchIterator.collect();
 
     const lastBatch = result[12];
     expect((lastBatch['number'] as tf.Tensor).shape).toEqual([4]);

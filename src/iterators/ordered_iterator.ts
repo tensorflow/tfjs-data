@@ -27,15 +27,17 @@ import {RingBuffer} from '../util/ring_buffer';
 import {LazyIterator} from './lazy_iterator';
 // tslint:enable:max-line-length
 
+export interface OrderedIteratorResult<T> extends IteratorResult<T> {}
+
 /**
- * Create a `LazyIterator` from an array of items.
+ * Create an `OrderedLazyIterator` from an array of items.
  */
 export function iteratorFromItems<T>(items: T[]): OrderedLazyIterator<T> {
   return new ArrayIterator(items);
 }
 
 /**
- * Create a `LazyIterator` of incrementing integers.
+ * Create an `OrderedLazyIterator` of incrementing integers.
  */
 export function iteratorFromIncrementing(start: number):
     OrderedLazyIterator<number> {
@@ -44,16 +46,16 @@ export function iteratorFromIncrementing(start: number):
 }
 
 /**
- * Create a `LazyIterator` from a function.
+ * Create an `OrderedLazyIterator` from a function.
  */
-export function iteratorFromFunction<T>(func: () => IteratorResult<T>):
+export function iteratorFromFunction<T>(func: () => OrderedIteratorResult<T>):
     OrderedLazyIterator<T> {
   return new FunctionCallIterator(func);
 }
 
 /**
- * Create a `LazyIterator` by concatenating underlying streams, which are
- * themselves provided as a stream.
+ * Create an `OrderedLazyIterator` by concatenating underlying streams, which
+ * are themselves provided as a stream.
  *
  * This can also be thought of as a "stream flatten" operation.
  *
@@ -66,10 +68,10 @@ export function iteratorFromConcatenated<T>(
 }
 
 /**
- * Create a `LazyIterator` by concatenating streams produced by calling a
- * stream-generating function a given number of times.
+ * Create an `OrderedLazyIterator` by concatenating streams produced by calling
+ * a stream-generating function a given number of times.
  *
- * Since a `LazyIterator` is read-once, it cannot be repeated, but this
+ * Since an `OrderedLazyIterator` is read-once, it cannot be repeated, but this
  * function can be used to achieve a similar effect:
  *
  *   LazyIterator.ofConcatenatedFunction(() => new MyIterator(), 6);
@@ -78,15 +80,27 @@ export function iteratorFromConcatenated<T>(
  * @param count: The number of times to call the function.
  */
 export function iteratorFromConcatenatedFunction<T>(
-    iteratorFunc: () => IteratorResult<LazyIterator<T>>,
+    iteratorFunc: () => OrderedIteratorResult<LazyIterator<T>>,
     count: number): OrderedLazyIterator<T> {
   return iteratorFromConcatenated(
-      imposeStrictOrder(iteratorFromFunction(iteratorFunc).take(count)));
+      makeSerial(iteratorFromFunction(iteratorFunc).take(count)));
 }
 
-export interface OrderedIteratorResult<T> extends IteratorResult<T> {}
-
+/**
+ * An asynchronous iterator, providing lazy access to a potentially unbounded
+ * stream of elements in some specific order.
+ *
+ * Items are returned from an OrderedLazyIterator in the order that they were
+ * requested, even if the resulting Promises resolve in a different order.
+ *
+ * Another way of saying this is that next() returns a Promise for a specific
+ * element of the stream (i.e., the next one that has not already been
+ * promised), not a Promise for some element of the stream to be chosen later.
+ */
 export abstract class OrderedLazyIterator<T> extends LazyIterator<T> {
+  // Some of the methods of the parent LazyIterator are order-preserving.
+  // Thus we facade them here to show that their outputs are Ordered.
+
   /**
    * Maps this stream through a 1-to-1 transform.
    *
@@ -168,7 +182,7 @@ export abstract class OrderedLazyIterator<T> extends LazyIterator<T> {
    */
   concatenate(iterator: LazyIterator<T>): OrderedLazyIterator<T> {
     return ChainedIterator.create(
-        imposeStrictOrder(iteratorFromItems([this, iterator])));
+        makeSerial(iteratorFromItems([this, iterator])));
   }
 
   /**
@@ -199,6 +213,10 @@ export abstract class OrderedLazyIterator<T> extends LazyIterator<T> {
   }
 }
 
+/**
+ * Wraps a LazyIterator that we know is actually ordered, thereby making the
+ * additional methods of OrderedLazyIterator available on it.
+ */
 class AlreadyOrderedIterator<T> extends OrderedLazyIterator<T> {
   constructor(private readonly upstream: LazyIterator<T>) {
     super();
@@ -241,8 +259,27 @@ class FunctionCallIterator<T> extends OrderedLazyIterator<T> {
   }
 }
 
-/******* Serial ********/
+/****************************************************************************/
+/*                             Serial Iterators                             */
+/****************************************************************************/
 
+/**
+ * An asynchronous iterator, providing lazy access to a potentially unbounded
+ * stream of elements in some specific order, computing only one at a time.
+ *
+ * This iterator blocks each next() call on the resolution of the previous call.
+ * Thus, only one next() call may be underway at a time.  This makes it safe to
+ * keep mutable state in the iterator itself (e.g., some accumulating metrics).
+ *
+ * In the single-threaded JavaScript environment, this does not harm
+ * performance; it simply imposes a desirable order on the resolution of a set
+ * of Promises, which will take the same total time to compute regardless.
+ *
+ * However when additional threads are available for certain tasks (e.g., URL
+ * fetches, unzip, web workers, etc.) then this serial iterator may become a
+ * bottleneck.  Appropriate use of prefetching (upstream of this iterator) can
+ * mitigate this.
+ */
 export abstract class SerialLazyIterator<T> extends OrderedLazyIterator<T> {
   private lastRead: Promise<OrderedIteratorResult<T>>;
 
@@ -265,9 +302,12 @@ export abstract class SerialLazyIterator<T> extends OrderedLazyIterator<T> {
   abstract async serialNext(): Promise<OrderedIteratorResult<T>>;
 }
 
-export function imposeStrictOrder<T>(upstream: LazyIterator<T>):
+/**
+ * Enforce serial (one-promise-at-a-time) operation on another lazy iterator.
+ */
+export function makeSerial<T>(upstream: LazyIterator<T>):
     OrderedLazyIterator<T> {
-  if (upstream instanceof OrderedLazyIterator) {
+  if (upstream instanceof SerialLazyIterator) {
     return upstream;
   }
   return new ForceSerialLazyIterator(upstream);
@@ -284,7 +324,7 @@ class ForceSerialLazyIterator<T> extends SerialLazyIterator<T> {
   }
 }
 
-export class SkipIterator<T> extends SerialLazyIterator<T> {
+class SkipIterator<T> extends SerialLazyIterator<T> {
   count = 0;
   constructor(protected upstream: LazyIterator<T>, protected maxCount: number) {
     super();
@@ -344,86 +384,6 @@ class FilterIterator<T> extends SerialLazyIterator<T> {
       }
       tf.dispose(item.value as {});
     }
-  }
-}
-
-// Iterators that maintain a queue of pending items
-// ============================================================================
-
-/**
- * A base class for transforming streams that operate by maintaining an
- * output queue of elements that are ready to return via next().  This is
- * commonly required when the transformation is 1-to-many:  A call to next()
- * may trigger a call to the underlying stream, which will produce many mapped
- * elements of this stream-- of which we need to return only one, so we have to
- * queue the rest.
- */
-export abstract class OneToManyIterator<T> extends SerialLazyIterator<T> {
-  protected outputQueue: RingBuffer<T>;
-
-  constructor() {
-    super();
-    this.outputQueue = new GrowingRingBuffer<T>();
-  }
-  /**
-   * Read one or more chunks from upstream and process them, possibly reading or
-   * writing a carryover, and adding processed items to the output queue.  Note
-   * it's possible that no items are added to the queue on a given
-   * pump() call, even if the upstream stream is not closed (e.g., because items
-   * are filtered).
-   *
-   * @return `true` if any action was taken, i.e. fetching items from the
-   *   upstream source OR adding items to the output queue.  `false` if the
-   *   upstream source is exhausted AND nothing was added to the queue (i.e.,
-   *   any remaining carryover).
-   */
-  protected abstract async pump(): Promise<boolean>;
-
-  async serialNext(): Promise<IteratorResult<T>> {
-    // Fetch so that the queue contains at least one item if possible.
-    // If the upstream source is exhausted, AND there are no items left in the
-    // output queue, then this stream is also exhausted.
-    while (this.outputQueue.length() === 0) {
-      // TODO(soergel): consider parallel reads.
-      if (!await this.pump()) {
-        return {value: null, done: true};
-      }
-    }
-    return {value: this.outputQueue.shift(), done: false};
-  }
-}
-
-class FlatmapIterator<I, O> extends OneToManyIterator<O> {
-  constructor(
-      protected upstream: LazyIterator<I>,
-      protected transform: (value: I) => O[]) {
-    super();
-  }
-
-  async pump(): Promise<boolean> {
-    const item = await this.upstream.next();
-    if (item.done) {
-      return false;
-    }
-    const inputTensors = getTensorsInContainer(item.value as {});
-    // Careful: the transform may mutate the item in place.
-    // that's why we have to remember the input Tensors above, and then below
-    // dispose only those that were not passed through to the output.
-    // Note too that the transform function is responsible for tidying any
-    // intermediate Tensors.  Here we are concerned only about the inputs.
-    const mappedArray = this.transform(item.value);
-    const outputTensors = getTensorsInContainer(mappedArray as {});
-    this.outputQueue.pushAll(mappedArray);
-
-    // TODO(soergel) faster intersection, and deduplicate outputTensors
-    // TODO(soergel) move to tf.disposeExcept(in, out)?
-    for (const t of inputTensors) {
-      if (!isTensorInList(t, outputTensors)) {
-        t.dispose();
-      }
-    }
-
-    return true;
   }
 }
 
@@ -505,6 +465,8 @@ export class ShuffleIterator<T> extends SerialLazyIterator<T> {
   }
 
   async serialNext(): Promise<IteratorResult<T>> {
+    // When we see a 'done' signal, we enter a phase of flushing any remaining
+    // good values from the buffer.  We don't want to refill during this phase.
     if (!this.upstreamExhausted) {
       await this.refill();
     }
@@ -523,5 +485,87 @@ export class ShuffleIterator<T> extends SerialLazyIterator<T> {
         return result;
       }
     }
+  }
+}
+
+/****************************************************************************/
+/*                           One-to-Many Iterators                          */
+/****************************************************************************/
+
+/**
+ * A base class for transforming streams that operate by maintaining an
+ * output queue of elements that are ready to return via next().  This is
+ * commonly required when the transformation is 1-to-many:  A call to next()
+ * may trigger a call to the underlying stream, which will produce many mapped
+ * elements of this stream-- of which we need to return only one, so we have to
+ * queue the rest.
+ */
+export abstract class OneToManyIterator<T> extends SerialLazyIterator<T> {
+  protected outputQueue: RingBuffer<T>;
+
+  constructor() {
+    super();
+    this.outputQueue = new GrowingRingBuffer<T>();
+  }
+
+  /**
+   * Read one or more chunks from upstream and process them, possibly reading or
+   * writing a carryover, and adding processed items to the output queue.  Note
+   * it's possible that no items are added to the queue on a given
+   * pump() call, even if the upstream stream is not closed (e.g., because items
+   * are filtered).
+   *
+   * @return `true` if any action was taken, i.e. fetching items from the
+   *   upstream source OR adding items to the output queue.  `false` if the
+   *   upstream source is exhausted AND nothing was added to the queue (i.e.,
+   *   any remaining carryover).
+   */
+  protected abstract async pump(): Promise<boolean>;
+
+  async serialNext(): Promise<IteratorResult<T>> {
+    // Fetch so that the queue contains at least one item if possible.
+    // If the upstream source is exhausted, AND there are no items left in the
+    // output queue, then this stream is also exhausted.
+    while (this.outputQueue.length() === 0) {
+      // TODO(soergel): consider parallel reads.
+      if (!await this.pump()) {
+        return {value: null, done: true};
+      }
+    }
+    return {value: this.outputQueue.shift(), done: false};
+  }
+}
+
+class FlatmapIterator<I, O> extends OneToManyIterator<O> {
+  constructor(
+      protected upstream: LazyIterator<I>,
+      protected transform: (value: I) => O[]) {
+    super();
+  }
+
+  async pump(): Promise<boolean> {
+    const item = await this.upstream.next();
+    if (item.done) {
+      return false;
+    }
+    const inputTensors = getTensorsInContainer(item.value as {});
+    // Careful: the transform may mutate the item in place.
+    // that's why we have to remember the input Tensors above, and then below
+    // dispose only those that were not passed through to the output.
+    // Note too that the transform function is responsible for tidying any
+    // intermediate Tensors.  Here we are concerned only about the inputs.
+    const mappedArray = this.transform(item.value);
+    const outputTensors = getTensorsInContainer(mappedArray as {});
+    this.outputQueue.pushAll(mappedArray);
+
+    // TODO(soergel) faster intersection, and deduplicate outputTensors
+    // TODO(soergel) move to tf.disposeExcept(in, out)?
+    for (const t of inputTensors) {
+      if (!isTensorInList(t, outputTensors)) {
+        t.dispose();
+      }
+    }
+
+    return true;
   }
 }

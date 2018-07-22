@@ -55,7 +55,7 @@ describe('CSVDataset', () => {
        expect(dataset.csvColumnNames).toEqual(['foo', 'bar', 'baz']);
 
        const iter = await dataset.iterator();
-       const result = await iter.collectRemaining();
+       const result = await iter.collect();
 
        expect(result).toEqual([
          {'foo': 'ab', 'bar': 'cd', 'baz': 'ef'},
@@ -75,7 +75,7 @@ describe('CSVDataset', () => {
 
     expect(dataset.csvColumnNames).toEqual(['foo', 'bar', 'baz']);
     const iter = await dataset.iterator();
-    const result = await iter.collectRemaining();
+    const result = await iter.collect();
 
     expect(result).toEqual([
       {'foo': 'ab', 'bar': 'cd', 'baz': 'ef'},
@@ -93,7 +93,7 @@ describe('CSVDataset', () => {
     const dataset = await CSVDataset.create(source);
     expect(dataset.csvColumnNames).toEqual(['0', '1', '2']);
     const iter = await dataset.iterator();
-    const result = await iter.collectRemaining();
+    const result = await iter.collect();
 
     expect(result).toEqual([
       {'0': 'ab', '1': 'cd', '2': 'ef'},

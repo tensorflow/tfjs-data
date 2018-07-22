@@ -27,6 +27,16 @@ export interface StatefulIteratorResult<T, S> extends OrderedIteratorResult<T> {
   state: S;
 }
 
+/**
+ * An asynchronous iterator, providing lazy access to a potentially unbounded
+ * stream of elements in some specific order, computing only one at a time and
+ * passing state from one call to the next.
+ *
+ * In most cases the same effect could be achieved by using a SerialLazyIterator
+ * and keeping mutable state in the iterator itself.  The approach here of
+ * explicitly passing the state is perhaps clearer and less bug-prone,
+ * and allows the state to be immutable if desired.
+ */
 export abstract class StatefulLazyIterator<T, S> extends SerialLazyIterator<T> {
   protected lastStateful: Promise<StatefulIteratorResult<T, S>>;
   constructor() {

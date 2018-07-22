@@ -20,7 +20,7 @@
 import * as tf from '@tensorflow/tfjs-core';
 
 import {iteratorFromAsyncFunction, LazyIterator} from '../iterators/lazy_iterator';
-import {imposeStrictOrder, iteratorFromConcatenated} from '../iterators/ordered_iterator';
+import {iteratorFromConcatenated, makeSerial} from '../iterators/ordered_iterator';
 import {DataElement} from '../types';
 // tslint:enable:max-line-length
 
@@ -86,8 +86,7 @@ export abstract class Dataset<T extends DataElement> {
     return datasetFromIteratorFn(async () => {
       const iteratorIterator = iteratorFromAsyncFunction(
           async () => ({value: await base.iterator(), done: false}));
-      return iteratorFromConcatenated(
-          imposeStrictOrder(iteratorIterator.take(count)));
+      return iteratorFromConcatenated(makeSerial(iteratorIterator.take(count)));
     });
   }
 
@@ -128,7 +127,7 @@ export abstract class Dataset<T extends DataElement> {
    *   when a new stream has been obtained and fully consumed.
    */
   async collectAll() {
-    return (await this.iterator()).collectRemaining();
+    return (await this.iterator()).collect();
   }
 
   /**

@@ -30,7 +30,7 @@ describe('ZipIterator', () => {
     const b = new TestIntegerIterator().map(x => x * 10);
     const c = new TestIntegerIterator().map(x => `string ${x.toString()}`);
     const readStream = iteratorFromZipped([a, b, c]);
-    const result = await readStream.collectRemaining();
+    const result = await readStream.collect();
     expect(result.length).toEqual(100);
 
     // each result has the form [x, x * 10, 'string ' + x]
@@ -47,7 +47,7 @@ describe('ZipIterator', () => {
     const b = new TestIntegerIterator().map(x => x * 10);
     const c = new TestIntegerIterator().map(x => `string ${x.toString()}`);
     const readStream = iteratorFromZipped({a, b, c});
-    const result = await readStream.collectRemaining();
+    const result = await readStream.collect();
     expect(result.length).toEqual(100);
 
     // each result has the form {a: x, b: x * 10, c: 'string ' + x}
@@ -66,7 +66,7 @@ describe('ZipIterator', () => {
     const c =
         new TestIntegerIterator().map(x => ({'c': `string ${x.toString()}`}));
     const readStream = iteratorFromZipped([a, b, c]);
-    const result = await readStream.collectRemaining();
+    const result = await readStream.collect();
     expect(result.length).toEqual(100);
 
     // each result has the form
@@ -96,7 +96,7 @@ describe('ZipIterator', () => {
       const b = new TestIntegerIterator(3);
       const c = new TestIntegerIterator(2);
       const readStream = iteratorFromZipped([a, b, c]);
-      await readStream.collectRemaining();
+      await readStream.collect();
       // expected error due to default ZipMismatchMode.FAIL
       done.fail();
     } catch (e) {
@@ -111,7 +111,7 @@ describe('ZipIterator', () => {
        const c = new TestIntegerIterator(2);
        const readStream =
            iteratorFromZipped([a, b, c], ZipMismatchMode.SHORTEST);
-       const result = await readStream.collectRemaining();
+       const result = await readStream.collect();
        expect(result.length).toEqual(2);
      });
 
@@ -122,7 +122,7 @@ describe('ZipIterator', () => {
        const c = new TestIntegerIterator(2);
        const readStream =
            iteratorFromZipped([a, b, c], ZipMismatchMode.LONGEST);
-       const result = await readStream.collectRemaining();
+       const result = await readStream.collect();
        expect(result.length).toEqual(10);
        expect(result[9]).toEqual([9, null, null]);
      });
@@ -153,7 +153,7 @@ describe('ZipIterator', () => {
     const readStream = zippedStream.map(e => naiveMerge(e as DataElementArray));
     // Now each result has the form {a: x, b: x * 10, c: 'string ' + x}
 
-    const result = await readStream.collectRemaining();
+    const result = await readStream.collect();
     expect(result.length).toEqual(100);
 
     for (const e of result) {

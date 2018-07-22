@@ -33,7 +33,7 @@ describe('StringIterator.split()', () => {
     const utf8Iterator = byteIterator.decodeUTF8();
     const lineIterator = utf8Iterator.split('\n');
     const expected = lorem.split('\n');
-    const result = await lineIterator.collectRemaining();
+    const result = await lineIterator.collect();
 
     expect(result.length).toEqual(6);
     const totalCharacters = result.map(x => x.length).reduce((a, b) => a + b);
@@ -55,7 +55,7 @@ describe('StringIterator.split()', () => {
        const lineIterator = utf8Iterator.split(' ');
        const expected = ['ab', 'def', 'hi', '', '', '', '', '', 'pq'];
 
-       lineIterator.collectRemaining()
+       lineIterator.collect()
            .then(result => {
              expect(result.length).toEqual(9);
              const totalCharacters =

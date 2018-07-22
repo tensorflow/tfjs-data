@@ -36,6 +36,11 @@ export function iteratorFromAsyncFunction<T>(
 /**
  * An asynchronous iterator, providing lazy access to a potentially unbounded
  * stream of elements.
+ *
+ * Note that there is no guarantee that elements will be returned in any
+ * specific order.  In particular, the arrival of the 'done' signal does not
+ * guarantee that the stream is really empty, because any outstanding promises
+ * may yet yield elements.
  */
 export abstract class LazyIterator<T> {
   // This class implements AsyncIterator<T>, but we have not yet set the
@@ -56,47 +61,29 @@ export abstract class LazyIterator<T> {
    * Obviously this will succeed only for small streams that fit in memory.
    * Useful for testing.
    *
+   * @param maxItems the maximum number of items to return.  If the stream
+   *   terminates, fewer items will be returned.  (default 1000)
+   * @param prefetch the size of the prefetch buffer to use when collecting
+   *   items.  Some amount of prefetch is important to test parallel streams,
+   *   i.e. with multiple Promises outstanding.  Without prefetch, this method
+   *   makes purely serial next() calls.
+   *
    * @returns A Promise for an array of stream elements, which will resolve
    *   when the stream is exhausted.
    */
-  async collectRemainingInOrder(): Promise<T[]> {
+  async collect(maxItems = 1000, prefetch = 100): Promise<T[]> {
+    const stream = prefetch > 0 ? this.prefetch(prefetch) : this;
     const result: T[] = [];
-    let x = await this.next();
-    while (!x.done) {
-      result.push(x.value);
-      x = await this.next();
-    }
-    return result;
-  }
-
-  async collectRemaining(): Promise<T[]> {
-    const stream = this.prefetch(100);
-    const result: T[] = [];
+    let count = 0;
     let x = await stream.next();
     while (!x.done) {
       result.push(x.value);
+      count++;
+      if (count >= maxItems) {
+        return result;
+      }
       x = await stream.next();
     }
-    return result;
-  }
-
-  /*
-    async collectRemaining(): Promise<T[]> {
-      const result: T[] = [];
-      let x = await this.collect(100);
-      result.push(...x);
-      while (x.length === 100) {
-        x = await this.collect(100);
-        result.push(...x);
-      }
-      return result;
-    }*/
-
-  async collectParallel(maxItems: number): Promise<T[]> {
-    const promises =
-        Array.from({length: maxItems}, (v, k) => k).map(k => this.next());
-    const results = await Promise.all(promises);
-    const result = results.filter(r => (!r.done)).map(r => r.value);
     return result;
   }
 
