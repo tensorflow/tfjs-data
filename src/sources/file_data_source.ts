@@ -17,8 +17,9 @@
  */
 
 // tslint:disable:max-line-length
-import {DataSource} from '../datasource';
 import {FileChunkIterator, FileChunkIteratorOptions} from '../stateful_iterators/file_chunk_iterator';
+
+import {DataSource} from './datasource';
 // tslint:enable:max-line-length
 
 /**

@@ -16,9 +16,9 @@
  * =============================================================================
  */
 
-import * as tf from '../.yalc/@tensorflow/tfjs-core/dist';
+import * as tf from '@tensorflow/tfjs-core';
 
-import {Dataset} from './dataset';
+import {Dataset} from './datasets/dataset';
 import {ElementArray, TabularRecord} from './types';
 
 // TODO(soergel): Flesh out collected statistics.

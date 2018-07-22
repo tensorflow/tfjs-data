@@ -16,8 +16,8 @@
  */
 
 // TODO(soergel) carefully consider what actually should be exposed here
-export {Dataset} from './dataset';
-export {datasetFromElements} from './dataset';
+export {Dataset} from './datasets/dataset';
+export {datasetFromElements} from './datasets/dataset';
 export {CSVDataset} from './datasets/csv_dataset';
 export {TextLineDataset} from './datasets/text_line_dataset';
 export {FileDataSource} from './sources/file_data_source';

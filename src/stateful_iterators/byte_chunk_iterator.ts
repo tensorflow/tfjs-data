@@ -21,13 +21,13 @@ import * as utf8 from 'utf8';
 import {applyMixins} from '../util/mixins';
 
 // tslint:disable:max-line-length
-import {OrderedLazyIterator, StatefulOneToManyIterator, StatefulPumpResult} from './stateful_iterator';
+import {EnforcedOrderedLazyIterator, OrderedLazyIterator, StatefulOneToManyIterator, StatefulPumpResult} from './stateful_iterator';
 import {StringChunkIterator} from './string_iterator';
 
 // tslint:enable:max-line-length
 
 export abstract class ByteChunkIterator extends
-    OrderedLazyIterator<Uint8Array> {
+    EnforcedOrderedLazyIterator<Uint8Array> {
   /**
    * Decode a stream of UTF8-encoded byte arrays to a stream of strings.
    *
@@ -80,7 +80,6 @@ class Utf8Iterator extends StatefulOneToManyIterator<string, Utf8IteratorState>
     implements StringChunkIterator {
   constructor(protected readonly upstream: OrderedLazyIterator<Uint8Array>) {
     super();
-    // console.log('Created UTF8 based on: ', upstream);
   }
 
   initialState() {

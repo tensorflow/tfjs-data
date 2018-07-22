@@ -71,13 +71,10 @@ export class FileChunkIterator extends
   async statefulNext(state: FileChunkIteratorState):
       Promise<StatefulIteratorResult<Uint8Array, FileChunkIteratorState>> {
     if (state.offset >= this.file.size) {
-      // console.log('File done at offset ', state.offset);
       return {value: null, done: true, state};
     }
     const start = state.offset;
     const end = start + this.chunkSize;
-
-    // console.log(`Prepared chunk: ${start} - ${end}`);
 
     const chunk = new Promise<Uint8Array>((resolve, reject) => {
       // TODO(soergel): is this a performance issue?
@@ -109,7 +106,6 @@ export class FileChunkIterator extends
       fileReader.readAsArrayBuffer(slice);
     });
     const x = await chunk;
-    // console.log('file returning chunk: ', x);
     return {value: x, done: false, state: {offset: end}};
   }
 

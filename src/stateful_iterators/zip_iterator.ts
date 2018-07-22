@@ -17,12 +17,18 @@
  */
 
 // tslint:disable:max-line-length
+import {Dataset} from '../datasets/dataset';
 import {LazyIterator} from '../stateless_iterators/stateless_iterator';
-import {DataElement, IteratorContainer} from '../types';
+import {Container, DataElement, IteratorContainer} from '../types';
 import {deepMapAndAwaitAll, DeepMapAsyncResult} from '../util/deep_map';
 
 import {OrderedLazyIterator, StatefulIteratorResult, StatefulLazyIterator} from './stateful_iterator';
 // tslint:enable:max-line-length
+
+/**
+ * A nested structure of Datasets, used as the input to zip().
+ */
+export type DatasetContainer = Container<Dataset<DataElement>>;
 
 /**
  * Create a `LazyIterator` by zipping together an array, dict, or nested
@@ -109,7 +115,6 @@ export class ZipIterator extends StatefulLazyIterator<DataElement, ZipState> {
     let iteratorsDone = 0;
 
     function getNext(container: IteratorContainer): DeepMapAsyncResult {
-      // console.log('deepmap getnext: ', container);
       if (container instanceof LazyIterator) {
         const result = container.next();
         return {
@@ -126,7 +131,6 @@ export class ZipIterator extends StatefulLazyIterator<DataElement, ZipState> {
         return {value: null, recurse: true};
       }
     }
-    // console.log('Going to deepMap: ', this.iterators);
     const mapped = await deepMapAndAwaitAll(this.iterators, getNext);
     if (numIterators === iteratorsDone) {
       // The streams have all ended.

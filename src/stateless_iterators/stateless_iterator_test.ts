@@ -17,10 +17,7 @@
  */
 
 // tslint:disable:max-line-length
-import {imposeStrictOrder, iteratorFromConcatenated, iteratorFromConcatenatedFunction, OrderedLazyIterator} from '../stateful_iterators/stateful_iterator';
-
-import {iteratorFromIncrementing, LazyIterator} from './stateless_iterator';
-import {iteratorFromFunction, iteratorFromItems} from './stateless_iterator';
+import {imposeStrictOrder, iteratorFromConcatenated, iteratorFromConcatenatedFunction, iteratorFromFunction, iteratorFromIncrementing, iteratorFromItems, OrderedLazyIterator} from '../stateful_iterators/stateful_iterator';
 
 // tslint:enable:max-line-length
 
@@ -33,7 +30,7 @@ export class TestIntegerIterator extends OrderedLazyIterator<number> {
     this.data = Array.from({length}, (v, k) => k);
   }
 
-  async orderedNext(): Promise<IteratorResult<number>> {
+  async next(): Promise<IteratorResult<number>> {
     if (this.currentIndex >= this.length) {
       return {value: null, done: true};
     }
@@ -50,7 +47,7 @@ export class TestIntegerIterator extends OrderedLazyIterator<number> {
   }
 }
 
-fdescribe('LazyIterator', () => {
+describe('LazyIterator', () => {
   it('collects all stream elements into an array', done => {
     const readIterator = new TestIntegerIterator();
     readIterator.collectRemaining()
@@ -75,7 +72,7 @@ fdescribe('LazyIterator', () => {
         .catch(done.fail);
   });
 
-  fit('filters elements', async () => {
+  it('filters elements', async () => {
     const readIterator = new TestIntegerIterator().filter(x => x % 2 === 0);
     // const orderedStream = imposeStrictOrder(readIterator);
     const result = await readIterator.collectRemaining();

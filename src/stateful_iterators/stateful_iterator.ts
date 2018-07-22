@@ -17,14 +17,38 @@
  */
 
 // tslint:disable:max-line-length
-
 import * as tf from '@tensorflow/tfjs-core';
 import {getTensorsInContainer, isTensorInList} from '@tensorflow/tfjs-core/dist/tensor_util';
+import * as seedrandom from 'seedrandom';
 
-import {iteratorFromFunction, iteratorFromItems, LazyIterator} from '../stateless_iterators/stateless_iterator';
+import {LazyIterator} from '../stateless_iterators/stateless_iterator';
 import {GrowingRingBuffer} from '../util/growing_ring_buffer';
 import {RingBuffer} from '../util/ring_buffer';
 // tslint:enable:max-line-length
+
+/**
+ * Create a `LazyIterator` from an array of items.
+ */
+export function iteratorFromItems<T>(items: T[]): OrderedLazyIterator<T> {
+  return new ArrayIterator(items);
+}
+
+/**
+ * Create a `LazyIterator` of incrementing integers.
+ */
+export function iteratorFromIncrementing(start: number):
+    OrderedLazyIterator<number> {
+  let i = start;
+  return iteratorFromFunction(() => ({value: i++, done: false}));
+}
+
+/**
+ * Create a `LazyIterator` from a function.
+ */
+export function iteratorFromFunction<T>(func: () => IteratorResult<T>):
+    OrderedLazyIterator<T> {
+  return new FunctionCallIterator(func);
+}
 
 /**
  * Create a `LazyIterator` by concatenating underlying streams, which are
@@ -35,7 +59,8 @@ import {RingBuffer} from '../util/ring_buffer';
  * @param baseIterators A stream of streams to be concatenated.
  */
 export function iteratorFromConcatenated<T>(
-    baseIterators: OrderedLazyIterator<LazyIterator<T>>): LazyIterator<T> {
+    baseIterators: OrderedLazyIterator<LazyIterator<T>>):
+    OrderedLazyIterator<T> {
   return ChainedIterator.create(baseIterators);
 }
 
@@ -53,7 +78,7 @@ export function iteratorFromConcatenated<T>(
  */
 export function iteratorFromConcatenatedFunction<T>(
     iteratorFunc: () => IteratorResult<LazyIterator<T>>,
-    count: number): LazyIterator<T> {
+    count: number): OrderedLazyIterator<T> {
   return iteratorFromConcatenated(
       imposeStrictOrder(iteratorFromFunction(iteratorFunc).take(count)));
 }
@@ -65,26 +90,6 @@ export interface StatefulIteratorResult<T, S> extends OrderedIteratorResult<T> {
 }
 
 export abstract class OrderedLazyIterator<T> extends LazyIterator<T> {
-  private lastRead: Promise<OrderedIteratorResult<T>>;
-
-  constructor() {
-    super();
-    this.lastRead = Promise.resolve({value: null, done: false});
-  }
-
-  async next(): Promise<IteratorResult<T>> {
-    this.lastRead = this.advance(this.lastRead);
-    return this.lastRead;
-  }
-
-  private async advance(t: Promise<OrderedIteratorResult<T>>):
-      Promise<OrderedIteratorResult<T>> {
-    await t;
-    return this.orderedNext();
-  }
-
-  abstract async orderedNext(): Promise<OrderedIteratorResult<T>>;
-
   /**
    * Filters this stream according to `predicate`.
    *
@@ -145,6 +150,43 @@ export abstract class OrderedLazyIterator<T> extends LazyIterator<T> {
     }
     return new SkipIterator(this, count);
   }
+
+  // TODO(soergel): deep sharded shuffle, where supported
+
+  /**
+   * Randomly shuffles the elements of this stream.
+   *
+   * @param bufferSize: An integer specifying the number of elements from this
+   *   stream from which the new stream will sample.
+   * @param seed: (Optional.) An integer specifying the random seed that will
+   *   be used to create the distribution.
+   */
+  shuffle(windowSize: number, seed?: string): LazyIterator<T> {
+    return new ShuffleIterator(this, windowSize, seed);
+  }
+}
+
+export abstract class EnforcedOrderedLazyIterator<T> extends
+    OrderedLazyIterator<T> {
+  private lastRead: Promise<OrderedIteratorResult<T>>;
+
+  constructor() {
+    super();
+    this.lastRead = Promise.resolve({value: null, done: false});
+  }
+
+  async next(): Promise<IteratorResult<T>> {
+    this.lastRead = this.advance(this.lastRead);
+    return this.lastRead;
+  }
+
+  private async advance(t: Promise<OrderedIteratorResult<T>>):
+      Promise<OrderedIteratorResult<T>> {
+    await t;
+    return this.orderedNext();
+  }
+
+  abstract async orderedNext(): Promise<OrderedIteratorResult<T>>;
 }
 
 export function imposeStrictOrder<T>(upstream: LazyIterator<T>):
@@ -155,18 +197,51 @@ export function imposeStrictOrder<T>(upstream: LazyIterator<T>):
   return new ForceOrderedLazyIterator(upstream);
 }
 
-class ForceOrderedLazyIterator<T> extends OrderedLazyIterator<T> {
+class ForceOrderedLazyIterator<T> extends EnforcedOrderedLazyIterator<T> {
   constructor(private readonly upstream: LazyIterator<T>) {
     super();
   }
 
   async orderedNext(): Promise<OrderedIteratorResult<T>> {
     const item = await this.upstream.next();
-    // console.log(item);
     return item as OrderedIteratorResult<T>;
   }
 }
-class SkipIterator<T> extends OrderedLazyIterator<T> {
+
+class ArrayIterator<T> extends OrderedLazyIterator<T> {
+  private trav = 0;
+  constructor(protected items: T[]) {
+    super();
+  }
+
+  async next(): Promise<IteratorResult<T>> {
+    if (this.trav >= this.items.length) {
+      return {value: null, done: true};
+    }
+    const result = this.items[this.trav];
+    this.trav++;
+    return {value: result, done: false};
+  }
+}
+
+class FunctionCallIterator<T> extends OrderedLazyIterator<T> {
+  constructor(protected nextFn: () => IteratorResult<T>) {
+    super();
+  }
+
+  async next(): Promise<IteratorResult<T>> {
+    try {
+      return this.nextFn();
+    } catch (e) {
+      // Modify the error message but leave the stack trace intact
+      e.message =
+          `Error thrown while iterating through a dataset: ${e.message}`;
+      throw e;
+    }
+  }
+}
+
+class SkipIterator<T> extends EnforcedOrderedLazyIterator<T> {
   count = 0;
   constructor(protected upstream: LazyIterator<T>, protected maxCount: number) {
     super();
@@ -178,7 +253,6 @@ class SkipIterator<T> extends OrderedLazyIterator<T> {
     // Benefit: pseudo-parallel execution.  Drawback: maybe delayed GC.
     while (this.count++ < this.maxCount) {
       const skipped = await this.upstream.next();
-      console.log('skipped: ', skipped);
       // short-circuit if upstream is already empty
       if (skipped.done) {
         return skipped;
@@ -186,13 +260,11 @@ class SkipIterator<T> extends OrderedLazyIterator<T> {
       tf.dispose(skipped.value as {});
     }
     const result = await this.upstream.next();
-
-    console.log('skip returning: ', result);
     return result;
   }
 }
 
-class BatchIterator<T> extends OrderedLazyIterator<T[]> {
+class BatchIterator<T> extends EnforcedOrderedLazyIterator<T[]> {
   constructor(
       protected upstream: LazyIterator<T>, protected batchSize: number,
       protected enableSmallLastBatch = true) {
@@ -214,7 +286,7 @@ class BatchIterator<T> extends OrderedLazyIterator<T[]> {
   }
 }
 
-class FilterIterator<T> extends OrderedLazyIterator<T> {
+class FilterIterator<T> extends EnforcedOrderedLazyIterator<T> {
   constructor(
       protected upstream: LazyIterator<T>,
       protected predicate: (value: T) => boolean) {
@@ -224,7 +296,6 @@ class FilterIterator<T> extends OrderedLazyIterator<T> {
     while (true) {
       const item = await this.upstream.next();
       if (item.done || this.predicate(item.value)) {
-        // console.log('Passed filter: ', item);
         // go to the end of the line to avoid unexpected shuffling
         return Promise.resolve().then(() => item);
       }
@@ -244,7 +315,8 @@ class FilterIterator<T> extends OrderedLazyIterator<T> {
  * elements of this stream-- of which we need to return only one, so we have to
  * queue the rest.
  */
-export abstract class OneToManyIterator<T> extends OrderedLazyIterator<T> {
+export abstract class OneToManyIterator<T> extends
+    EnforcedOrderedLazyIterator<T> {
   protected outputQueue: RingBuffer<T>;
 
   constructor() {
@@ -314,7 +386,7 @@ class FlatmapIterator<I, O> extends OneToManyIterator<O> {
 }
 
 export abstract class StatefulLazyIterator<T, S> extends
-    OrderedLazyIterator<T> {
+    EnforcedOrderedLazyIterator<T> {
   protected lastStateful: Promise<StatefulIteratorResult<T, S>>;
   constructor() {
     super();
@@ -325,7 +397,6 @@ export abstract class StatefulLazyIterator<T, S> extends
   abstract initialState(): S;
 
   async orderedNext(): Promise<OrderedIteratorResult<T>> {
-    // console.log('calling statefulNext: ', prev);
     this.lastStateful = this.statefulNext((await this.lastStateful).state);
     return this.lastStateful;
   }
@@ -395,7 +466,7 @@ export abstract class StatefulOneToManyIterator<T, S> extends
  * the correct order according to when next() was called, even if the resulting
  * Promises resolve in a different order.
  */
-export class ChainedIterator<T> extends OrderedLazyIterator<T> {
+export class ChainedIterator<T> extends EnforcedOrderedLazyIterator<T> {
   private iterator: LazyIterator<T> = null;
   private moreIterators: LazyIterator<LazyIterator<T>>;
 
@@ -421,5 +492,67 @@ export class ChainedIterator<T> extends OrderedLazyIterator<T> {
       return this.orderedNext();
     }
     return itemResult;
+  }
+}
+
+/**
+ * A stream that performs a sliding-window random shuffle on an upstream
+ * source. This is like a `PrefetchIterator` except that the items are returned
+ * in randomized order.  Mixing naturally improves as the buffer size
+ * increases.
+ */
+export class ShuffleIterator<T> extends EnforcedOrderedLazyIterator<T> {
+  private random: seedrandom.prng;
+  private upstreamExhausted = false;
+  // TODO protected
+  public buffer: RingBuffer<Promise<IteratorResult<T>>>;
+
+  constructor(
+      protected upstream: LazyIterator<T>, bufferSize: number, seed?: string) {
+    super();
+    this.random = seedrandom.alea(seed || performance.now().toString());
+    this.buffer = new RingBuffer<Promise<IteratorResult<T>>>(bufferSize);
+  }
+
+  /**
+   * Refill the prefetch buffer.  Returns only after the buffer is full.  Since
+   * we are buffering Promises without resolving them, we cannot know here
+   * whether the upstream source is exhausted; eventually the buffer will be
+   * full of promises that resolve to "done".
+   */
+  protected refill() {
+    while (!this.buffer.isFull()) {
+      const v = this.upstream.next();
+      this.buffer.push(v);
+    }
+  }
+
+  private randomInt(max: number) {
+    return Math.floor(this.random() * max);
+  }
+
+  protected chooseIndex(): number {
+    return this.randomInt(this.buffer.length());
+  }
+
+  async orderedNext(): Promise<IteratorResult<T>> {
+    if (!this.upstreamExhausted) {
+      await this.refill();
+    }
+
+    // This loop keeps shrinking the buffer, so eventually either a non-done
+    // entry will be found, or the buffer will be empty.
+    while (true) {
+      if (this.buffer.isEmpty()) {
+        return {value: null, done: true};
+      }
+      const chosenIndex = this.chooseIndex();
+      const result = this.buffer.shuffleExcise(chosenIndex);
+      if ((await result).done) {
+        this.upstreamExhausted = true;
+      } else {
+        return result;
+      }
+    }
   }
 }

@@ -17,8 +17,8 @@
  */
 
 // tslint:disable:max-line-length
-import {iteratorFromConcatenatedFunction} from '../stateless_iterators/stateless_iterator';
-import {TestIntegerIterator} from '../stateless_iterators/stateless_iterator_test';
+import {iteratorFromConcatenatedFunction} from '../stateful_iterators/stateful_iterator';
+import {TestIntegerIterator} from './stateless_iterator_test';
 
 import {PrefetchIterator} from './stateless_iterator';
 

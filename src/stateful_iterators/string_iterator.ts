@@ -19,7 +19,7 @@
 // tslint:disable:max-line-length
 import {applyMixins} from '../util/mixins';
 
-import {OrderedLazyIterator, StatefulOneToManyIterator, StatefulPumpResult} from './stateful_iterator';
+import {EnforcedOrderedLazyIterator, OrderedLazyIterator, StatefulOneToManyIterator, StatefulPumpResult} from './stateful_iterator';
 
 // tslint:enable:max-line-length
 
@@ -28,7 +28,8 @@ export interface StringCarryover {
   readonly carryover: string;
 }
 
-export abstract class StringChunkIterator extends OrderedLazyIterator<string> {
+export abstract class StringChunkIterator extends
+    EnforcedOrderedLazyIterator<string> {
   /**
    * Splits a string stream on a given separator.
    *
@@ -80,11 +81,9 @@ class SplitIterator extends StatefulOneToManyIterator<string, StringCarryover>
 
       // Pretend that the pump succeeded in order to emit the small last batch.
       // The next pump() call will actually fail.
-      // console.log('Pushing carryover, WAT: ' + state.carryover);
       this.outputQueue.push(state.carryover);
       return {pumpDidWork: true, state: {carryover: ''}};
     }
-    // console.log('Splitting: ' + chunkResult.value);
     const lines = chunkResult.value.split(this.separator);
     // Note the behavior: " ab ".split(' ') === ['', 'ab', '']
     // Thus the carryover may be '' if the separator falls on a chunk
@@ -92,12 +91,9 @@ class SplitIterator extends StatefulOneToManyIterator<string, StringCarryover>
 
     lines[0] = state.carryover + lines[0];
     for (const line of lines.slice(0, -1)) {
-      // console.log('Pushing: ' + line);
       this.outputQueue.push(line);
     }
     const newCarryover = lines[lines.length - 1];
-
-    // console.log('Carryover: ' + newCarryover);
 
     return {pumpDidWork: true, state: {carryover: newCarryover}};
   }

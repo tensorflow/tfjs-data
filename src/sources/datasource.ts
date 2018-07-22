@@ -1,4 +1,4 @@
-import {ByteChunkIterator} from './stateful_iterators/byte_chunk_iterator';
+import {ByteChunkIterator} from '../stateful_iterators/byte_chunk_iterator';
 
 /**
  * @license

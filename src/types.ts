@@ -20,7 +20,6 @@
 import * as tf from '@tensorflow/tfjs-core';
 import {TensorContainer, TensorContainerArray, TensorContainerObject} from '@tensorflow/tfjs-core/dist/tensor_types';
 
-import {Dataset} from '.';
 import {LazyIterator} from './stateless_iterators/stateless_iterator';
 // tslint:enable:max-line-length
 
@@ -71,11 +70,6 @@ export interface ContainerObject<T> {
   [x: string]: ContainerOrT<T>;
 }
 export interface ContainerArray<T> extends Array<ContainerOrT<T>> {}
-
-/**
- * A nested structure of Datasets, used as the input to zip().
- */
-export type DatasetContainer = Container<Dataset<DataElement>>;
 
 /**
  * A nested structure of LazyIterators, used as the input to zip().

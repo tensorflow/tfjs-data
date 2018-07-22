@@ -16,12 +16,12 @@
  * =============================================================================
  */
 
-import {Dataset} from '../dataset';
-import {DataSource} from '../datasource';
+import {DataSource} from '../sources/datasource';
 import {imposeStrictOrder} from '../stateful_iterators/stateful_iterator';
 import {LazyIterator} from '../stateless_iterators/stateless_iterator';
 import {DataElement, ElementArray} from '../types';
 
+import {Dataset} from './dataset';
 import {TextLineDataset} from './text_line_dataset';
 
 export enum CsvHeaderConfig {
@@ -84,7 +84,6 @@ export class CSVDataset extends Dataset<DataElement> {
     } else {
       this._csvColumnNames = csvColumnNames;
     }
-    // console.log('Found column headers: ' + this._csvColumnNames);
   }
 
   /**
@@ -102,7 +101,6 @@ export class CSVDataset extends Dataset<DataElement> {
       csvColumnNames: CsvHeaderConfig|string[] = CsvHeaderConfig.NUMBERED) {
     const result = new CSVDataset(input);
     await result.setCsvColumnNames(csvColumnNames);
-    // console.log('Done finding column names');
     return result;
   }
 
@@ -117,7 +115,6 @@ export class CSVDataset extends Dataset<DataElement> {
   }
 
   makeDataElement(line: string): DataElement {
-    // console.log('Got line: ' + line);
     // TODO(soergel): proper CSV parsing with escaping, quotes, etc.
     // TODO(soergel): alternate separators, e.g. for TSV
     const values = line.split(',');

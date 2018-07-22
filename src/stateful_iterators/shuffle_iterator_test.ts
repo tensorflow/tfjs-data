@@ -17,8 +17,8 @@
  */
 
 // tslint:disable:max-line-length
-import {ChainedIterator, iteratorFromConcatenatedFunction, iteratorFromItems, ShuffleIterator} from './stateless_iterator';
-import {TestIntegerIterator} from './stateless_iterator_test';
+import {ChainedIterator, iteratorFromConcatenatedFunction, iteratorFromItems, ShuffleIterator} from '../stateful_iterators/stateful_iterator';
+import {TestIntegerIterator} from '../stateless_iterators/stateless_iterator_test';
 
 // tslint:enable:max-line-length
 

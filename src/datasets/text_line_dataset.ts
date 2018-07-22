@@ -16,9 +16,10 @@
  * =============================================================================
  */
 
-import {Dataset} from '../dataset';
-import {DataSource} from '../datasource';
+import {DataSource} from '../sources/datasource';
 import {LazyIterator} from '../stateless_iterators/stateless_iterator';
+
+import {Dataset} from './dataset';
 
 /**
  * Represents a potentially large collection of text lines.

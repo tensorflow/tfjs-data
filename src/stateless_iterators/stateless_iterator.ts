@@ -18,38 +18,20 @@
 
 // tslint:disable:max-line-length
 import {getTensorsInContainer, isTensorInList} from '@tensorflow/tfjs-core/dist/tensor_util';
-import * as seedrandom from 'seedrandom';
 
 import {RingBuffer} from '../util/ring_buffer';
 // tslint:enable:max-line-length
-
 
 // Here we implement a simple asynchronous iterator.
 // This lets us avoid using either third-party stream libraries or
 // recent TypeScript language support requiring polyfills.
 
 /**
- * Create a `LazyIterator` from an array of items.
- */
-export function iteratorFromItems<T>(items: T[]): LazyIterator<T> {
-  return new ArrayIterator(items);
-}
-
-/**
- * Create a `LazyIterator` of incrementing integers.
- */
-export function iteratorFromIncrementing(start: number): LazyIterator<number> {
-  let i = start;
-  return iteratorFromFunction(() => ({value: i++, done: false}));
-}
-
-/**
  * Create a `LazyIterator` from a function.
  */
-export function iteratorFromFunction<T>(
-    func: () =>
-        IteratorResult<T>| Promise<IteratorResult<T>>): LazyIterator<T> {
-  return new FunctionCallIterator(func);
+export function iteratorFromAsyncFunction<T>(
+    func: () => Promise<IteratorResult<T>>): LazyIterator<T> {
+  return new AsyncFunctionCallIterator(func);
 }
 
 /**
@@ -90,14 +72,11 @@ export abstract class LazyIterator<T> {
 
   async collectRemaining(): Promise<T[]> {
     const stream = this.prefetch(100);
-
     const result: T[] = [];
     let x = await stream.next();
-    console.log('collected: ', x);
     while (!x.done) {
       result.push(x.value);
       x = await stream.next();
-      console.log('collected: ', x);
     }
     return result;
   }
@@ -119,7 +98,6 @@ export abstract class LazyIterator<T> {
         Array.from({length: maxItems}, (v, k) => k).map(k => this.next());
     const results = await Promise.all(promises);
     const result = results.filter(r => (!r.done)).map(r => r.value);
-    // console.log('Collected: ', result);
     return result;
   }
 
@@ -186,20 +164,6 @@ export abstract class LazyIterator<T> {
   prefetch(bufferSize: number): LazyIterator<T> {
     return new PrefetchIterator(this, bufferSize);
   }
-
-  // TODO(soergel): deep sharded shuffle, where supported
-
-  /**
-   * Randomly shuffles the elements of this stream.
-   *
-   * @param bufferSize: An integer specifying the number of elements from this
-   *   stream from which the new stream will sample.
-   * @param seed: (Optional.) An integer specifying the random seed that will
-   *   be used to create the distribution.
-   */
-  shuffle(windowSize: number, seed?: string): LazyIterator<T> {
-    return new ShuffleIterator(this, windowSize, seed);
-  }
 }
 
 // ============================================================================
@@ -211,25 +175,8 @@ export abstract class LazyIterator<T> {
 // Iterators that just extend LazyIterator directly
 // ============================================================================
 
-class ArrayIterator<T> extends LazyIterator<T> {
-  private trav = 0;
-  constructor(protected items: T[]) {
-    super();
-  }
-
-  async next(): Promise<IteratorResult<T>> {
-    if (this.trav >= this.items.length) {
-      return {value: null, done: true};
-    }
-    const result = this.items[this.trav];
-    this.trav++;
-    return {value: result, done: false};
-  }
-}
-
-class FunctionCallIterator<T> extends LazyIterator<T> {
-  constructor(
-      protected nextFn: () => IteratorResult<T>| Promise<IteratorResult<T>>) {
+class AsyncFunctionCallIterator<T> extends LazyIterator<T> {
+  constructor(protected nextFn: () => Promise<IteratorResult<T>>) {
     super();
   }
 
@@ -239,7 +186,7 @@ class FunctionCallIterator<T> extends LazyIterator<T> {
     } catch (e) {
       // Modify the error message but leave the stack trace intact
       e.message =
-          'Error thrown while iterating through a dataset: ' + e.message;
+          `Error thrown while iterating through a dataset: ${e.message}`;
       throw e;
     }
   }
@@ -304,92 +251,34 @@ class MapIterator<I, O> extends LazyIterator<O> {
  * Promises resolve.
  */
 export class PrefetchIterator<T> extends LazyIterator<T> {
-  protected buffer: RingBuffer<Promise<IteratorResult<T>>>;
+  // TODO protected
+  public buffer: RingBuffer<Promise<IteratorResult<T>>>;
 
   constructor(
       protected upstream: LazyIterator<T>, protected bufferSize: number) {
     super();
     this.buffer = new RingBuffer<Promise<IteratorResult<T>>>(bufferSize);
-    console.log(this.buffer);
   }
 
   /**
-   * Refill the prefetch buffer.  Returns only after the buffer is full, or
-   * the upstream source is exhausted.
+   * Refill the prefetch buffer.  Returns only after the buffer is full.  Since
+   * we are buffering Promises without resolving them, we cannot know here
+   * whether the upstream source is exhausted; eventually the buffer will be
+   * full of promises that resolve to "done".
    */
   protected refill() {
-    console.log('Prefetch refill');
     while (!this.buffer.isFull()) {
       const v = this.upstream.next();
       this.buffer.push(v);
-      console.log('Prefetch pushed');
-      // console.log('Pushed: ', this.buffer);
     }
   }
 
   async next(): Promise<IteratorResult<T>> {
-    console.log('Prefetch next');
     this.refill();
-    // const showbuf = await Promise.all(this.buffer.data);
-    // console.log(this.buffer);
-    // console.log(showbuf.map(x => x.value));
 
     // This shift will never throw an error because the buffer is always full
     // after a refill. If the stream is exhausted, the buffer will be full of
     // Promises that will resolve to the end-of-stream signal.
-    // return this.buffer.shift();
-    const result = this.buffer.shift();
-    console.log('Prefetch shifted');
-    // console.log('Prefetch emitting: ', await result);
-    // console.log('Shifted: ', this.buffer);
-    const showbuf = await Promise.all(this.buffer.data);
-    // console.log(this.buffer);
-    console.log(showbuf.map(x => x ? x.value : x));
-
-    return result;
-  }
-}
-
-/**
- * A stream that performs a sliding-window random shuffle on an upstream
- * source. This is like a `PrefetchIterator` except that the items are returned
- * in randomized order.  Mixing naturally improves as the buffer size
- * increases.
- */
-export class ShuffleIterator<T> extends PrefetchIterator<T> {
-  private random: seedrandom.prng;
-  private upstreamExhausted = false;
-
-  constructor(
-      protected upstream: LazyIterator<T>, protected windowSize: number,
-      seed?: string) {
-    super(upstream, windowSize);
-    this.random = seedrandom.alea(seed || performance.now().toString());
-  }
-
-  private randomInt(max: number) {
-    return Math.floor(this.random() * max);
-  }
-
-  protected chooseIndex(): number {
-    return this.randomInt(this.buffer.length());
-  }
-
-  async next(): Promise<IteratorResult<T>> {
-    // TODO(soergel): consider performance
-    if (!this.upstreamExhausted) {
-      this.refill();
-    }
-    while (!this.buffer.isEmpty()) {
-      const chosenIndex = this.chooseIndex();
-      const result = await this.buffer.shuffleExcise(chosenIndex);
-      if (result.done) {
-        this.upstreamExhausted = true;
-      } else {
-        this.refill();
-        return result;
-      }
-    }
-    return {value: null, done: true};
+    return this.buffer.shift();
   }
 }

@@ -33,16 +33,6 @@ describe('StringIterator.split()', () => {
     const utf8Iterator = byteIterator.decodeUTF8();
     const lineIterator = utf8Iterator.split('\n');
     const expected = lorem.split('\n');
-    /*
-    console.log(await lineIterator.next());
-    console.log(await lineIterator.next());
-    console.log(await lineIterator.next());
-    console.log(await lineIterator.next());
-    console.log(await lineIterator.next());
-    console.log(await lineIterator.next());
-    console.log(await lineIterator.next());
-    */
-
     const result = await lineIterator.collectRemaining();
 
     expect(result.length).toEqual(6);

@@ -17,10 +17,11 @@
  */
 
 // tslint:disable:max-line-length
-import {DataSource} from '../datasource';
 import {ByteChunkIterator} from '../stateful_iterators/byte_chunk_iterator';
 import {FileChunkIteratorOptions} from '../stateful_iterators/file_chunk_iterator';
 import {urlChunkIterator} from '../stateful_iterators/url_chunk_iterator';
+
+import {DataSource} from './datasource';
 // tslint:enable:max-line-length
 
 /*

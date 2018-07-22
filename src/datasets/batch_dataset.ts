@@ -17,12 +17,12 @@
  */
 
 // tslint:disable:max-line-length
-import * as tf from '../.yalc/@tensorflow/tfjs-core/dist';
+import * as tf from '@tensorflow/tfjs-core';
+import {imposeStrictOrder} from '../stateful_iterators/stateful_iterator';
+import {LazyIterator} from '../stateless_iterators/stateless_iterator';
+import {BatchArray, DataElement, DatasetBatch, ElementArray, TabularRecord} from '../types';
 
 import {Dataset} from './dataset';
-import {imposeStrictOrder} from './stateful_iterators/stateful_iterator';
-import {LazyIterator} from './stateless_iterators/stateless_iterator';
-import {BatchArray, DataElement, DatasetBatch, ElementArray, TabularRecord} from './types';
 // tslint:enable:max-line-length
 
 // TODO(soergel): refactor to remove BatchDataset class, but retain columnar

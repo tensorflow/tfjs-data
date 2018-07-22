@@ -27,7 +27,7 @@ describe('ZipIterator', () => {
   it('can be created by zipping an array of streams', async () => {
     const a = new TestIntegerIterator();
     const b = new TestIntegerIterator().map(x => x * 10);
-    const c = new TestIntegerIterator().map(x => 'string ' + x);
+    const c = new TestIntegerIterator().map(x => `string ${x.toString()}`);
     const readStream = iteratorFromZipped([a, b, c]);
     const result = await readStream.collectRemaining();
     expect(result.length).toEqual(100);
@@ -37,14 +37,14 @@ describe('ZipIterator', () => {
     for (const e of result) {
       const ee = e as DataElementArray;
       expect(ee[1]).toEqual(ee[0] as number * 10);
-      expect(ee[2]).toEqual('string ' + ee[0]);
+      expect(ee[2]).toEqual(`string ${ee[0]}`);
     }
   });
 
   it('can be created by zipping a dict of streams', async () => {
     const a = new TestIntegerIterator();
     const b = new TestIntegerIterator().map(x => x * 10);
-    const c = new TestIntegerIterator().map(x => 'string ' + x);
+    const c = new TestIntegerIterator().map(x => `string ${x.toString()}`);
     const readStream = iteratorFromZipped({a, b, c});
     const result = await readStream.collectRemaining();
     expect(result.length).toEqual(100);
@@ -54,7 +54,7 @@ describe('ZipIterator', () => {
     for (const e of result) {
       const ee = e as DataElementObject;
       expect(ee['b']).toEqual(ee['a'] as number * 10);
-      expect(ee['c']).toEqual('string ' + ee['a']);
+      expect(ee['c']).toEqual(`string ${ee['a']}`);
     }
   });
 
@@ -62,7 +62,8 @@ describe('ZipIterator', () => {
     const a = new TestIntegerIterator().map(x => ({'a': x, 'constant': 12}));
     const b = new TestIntegerIterator().map(
         x => ({'b': x * 10, 'array': [x * 100, x * 200]}));
-    const c = new TestIntegerIterator().map(x => ({'c': 'string ' + x}));
+    const c =
+        new TestIntegerIterator().map(x => ({'c': `string ${x.toString()}`}));
     const readStream = iteratorFromZipped([a, b, c]);
     const result = await readStream.collectRemaining();
     expect(result.length).toEqual(100);
@@ -84,7 +85,7 @@ describe('ZipIterator', () => {
       expect(bb['array']).toEqual([
         aa['a'] as number * 100, aa['a'] as number * 200
       ]);
-      expect(cc['c']).toEqual('string ' + aa['a']);
+      expect(cc['c']).toEqual(`string ${aa['a']}`);
     }
   });
 
@@ -142,7 +143,8 @@ describe('ZipIterator', () => {
 
     const a = new TestIntegerIterator().map(x => ({'a': x}));
     const b = new TestIntegerIterator().map(x => ({'b': x * 10}));
-    const c = new TestIntegerIterator().map(x => ({'c': 'string ' + x}));
+    const c =
+        new TestIntegerIterator().map(x => ({'c': `string ${x.toString()}`}));
     const zippedStream = iteratorFromZipped([a, b, c]);
     // At first, each result has the form
     // [{a: x}, {b: x * 10}, {c: 'string ' + x}]
@@ -156,7 +158,7 @@ describe('ZipIterator', () => {
     for (const e of result) {
       const ee = e as DataElementObject;
       expect(ee['b']).toEqual(ee['a'] as number * 10);
-      expect(ee['c']).toEqual('string ' + ee['a']);
+      expect(ee['c']).toEqual(`string ${ee['a']}`);
     }
   });
 });

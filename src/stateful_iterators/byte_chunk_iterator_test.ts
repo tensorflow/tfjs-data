@@ -29,7 +29,6 @@ describe('ByteChunkIterator.decodeUTF8()', () => {
     expect(testBlob.size).toEqual(323);
 
     const byteChunkIterator = new FileChunkIterator(testBlob, {chunkSize: 50});
-    // console.log('aoeu ' + byteChunkIterator.next());
     const utf8Iterator = byteChunkIterator.decodeUTF8();
 
     utf8Iterator.collectRemaining()

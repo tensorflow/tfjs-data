@@ -112,17 +112,10 @@ describe('CSVDataset', () => {
     const ds = await CSVDataset.create(source, CsvHeaderConfig.READ_FIRST_LINE);
     expect(ds.csvColumnNames).toEqual(['A', 'B', 'C']);
     const csvIterator = await ds.iterator();
-    /*const promises = [
+    const promises = [
       csvIterator.next(), csvIterator.next(), csvIterator.next(),
       csvIterator.next(), csvIterator.next()
-    ];*/
-    const a = csvIterator.next();
-    const b = csvIterator.next();
-    const c = csvIterator.next();
-    const d = csvIterator.next();
-    const e = csvIterator.next();
-    const f = csvIterator.next();
-    const promises = [a, b, c, d, e, f];
+    ];
     const elements = await Promise.all(promises);
     elements.forEach(x => console.log(x));
   });
