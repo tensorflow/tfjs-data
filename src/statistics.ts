@@ -18,7 +18,8 @@
 
 import * as tf from '@tensorflow/tfjs-core';
 
-import {Dataset} from './dataset';
+import {Dataset} from './datasets/dataset';
+import {OrderedDataset} from './datasets/ordered_dataset';
 import {ElementArray, TabularRecord} from './types';
 
 // TODO(soergel): Flesh out collected statistics.
@@ -68,7 +69,7 @@ export async function computeDatasetStatistics(
     shuffleWindowSize?: number): Promise<DatasetStatistics> {
   let sampleDataset = dataset;
   // TODO(soergel): allow for deep shuffle where possible.
-  if (shuffleWindowSize != null) {
+  if (shuffleWindowSize != null && sampleDataset instanceof OrderedDataset) {
     sampleDataset = sampleDataset.shuffle(shuffleWindowSize);
   }
   if (sampleSize != null) {

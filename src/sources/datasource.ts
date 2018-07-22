@@ -1,3 +1,4 @@
+
 /**
  * @license
  * Copyright 2018 Google LLC. All Rights Reserved.
@@ -16,7 +17,9 @@
  * =============================================================================
  */
 
-import {ByteChunkIterator} from './iterators/byte_chunk_iterator';
+// tslint:disable:max-line-length
+import {ByteChunkIterator} from '../iterators/stateful/byte_chunk_iterator';
+// tslint:enable:max-line-length
 
 /**
  * Represents a data source readable as a stream of binary data chunks.

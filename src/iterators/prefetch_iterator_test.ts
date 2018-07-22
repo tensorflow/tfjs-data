@@ -16,9 +16,13 @@
  * =============================================================================
  */
 
-import {iteratorFromConcatenatedFunction} from './lazy_iterator';
+// tslint:disable:max-line-length
+
 import {PrefetchIterator} from './lazy_iterator';
 import {TestIntegerIterator} from './lazy_iterator_test';
+import {iteratorFromConcatenatedFunction} from './ordered_iterator';
+
+// tslint:enable:max-line-length
 
 describe('PrefetchIterator', () => {
   it('fetches a stream completely (stream size < buffer size)', done => {
@@ -29,7 +33,23 @@ describe('PrefetchIterator', () => {
       expectedResult[j] = j;
     }
 
-    prefetchIterator.collectRemaining()
+    prefetchIterator.collect()
+        .then(result => {
+          expect(result).toEqual(expectedResult);
+        })
+        .then(done)
+        .catch(done.fail);
+  });
+
+  it('fetches a stream completely (stream size > buffer size)', done => {
+    const prefetchIterator =
+        new PrefetchIterator(new TestIntegerIterator(), 50);
+    const expectedResult: number[] = [];
+    for (let j = 0; j < 100; j++) {
+      expectedResult[j] = j;
+    }
+
+    prefetchIterator.collect()
         .then(result => {
           expect(result).toEqual(expectedResult);
         })
@@ -51,7 +71,7 @@ describe('PrefetchIterator', () => {
          }
        }
 
-       prefetchIterator.collectRemaining()
+       prefetchIterator.collect()
            .then(result => {
              expect(result).toEqual(expectedResult);
            })
@@ -72,7 +92,7 @@ describe('PrefetchIterator', () => {
          }
        }
 
-       prefetchIterator.collectRemaining()
+       prefetchIterator.collect()
            .then(result => {
              expect(result).toEqual(expectedResult);
            })

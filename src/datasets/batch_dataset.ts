@@ -16,12 +16,11 @@
  * =============================================================================
  */
 
-import * as tf from '@tensorflow/tfjs-core';
-
 // tslint:disable:max-line-length
-import {Dataset} from './dataset';
-import {LazyIterator} from './iterators/lazy_iterator';
-import {BatchArray, DataElement, DatasetBatch, ElementArray, TabularRecord} from './types';
+import * as tf from '@tensorflow/tfjs-core';
+import {OrderedLazyIterator} from '../iterators/ordered_iterator';
+import {BatchArray, DataElement, DatasetBatch, ElementArray, TabularRecord} from '../types';
+import {OrderedDataset} from './ordered_dataset';
 // tslint:enable:max-line-length
 
 // TODO(soergel): refactor to remove BatchDataset class, but retain columnar
@@ -42,14 +41,14 @@ import {BatchArray, DataElement, DatasetBatch, ElementArray, TabularRecord} from
  */
 export class BatchDataset {
   constructor(
-      protected base: Dataset<DataElement>, protected batchSize: number,
+      protected base: OrderedDataset<DataElement>, protected batchSize: number,
       protected smallLastBatch = true) {}
 
   /*
    * Provide a new stream of batches.  Note this will also start new streams
    * from any underlying `Dataset`s or 'BatchDataset's.
    */
-  async iterator(): Promise<LazyIterator<DatasetBatch>> {
+  async iterator(): Promise<OrderedLazyIterator<DatasetBatch>> {
     const batchesAsArrays =
         (await this.base.iterator()).batch(this.batchSize, this.smallLastBatch);
     return batchesAsArrays.map(makeDatasetBatch);

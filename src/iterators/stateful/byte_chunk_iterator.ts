@@ -16,12 +16,18 @@
  * =============================================================================
  */
 
+// tslint:disable:max-line-length
 import * as utf8 from 'utf8';
 
-import {LazyIterator, QueueIterator} from './lazy_iterator';
-import {StringIterator} from './string_iterator';
+import {applyMixins} from '../../util/mixins';
+import {OrderedLazyIterator, SerialLazyIterator} from '../ordered_iterator';
 
-export abstract class ByteChunkIterator extends LazyIterator<Uint8Array> {
+import {StatefulOneToManyIterator, StatefulPumpResult} from './stateful_iterator';
+import {StringChunkIterator} from './string_iterator';
+
+// tslint:enable:max-line-length
+
+export abstract class ByteChunkIterator extends SerialLazyIterator<Uint8Array> {
   /**
    * Decode a stream of UTF8-encoded byte arrays to a stream of strings.
    *
@@ -31,7 +37,7 @@ export abstract class ByteChunkIterator extends LazyIterator<Uint8Array> {
    * character may span the boundary between chunks.  This naturally happens,
    * for instance, when reading fixed-size byte arrays from a file.
    */
-  decodeUTF8(): StringIterator {
+  decodeUTF8(): StringChunkIterator {
     return new Utf8Iterator(this);
   }
 }
@@ -42,22 +48,11 @@ export abstract class ByteChunkIterator extends LazyIterator<Uint8Array> {
 // due to resulting trouble with circular imports.
 // ============================================================================
 
-// We wanted multiple inheritance, e.g.
-//   class Utf8Iterator extends QueueIterator<string>, StringIterator
-// but the TypeScript mixin approach is a bit hacky, so we take this adapter
-// approach instead.
-
-class Utf8Iterator extends StringIterator {
-  private impl: Utf8IteratorImpl;
-
-  constructor(upstream: LazyIterator<Uint8Array>) {
-    super();
-    this.impl = new Utf8IteratorImpl(upstream);
-  }
-
-  async next() {
-    return this.impl.next();
-  }
+interface Utf8IteratorState {
+  // An array of the full required width of the split character, if any.
+  readonly partial: Uint8Array;
+  // The number of bytes of that array that are populated so far.
+  readonly partialBytesValid: number;
 }
 
 /**
@@ -81,22 +76,23 @@ class Utf8Iterator extends StringIterator {
  *   naturally happens, for instance, when reading fixed-size byte arrays from a
  *   file.
  */
-class Utf8IteratorImpl extends QueueIterator<string> {
-  // An array of the full required width of the split character, if any.
-  partial: Uint8Array = new Uint8Array([]);
-  // The number of bytes of that array that are populated so far.
-  partialBytesValid = 0;
-
-  constructor(protected readonly upstream: LazyIterator<Uint8Array>) {
+class Utf8Iterator extends StatefulOneToManyIterator<string, Utf8IteratorState>
+    implements StringChunkIterator {
+  constructor(protected readonly upstream: OrderedLazyIterator<Uint8Array>) {
     super();
   }
 
-  async pump(): Promise<boolean> {
+  initialState() {
+    return {partial: new Uint8Array([]), partialBytesValid: 0};
+  }
+
+  async statefulPump(state: Utf8IteratorState):
+      Promise<StatefulPumpResult<Utf8IteratorState>> {
     const chunkResult = await this.upstream.next();
     let chunk;
     if (chunkResult.done) {
-      if (this.partial.length === 0) {
-        return false;
+      if (state.partial.length === 0) {
+        return {pumpDidWork: false, state};
       }
       // Pretend that the pump succeeded in order to emit the small last batch.
       // The next pump() call will actually fail.
@@ -104,7 +100,8 @@ class Utf8IteratorImpl extends QueueIterator<string> {
     } else {
       chunk = chunkResult.value;
     }
-    const partialBytesRemaining = this.partial.length - this.partialBytesValid;
+    const partialBytesRemaining =
+        state.partial.length - state.partialBytesValid;
     let nextIndex = partialBytesRemaining;
     let okUpToIndex = nextIndex;
     let splitUtfWidth = 0;
@@ -124,29 +121,35 @@ class Utf8IteratorImpl extends QueueIterator<string> {
 
     if (partialBytesRemaining > 0) {
       // Reassemble the split character
-      this.partial.set(
-          chunk.slice(0, partialBytesRemaining), this.partialBytesValid);
+      state.partial.set(
+          chunk.slice(0, partialBytesRemaining), state.partialBytesValid);
       // Too bad about the string concat.
       const reassembled: string =
-          utf8.decode(String.fromCharCode.apply(null, this.partial));
+          utf8.decode(String.fromCharCode.apply(null, state.partial));
       this.outputQueue.push(reassembled + bulk);
     } else {
       this.outputQueue.push(bulk);
     }
 
+    let newState: Utf8IteratorState;
     if (okUpToIndex === chunk.length) {
-      this.partial = new Uint8Array([]);
-      this.partialBytesValid = 0;
+      newState = this.initialState();
     } else {
       // prepare the next split character
-      this.partial = new Uint8Array(new ArrayBuffer(splitUtfWidth));
-      this.partial.set(chunk.slice(okUpToIndex), 0);
-      this.partialBytesValid = chunk.length - okUpToIndex;
+      const partial = new Uint8Array(new ArrayBuffer(splitUtfWidth));
+      partial.set(chunk.slice(okUpToIndex), 0);
+      const partialBytesValid = chunk.length - okUpToIndex;
+      newState = {partial, partialBytesValid};
     }
 
-    return true;
+    return {pumpDidWork: true, state: newState};
   }
+
+  // StringChunkIterator
+  split: (separator: string) => StringChunkIterator;
 }
+
+applyMixins(Utf8Iterator, [StringChunkIterator]);
 
 function utfWidth(firstByte: number): number {
   if (firstByte >= 252) {

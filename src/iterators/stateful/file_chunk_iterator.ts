@@ -17,7 +17,16 @@
  */
 
 // inspired by https://github.com/maxogden/filereader-stream
+
+// tslint:disable:max-line-length
+
+import {applyMixins} from '../../util/mixins';
+
 import {ByteChunkIterator} from './byte_chunk_iterator';
+import {StatefulIteratorResult, StatefulLazyIterator} from './stateful_iterator';
+import {StringChunkIterator} from './string_iterator';
+
+// tslint:enable:max-line-length
 
 export interface FileChunkIteratorOptions {
   /** The byte offset at which to begin reading the File or Blob. Default 0. */
@@ -26,6 +35,9 @@ export interface FileChunkIteratorOptions {
   chunkSize?: number;
 }
 
+export interface FileChunkIteratorState {
+  readonly offset: number;
+}
 /**
  * Provide a stream of chunks from a File or Blob.
  * @param file The source File or Blob.
@@ -33,23 +45,38 @@ export interface FileChunkIteratorOptions {
  * @returns a lazy Iterator of Uint8Arrays containing sequential chunks of the
  *   input file.
  */
-export class FileChunkIterator extends ByteChunkIterator {
-  offset: number;
-  chunkSize: number;
+export class FileChunkIterator extends
+    StatefulLazyIterator<Uint8Array, FileChunkIteratorState> implements
+        ByteChunkIterator {
+  readonly chunkSize: number;
 
   constructor(
       protected file: File|Blob,
       protected options: FileChunkIteratorOptions = {}) {
     super();
-    this.offset = options.offset || 0;
     // default 1MB chunk has tolerable perf on large files
     this.chunkSize = options.chunkSize || 1024 * 1024;
+
+    // override here because the super() call didn't have access to options.
+    this.lastStateful = Promise.resolve({
+      value: null,
+      done: false,
+      state: {offset: options.offset ? options.offset : 0}
+    });
   }
 
-  async next(): Promise<IteratorResult<Uint8Array>> {
-    if (this.offset >= this.file.size) {
-      return {value: null, done: true};
+  initialState() {
+    return {offset: 0};
+  }
+
+  async statefulNext(state: FileChunkIteratorState):
+      Promise<StatefulIteratorResult<Uint8Array, FileChunkIteratorState>> {
+    if (state.offset >= this.file.size) {
+      return {value: null, done: true, state};
     }
+    const start = state.offset;
+    const end = start + this.chunkSize;
+
     const chunk = new Promise<Uint8Array>((resolve, reject) => {
       // TODO(soergel): is this a performance issue?
       const fileReader = new FileReader();
@@ -73,14 +100,17 @@ export class FileChunkIterator extends ByteChunkIterator {
         return reject(new Error(event.type));
       };
       // TODO(soergel): better handle onabort, onerror
-      const end = this.offset + this.chunkSize;
       // Note if end > this.file.size, we just get a small last chunk.
-      const slice = this.file.slice(this.offset, end);
+      const slice = this.file.slice(start, end);
       // We can't use readAsText here (even if we know the file is text)
       // because the slice boundary may fall within a multi-byte character.
       fileReader.readAsArrayBuffer(slice);
-      this.offset = end;
     });
-    return {value: (await chunk), done: false};
+    const x = await chunk;
+    return {value: x, done: false, state: {offset: end}};
   }
+
+  // ByteChunkIterator
+  decodeUTF8: () => StringChunkIterator;
 }
+applyMixins(FileChunkIterator, [ByteChunkIterator]);

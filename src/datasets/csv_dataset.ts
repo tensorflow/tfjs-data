@@ -16,12 +16,15 @@
  * =============================================================================
  */
 
-import {Dataset} from '../dataset';
-import {DataSource} from '../datasource';
-import {LazyIterator} from '../iterators/lazy_iterator';
+// tslint:disable:max-line-length
+import {makeSerial, OrderedLazyIterator} from '../iterators/ordered_iterator';
+import {DataSource} from '../sources/datasource';
 import {DataElement, ElementArray} from '../types';
 
+import {OrderedDataset} from './ordered_dataset';
 import {TextLineDataset} from './text_line_dataset';
+
+// tslint:enable:max-line-length
 
 export enum CsvHeaderConfig {
   READ_FIRST_LINE,
@@ -39,7 +42,7 @@ export enum CsvHeaderConfig {
  *
  * The results are not batched.
  */
-export class CSVDataset extends Dataset<DataElement> {
+export class CSVDataset extends OrderedDataset<DataElement> {
   base: TextLineDataset;
   private hasHeaderLine = false;
   private _csvColumnNames: string[];
@@ -103,12 +106,12 @@ export class CSVDataset extends Dataset<DataElement> {
     return result;
   }
 
-  async iterator(): Promise<LazyIterator<DataElement>> {
+  async iterator(): Promise<OrderedLazyIterator<DataElement>> {
     let lines = await this.base.iterator();
     if (this.hasHeaderLine) {
       // We previously read the first line to get the headers.
       // Now that we're providing data, skip it.
-      lines = lines.skip(1);
+      lines = makeSerial(lines).skip(1);
     }
     return lines.map(x => this.makeDataElement(x));
   }

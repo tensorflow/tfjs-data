@@ -16,10 +16,11 @@
  * =============================================================================
  */
 
-import {DataSource} from '../datasource';
-import {ByteChunkIterator} from '../iterators/byte_chunk_iterator';
-import {FileChunkIterator} from '../iterators/file_chunk_iterator';
-import {FileChunkIteratorOptions} from '../iterators/file_chunk_iterator';
+// tslint:disable:max-line-length
+import {FileChunkIterator, FileChunkIteratorOptions} from '../iterators/stateful/file_chunk_iterator';
+
+import {DataSource} from './datasource';
+// tslint:enable:max-line-length
 
 /**
  * Represents a file or blob readable as a stream of binary data chunks.
@@ -38,7 +39,7 @@ export class FileDataSource extends DataSource {
     super();
   }
 
-  async iterator(): Promise<ByteChunkIterator> {
+  async iterator(): Promise<FileChunkIterator> {
     return new FileChunkIterator(this.input, this.options);
   }
 }

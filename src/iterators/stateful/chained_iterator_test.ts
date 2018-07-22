@@ -1,3 +1,4 @@
+
 /**
  * @license
  * Copyright 2018 Google LLC. All Rights Reserved.
@@ -16,9 +17,10 @@
  * =============================================================================
  */
 
-import {ChainedIterator} from './lazy_iterator';
-import {iteratorFromItems} from './lazy_iterator';
-import {TestIntegerIterator} from './lazy_iterator_test';
+// tslint:disable:max-line-length
+import {TestIntegerIterator} from '../lazy_iterator_test';
+import {ChainedIterator, iteratorFromItems} from '../ordered_iterator';
+// tslint:enable:max-line-length
 
 const SHORT_STREAM_LENGTH = 15;
 
@@ -34,7 +36,7 @@ describe('ChainedIterator', () => {
       }
     }
 
-    chainedIterator.collectRemaining()
+    chainedIterator.collect()
         .then(result => {
           expect(result).toEqual(expectedResult);
         })
@@ -55,7 +57,7 @@ describe('ChainedIterator', () => {
       }
     }
 
-    chainedIterator.collectRemaining()
+    chainedIterator.collect()
         .then(result => {
           expect(result).toEqual(expectedResult);
         })

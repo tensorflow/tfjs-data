@@ -16,10 +16,13 @@
  * =============================================================================
  */
 
-import {DataSource} from '../datasource';
-import {ByteChunkIterator} from '../iterators/byte_chunk_iterator';
-import {FileChunkIteratorOptions} from '../iterators/file_chunk_iterator';
-import {urlChunkIterator} from '../iterators/url_chunk_iterator';
+// tslint:disable:max-line-length
+import {ByteChunkIterator} from '../iterators/stateful/byte_chunk_iterator';
+import {FileChunkIteratorOptions} from '../iterators/stateful/file_chunk_iterator';
+import {urlChunkIterator} from '../iterators/stateful/url_chunk_iterator';
+
+import {DataSource} from './datasource';
+// tslint:enable:max-line-length
 
 /*
  * Represents a URL readable as a stream of binary data chunks.

@@ -16,9 +16,21 @@
  * =============================================================================
  */
 
-import {LazyIterator, QueueIterator} from './lazy_iterator';
+// tslint:disable:max-line-length
 
-export abstract class StringIterator extends LazyIterator<string> {
+import {applyMixins} from '../../util/mixins';
+import {OrderedLazyIterator, SerialLazyIterator} from '../ordered_iterator';
+
+import {StatefulOneToManyIterator, StatefulPumpResult} from './stateful_iterator';
+
+// tslint:enable:max-line-length
+
+export interface StringCarryover {
+  // A partial string at the end of an upstream chunk
+  readonly carryover: string;
+}
+
+export abstract class StringChunkIterator extends SerialLazyIterator<string> {
   /**
    * Splits a string stream on a given separator.
    *
@@ -37,7 +49,7 @@ export abstract class StringIterator extends LazyIterator<string> {
    *   concatenated.
    * @param separator A character to split on.
    */
-  split(separator: string): StringIterator {
+  split(separator: string): StringChunkIterator {
     return new SplitIterator(this, separator);
   }
 }
@@ -48,57 +60,46 @@ export abstract class StringIterator extends LazyIterator<string> {
 // to resulting trouble with circular imports.
 // ============================================================================
 
-// We wanted multiple inheritance, e.g.
-//   class SplitIterator extends QueueIterator<string>, StringIterator
-// but the TypeScript mixin approach is a bit hacky, so we take this adapter
-// approach instead.
-
-class SplitIterator extends StringIterator {
-  private impl: SplitIteratorImpl;
-
-  constructor(upstream: LazyIterator<string>, separator: string) {
-    super();
-    this.impl = new SplitIteratorImpl(upstream, separator);
-  }
-
-  async next() {
-    return this.impl.next();
-  }
-}
-
-class SplitIteratorImpl extends QueueIterator<string> {
-  // A partial string at the end of an upstream chunk
-  carryover = '';
-
+class SplitIterator extends StatefulOneToManyIterator<string, StringCarryover>
+    implements StringChunkIterator {
   constructor(
-      protected upstream: LazyIterator<string>, protected separator: string) {
+      protected upstream: OrderedLazyIterator<string>,
+      protected separator: string) {
     super();
   }
 
-  async pump(): Promise<boolean> {
+  initialState() {
+    return {carryover: ''};
+  }
+
+  async statefulPump(state: StringCarryover):
+      Promise<StatefulPumpResult<StringCarryover>> {
     const chunkResult = await this.upstream.next();
     if (chunkResult.done) {
-      if (this.carryover === '') {
-        return false;
+      if (state.carryover === '') {
+        return {pumpDidWork: false, state};
       }
 
       // Pretend that the pump succeeded in order to emit the small last batch.
       // The next pump() call will actually fail.
-      this.outputQueue.push(this.carryover);
-      this.carryover = '';
-      return true;
+      this.outputQueue.push(state.carryover);
+      return {pumpDidWork: true, state: {carryover: ''}};
     }
     const lines = chunkResult.value.split(this.separator);
     // Note the behavior: " ab ".split(' ') === ['', 'ab', '']
     // Thus the carryover may be '' if the separator falls on a chunk
     // boundary; this produces the correct result.
 
-    lines[0] = this.carryover + lines[0];
+    lines[0] = state.carryover + lines[0];
     for (const line of lines.slice(0, -1)) {
       this.outputQueue.push(line);
     }
-    this.carryover = lines[lines.length - 1];
+    const newCarryover = lines[lines.length - 1];
 
-    return true;
+    return {pumpDidWork: true, state: {carryover: newCarryover}};
   }
+
+  // StringChunkIterator
+  split: (separator: string) => StringChunkIterator;
 }
+applyMixins(SplitIterator, [StringChunkIterator]);

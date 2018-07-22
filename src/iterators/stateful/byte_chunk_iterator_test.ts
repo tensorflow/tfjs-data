@@ -26,11 +26,12 @@ const testBlob = new Blob([runes]);
 
 describe('ByteChunkIterator.decodeUTF8()', () => {
   it('Correctly reassembles split characters', done => {
-    const byteChunkIterator = new FileChunkIterator(testBlob, {chunkSize: 50});
-    const utf8Iterator = byteChunkIterator.decodeUTF8();
     expect(testBlob.size).toEqual(323);
 
-    utf8Iterator.collectRemaining()
+    const byteChunkIterator = new FileChunkIterator(testBlob, {chunkSize: 50});
+    const utf8Iterator = byteChunkIterator.decodeUTF8();
+
+    utf8Iterator.collect()
         .then((result: string[]) => {
           // The test string is 109 characters long; its UTF8 encoding is 323
           // bytes. We read it in chunks of 50 bytes, so there were 7 chunks of
@@ -42,6 +43,18 @@ describe('ByteChunkIterator.decodeUTF8()', () => {
               result.map(x => x.length).reduce((a, b) => a + b);
           expect(totalCharacters).toEqual(109);
           expect(result.join('')).toEqual(runes);
+        })
+        .then(done)
+        .catch(done.fail);
+  });
+
+  it('Reads the entire file and then closes the stream', done => {
+    const readIterator = new FileChunkIterator(testBlob, {chunkSize: 50});
+    readIterator.collect()
+        .then(result => {
+          expect(result.length).toEqual(7);
+          const totalBytes = result.map(x => x.length).reduce((a, b) => a + b);
+          expect(totalBytes).toEqual(323);
         })
         .then(done)
         .catch(done.fail);

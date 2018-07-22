@@ -28,23 +28,18 @@ sunt in culpa qui officia deserunt mollit anim id est laborum.`;
 const testBlob = new Blob([lorem]);
 
 describe('StringIterator.split()', () => {
-  it('Correctly splits lines', done => {
+  it('Correctly splits lines', async () => {
     const byteIterator = new FileChunkIterator(testBlob, {chunkSize: 50});
     const utf8Iterator = byteIterator.decodeUTF8();
     const lineIterator = utf8Iterator.split('\n');
     const expected = lorem.split('\n');
+    const result = await lineIterator.collect();
 
-    lineIterator.collectRemaining()
-        .then(result => {
-          expect(result.length).toEqual(6);
-          const totalCharacters =
-              result.map(x => x.length).reduce((a, b) => a + b);
-          expect(totalCharacters).toEqual(440);
-          expect(result).toEqual(expected);
-          expect(result.join('\n')).toEqual(lorem);
-        })
-        .then(done)
-        .catch(done.fail);
+    expect(result.length).toEqual(6);
+    const totalCharacters = result.map(x => x.length).reduce((a, b) => a + b);
+    expect(totalCharacters).toEqual(440);
+    expect(result).toEqual(expected);
+    expect(result.join('\n')).toEqual(lorem);
   });
   it('Correctly splits strings even when separators fall on chunk boundaries',
      done => {
@@ -60,7 +55,7 @@ describe('StringIterator.split()', () => {
        const lineIterator = utf8Iterator.split(' ');
        const expected = ['ab', 'def', 'hi', '', '', '', '', '', 'pq'];
 
-       lineIterator.collectRemaining()
+       lineIterator.collect()
            .then(result => {
              expect(result.length).toEqual(9);
              const totalCharacters =

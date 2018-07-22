@@ -1,3 +1,4 @@
+
 /**
  * @license
  * Copyright 2018 Google LLC. All Rights Reserved.
@@ -16,10 +17,10 @@
  * =============================================================================
  */
 
-import {ChainedIterator, iteratorFromItems} from './lazy_iterator';
-import {iteratorFromConcatenatedFunction} from './lazy_iterator';
-import {ShuffleIterator} from './lazy_iterator';
-import {TestIntegerIterator} from './lazy_iterator_test';
+// tslint:disable:max-line-length
+import {TestIntegerIterator} from '../lazy_iterator_test';
+import {ChainedIterator, iteratorFromConcatenatedFunction, iteratorFromItems, ShuffleIterator} from '../ordered_iterator';
+// tslint:enable:max-line-length
 
 const LONG_STREAM_LENGTH = 100;
 const SHORT_STREAM_LENGTH = 15;
@@ -34,7 +35,7 @@ describe('ShuffleIterator', () => {
         notExpectedResult[i * LONG_STREAM_LENGTH + j] = j;
       }
     }
-    shuffleIterator.collectRemaining()
+    shuffleIterator.collect()
         .then(result => {
           expect(result).not.toEqual(notExpectedResult);
           expect(result.length).toEqual(LONG_STREAM_LENGTH);
@@ -60,7 +61,7 @@ describe('ShuffleIterator', () => {
         notExpectedResult[i * SHORT_STREAM_LENGTH + j] = j;
       }
     }
-    shuffleIterator.collectRemaining()
+    shuffleIterator.collect()
         .then(result => {
           expect(result).not.toEqual(notExpectedResult);
           expect(result.length).toEqual(SHORT_STREAM_LENGTH);
@@ -88,7 +89,7 @@ describe('ShuffleIterator', () => {
         notExpectedResult[i * SHORT_STREAM_LENGTH + j] = j;
       }
     }
-    shuffleIterator.collectRemaining()
+    shuffleIterator.collect()
         .then(result => {
           expect(result).not.toEqual(notExpectedResult);
           expect(result.length).toEqual(3 * SHORT_STREAM_LENGTH);
