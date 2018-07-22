@@ -20,7 +20,7 @@
 import * as tf from '@tensorflow/tfjs-core';
 
 import {iteratorFromAsyncFunction, LazyIterator} from '../iterators/lazy_iterator';
-import {imposeStrictOrder, iteratorFromConcatenated} from '../iterators/ordered_iterators/ordered_iterator';
+import {imposeStrictOrder, iteratorFromConcatenated} from '../iterators/ordered_iterator';
 import {DataElement} from '../types';
 // tslint:enable:max-line-length
 

@@ -20,9 +20,11 @@
 import * as tf from '@tensorflow/tfjs-core';
 import {describeWithFlags} from '@tensorflow/tfjs-core/dist/jasmine_util';
 import {LazyIterator} from '../iterators/lazy_iterator';
-import {iteratorFromItems, OrderedLazyIterator} from '../iterators/ordered_iterators/ordered_iterator';
+import {iteratorFromItems, OrderedLazyIterator} from '../iterators/ordered_iterator';
 import {DataElementObject} from '../types';
+
 import {Dataset} from './dataset';
+
 // tslint:enable:max-line-length
 
 class TestObjectIterator extends OrderedLazyIterator<{}> {

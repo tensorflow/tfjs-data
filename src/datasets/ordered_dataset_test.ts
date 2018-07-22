@@ -19,9 +19,11 @@
 // tslint:disable:max-line-length
 import * as tf from '@tensorflow/tfjs-core';
 import {describeWithFlags} from '@tensorflow/tfjs-core/dist/jasmine_util';
-import {OrderedLazyIterator} from '../iterators/ordered_iterators/ordered_iterator';
+import {OrderedLazyIterator} from '../iterators/ordered_iterator';
 import {DataElementObject} from '../types';
+
 import {datasetFromElements, OrderedDataset} from './ordered_dataset';
+
 // tslint:enable:max-line-length
 
 class TestObjectIterator extends OrderedLazyIterator<{}> {

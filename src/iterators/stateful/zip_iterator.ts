@@ -21,7 +21,7 @@ import {OrderedDataset} from '../../datasets/ordered_dataset';
 import {Container, DataElement, OrderedIteratorContainer} from '../../types';
 import {deepMapAndAwaitAll, DeepMapAsyncResult} from '../../util/deep_map';
 import {LazyIterator} from '../lazy_iterator';
-import {OrderedLazyIterator} from '../ordered_iterators/ordered_iterator';
+import {OrderedLazyIterator} from '../ordered_iterator';
 
 import {StatefulIteratorResult, StatefulLazyIterator} from './stateful_iterator';
 // tslint:enable:max-line-length

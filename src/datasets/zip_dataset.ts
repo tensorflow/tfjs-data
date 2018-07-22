@@ -1,5 +1,5 @@
 // tslint:disable:max-line-length
-import {DatasetContainer, iteratorFromZipped, ZipMismatchMode} from '../iterators/stateful_iterators/zip_iterator';
+import {DatasetContainer, iteratorFromZipped, ZipMismatchMode} from '../iterators/stateful/zip_iterator';
 import {DataElement} from '../types';
 import {deepMapAndAwaitAll, isIterable} from '../util/deep_map';
 

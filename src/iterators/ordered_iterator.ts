@@ -21,9 +21,10 @@ import * as tf from '@tensorflow/tfjs-core';
 import {getTensorsInContainer, isTensorInList} from '@tensorflow/tfjs-core/dist/tensor_util';
 import * as seedrandom from 'seedrandom';
 
-import {GrowingRingBuffer} from '../../util/growing_ring_buffer';
-import {RingBuffer} from '../../util/ring_buffer';
-import {LazyIterator} from '../lazy_iterator';
+import {GrowingRingBuffer} from '../util/growing_ring_buffer';
+import {RingBuffer} from '../util/ring_buffer';
+
+import {LazyIterator} from './lazy_iterator';
 // tslint:enable:max-line-length
 
 /**

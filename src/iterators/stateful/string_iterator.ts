@@ -19,7 +19,7 @@
 // tslint:disable:max-line-length
 
 import {applyMixins} from '../../util/mixins';
-import {OrderedLazyIterator, SerialLazyIterator} from '../ordered_iterators/ordered_iterator';
+import {OrderedLazyIterator, SerialLazyIterator} from '../ordered_iterator';
 
 import {StatefulOneToManyIterator, StatefulPumpResult} from './stateful_iterator';
 

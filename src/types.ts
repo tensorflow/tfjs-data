@@ -19,7 +19,7 @@
 // tslint:disable:max-line-length
 import * as tf from '@tensorflow/tfjs-core';
 import {TensorContainer, TensorContainerArray, TensorContainerObject} from '@tensorflow/tfjs-core/dist/tensor_types';
-import {OrderedLazyIterator} from './iterators/ordered_iterators/ordered_iterator';
+import {OrderedLazyIterator} from './iterators/ordered_iterator';
 
 // tslint:enable:max-line-length
 

@@ -19,7 +19,7 @@
 // tslint:disable:max-line-length
 import {GrowingRingBuffer} from '../../util/growing_ring_buffer';
 import {RingBuffer} from '../../util/ring_buffer';
-import {OrderedIteratorResult, SerialLazyIterator} from '../ordered_iterators/ordered_iterator';
+import {OrderedIteratorResult, SerialLazyIterator} from '../ordered_iterator';
 
 // tslint:enable:max-line-length
 

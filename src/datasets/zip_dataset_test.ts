@@ -20,8 +20,8 @@
 import * as tf from '@tensorflow/tfjs-core';
 import {describeWithFlags} from '@tensorflow/tfjs-core/dist/jasmine_util';
 
-import {iteratorFromFunction} from '../iterators/ordered_iterators/ordered_iterator';
-import {DatasetContainer} from '../iterators/stateful_iterators/zip_iterator';
+import {iteratorFromFunction} from '../iterators/ordered_iterator';
+import {DatasetContainer} from '../iterators/stateful/zip_iterator';
 
 import {datasetFromElements, datasetFromOrderedIteratorFn} from './ordered_dataset';
 import {zip} from './zip_dataset';

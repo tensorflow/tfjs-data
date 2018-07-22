@@ -18,7 +18,7 @@
  */
 
 // tslint:disable:max-line-length
-import {iteratorFromConcatenated, iteratorFromConcatenatedFunction, iteratorFromFunction, iteratorFromIncrementing, iteratorFromItems, OrderedLazyIterator} from './ordered_iterators/ordered_iterator';
+import {iteratorFromConcatenated, iteratorFromConcatenatedFunction, iteratorFromFunction, iteratorFromIncrementing, iteratorFromItems, OrderedLazyIterator} from './ordered_iterator';
 // tslint:enable:max-line-length
 
 export class TestIntegerIterator extends OrderedLazyIterator<number> {

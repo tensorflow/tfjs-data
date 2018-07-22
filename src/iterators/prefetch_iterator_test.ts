@@ -20,7 +20,7 @@
 
 import {PrefetchIterator} from './lazy_iterator';
 import {TestIntegerIterator} from './lazy_iterator_test';
-import {iteratorFromConcatenatedFunction} from './ordered_iterators/ordered_iterator';
+import {iteratorFromConcatenatedFunction} from './ordered_iterator';
 
 // tslint:enable:max-line-length
 

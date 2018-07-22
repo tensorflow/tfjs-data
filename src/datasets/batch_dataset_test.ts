@@ -16,9 +16,11 @@
  */
 
 // tslint:disable:max-line-length
-import * as tf from '@tensorflow/tfjs-core/';
+import * as tf from '@tensorflow/tfjs-core';
 import {describeWithFlags} from '@tensorflow/tfjs-core/dist/jasmine_util';
+
 import {TestOrderedDataset} from './ordered_dataset_test';
+
 // tslint:enable:max-line-length
 
 describeWithFlags('OrderedDataset.batch()', tf.test_util.CPU_ENVS, () => {

@@ -18,7 +18,7 @@
  */
 
 // tslint:disable:max-line-length
-import {ByteChunkIterator} from '../iterators/stateful_iterators/byte_chunk_iterator';
+import {ByteChunkIterator} from '../iterators/stateful/byte_chunk_iterator';
 // tslint:enable:max-line-length
 
 /**

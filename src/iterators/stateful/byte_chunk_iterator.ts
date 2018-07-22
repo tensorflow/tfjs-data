@@ -20,7 +20,7 @@
 import * as utf8 from 'utf8';
 
 import {applyMixins} from '../../util/mixins';
-import {OrderedLazyIterator, SerialLazyIterator} from '../ordered_iterators/ordered_iterator';
+import {OrderedLazyIterator, SerialLazyIterator} from '../ordered_iterator';
 
 import {StatefulOneToManyIterator, StatefulPumpResult} from './stateful_iterator';
 import {StringChunkIterator} from './string_iterator';

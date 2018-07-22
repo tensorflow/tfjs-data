@@ -17,7 +17,7 @@
  */
 
 // tslint:disable:max-line-length
-import {imposeStrictOrder, OrderedLazyIterator} from '../iterators/ordered_iterators/ordered_iterator';
+import {imposeStrictOrder, OrderedLazyIterator} from '../iterators/ordered_iterator';
 import {DataSource} from '../sources/datasource';
 import {DataElement, ElementArray} from '../types';
 

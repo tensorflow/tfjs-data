@@ -20,7 +20,7 @@
 import * as tf from '@tensorflow/tfjs-core';
 import * as seedrandom from 'seedrandom';
 
-import {iteratorFromItems, OrderedLazyIterator} from '../iterators/ordered_iterators/ordered_iterator';
+import {iteratorFromItems, OrderedLazyIterator} from '../iterators/ordered_iterator';
 import {BatchArray, DataElement, DatasetBatch, ElementArray, TabularRecord} from '../types';
 
 import {Dataset, datasetFromIteratorFn} from './dataset';

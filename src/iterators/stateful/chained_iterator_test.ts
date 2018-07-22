@@ -19,7 +19,7 @@
 
 // tslint:disable:max-line-length
 import {TestIntegerIterator} from '../lazy_iterator_test';
-import {ChainedIterator, iteratorFromItems} from '../ordered_iterators/ordered_iterator';
+import {ChainedIterator, iteratorFromItems} from '../ordered_iterator';
 // tslint:enable:max-line-length
 
 const SHORT_STREAM_LENGTH = 15;
