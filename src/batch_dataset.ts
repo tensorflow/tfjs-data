@@ -43,7 +43,7 @@ import {BatchArray, DataElement, DatasetBatch, ElementArray, TabularRecord} from
 export class BatchDataset {
   constructor(
       protected base: Dataset<DataElement>, protected batchSize: number,
-      protected smallLastBatch = true) {}
+      protected smallLastBatch = true, protected disposeElements = true) {}
 
   /*
    * Provide a new stream of batches.  Note this will also start new streams
@@ -52,14 +52,16 @@ export class BatchDataset {
   async iterator(): Promise<LazyIterator<DatasetBatch>> {
     const batchesAsArrays =
         (await this.base.iterator()).batch(this.batchSize, this.smallLastBatch);
-    return batchesAsArrays.map(makeDatasetBatch);
+    return batchesAsArrays.map(
+        x => makeDatasetBatch(x as TabularRecord[], this.disposeElements));
   }
 }
 
 /**
  * Constructs a DatasetBatch from a list of TabularRecords.
  */
-function makeDatasetBatch(elements: TabularRecord[]): DatasetBatch {
+function makeDatasetBatch(
+    elements: TabularRecord[], disposeElements = true): DatasetBatch {
   const rotated: {[key: string]: (ElementArray[]|string[])} = {};
 
   // Assume that the first element is representative.
@@ -94,7 +96,9 @@ function makeDatasetBatch(elements: TabularRecord[]): DatasetBatch {
           batchConcat(rotated[key] as Array<number|number[]|tf.Tensor>);
     }
   });
-  elements.forEach(tf.dispose);
+  if (disposeElements) {
+    elements.forEach(tf.dispose);
+  }
 
   return result;
 }

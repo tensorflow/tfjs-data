@@ -121,8 +121,9 @@ export abstract class Dataset<T extends DataElement> {
    *   than batchSize elements. Default true.
    * @returns A `BatchDataset`, from which a stream of batches can be obtained.
    */
-  batch(batchSize: number, smallLastBatch = true): BatchDataset {
-    return new BatchDataset(this, batchSize, smallLastBatch);
+  batch(batchSize: number, smallLastBatch = true, disposeElements = true):
+      BatchDataset {
+    return new BatchDataset(this, batchSize, smallLastBatch, disposeElements);
   }
 
   /**
@@ -237,8 +238,8 @@ export abstract class Dataset<T extends DataElement> {
    * @returns A Promise for an array of elements, which will resolve
    *   when a new stream has been obtained and fully consumed.
    */
-  async collectAll() {
-    return (await this.iterator()).collect();
+  async collectAll(maxItems?: number) {
+    return (await this.iterator()).collect(maxItems);
   }
 
   /**
@@ -260,6 +261,17 @@ export abstract class Dataset<T extends DataElement> {
   Dataset.group_by_window()
   Dataset.padded_batch()
   */
+
+  // TODO(soergel): streaming cache, not full prefetch
+  // TODO(soergel): protect against memory explosion
+  async cache(): Promise<Dataset<T>> {
+    return datasetFromElements(await this.collectAll());
+  }
+
+  async serial(): Promise<Dataset<T>> {
+    const base = this;
+    return datasetFromIteratorFn(async () => (await base.iterator()).serial());
+  }
 }
 
 /**

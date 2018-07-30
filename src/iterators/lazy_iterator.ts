@@ -165,7 +165,7 @@ export abstract class LazyIterator<T> {
    * @returns A Promise for an array of stream elements, which will resolve
    *   when the stream is exhausted.
    */
-  async collect(maxItems = 1000, prefetch = 100): Promise<T[]> {
+  async collect(maxItems = 1000, prefetch = 100, keep = false): Promise<T[]> {
     const stream = prefetch > 0 ? this.prefetch(prefetch) : this;
     const result: T[] = [];
     let count = 0;
@@ -192,6 +192,25 @@ export abstract class LazyIterator<T> {
     let x = await this.next();
     while (!x.done) {
       x = await this.next();
+    }
+  }
+
+  /**
+   * Draw items from the stream until it is exhausted.
+   *
+   * This can be useful when the stream has side effects but no output.  In
+   * that case, calling this function guarantees that the stream will be fully
+   * processed.
+   */
+  async resolveWhile(predicate: (r: T) => boolean): Promise<void> {
+    let x = await this.next();
+    let shouldContinue = predicate(x.value);
+    console.log('continue 1', x.done, shouldContinue);
+    while ((!x.done) && shouldContinue) {
+      console.log('awaiting next');
+      x = await this.next();
+      shouldContinue = predicate(x.value);
+      console.log('continue 2', x.done, shouldContinue);
     }
   }
 
@@ -224,13 +243,25 @@ export abstract class LazyIterator<T> {
   /**
    * Maps this stream through an async 1-to-1 transform.
    *
-   * @param predicate A function mapping a stream element to a transformed
-   *   element.
+   * @param transform A function mapping a stream element to a `Promise` for a
+   *   transformed stream element.
    *
    * @returns A `LazyIterator` of transformed elements.
    */
   mapAsync<O>(transform: (value: T) => Promise<O>): LazyIterator<O> {
     return new AsyncMapIterator(this, transform);
+  }
+
+  /**
+   * Maps this stream through a 1-to-1 transform.
+   *
+   * @param predicate A function mapping a stream element to a transformed
+   *   element.
+   *
+   * @returns A `LazyIterator` of transformed elements.
+   */
+  serialMapAsync<O>(transform: (value: T) => Promise<O>): LazyIterator<O> {
+    return new AsyncMapIterator(this, transform).serial();
   }
 
   /**
@@ -252,6 +283,15 @@ export abstract class LazyIterator<T> {
    */
   async forEach(f: (value: T) => void): Promise<void> {
     return this.map(f).resolveFully();
+  }
+
+  /**
+   * Apply a function to every element of the stream.
+   *
+   * @param f A function to apply to each stream element.
+   */
+  async serialForEach(f: (value: T) => Promise<boolean>): Promise<void> {
+    return this.serialMapAsync(f).resolveWhile(x => (x === true));
   }
 
   /**
@@ -330,6 +370,14 @@ export abstract class LazyIterator<T> {
   shuffle(windowSize: number, seed?: string): LazyIterator<T> {
     return new ShuffleIterator(this, windowSize, seed);
   }
+
+  /**
+   * Force an iterator te execute serially: each next() call will await the
+   * prior one, so that they cannot execute concurrently.
+   */
+  serial(): LazyIterator<T> {
+    return new SerialIterator(this);
+  }
 }
 
 // ============================================================================
@@ -372,6 +420,30 @@ class FunctionCallIterator<T> extends LazyIterator<T> {
           'Error thrown while iterating through a dataset: ' + e.message;
       throw e;
     }
+  }
+}
+
+class SerialIterator<T> extends LazyIterator<T> {
+  // Strict Promise execution order:
+  // a next() call may not even begin until the previous one completes.
+  private lastRead: Promise<IteratorResult<T>>;
+
+  constructor(protected upstream: LazyIterator<T>) {
+    super();
+    this.lastRead = Promise.resolve({value: null, done: false});
+  }
+
+  async next(): Promise<IteratorResult<T>> {
+    // This sets this.lastRead to a new Promise right away, as opposed to
+    // saying `await this.lastRead; this.lastRead = this.serialNext();` which
+    // would not work because this.nextRead would be updated only after the
+    // promise resolves.
+    this.lastRead = this.lastRead.then(() => this.serialNext());
+    return this.lastRead;
+  }
+
+  private async serialNext(): Promise<IteratorResult<T>> {
+    return this.upstream.next();
   }
 }
 
@@ -522,6 +594,7 @@ class MapIterator<I, O> extends LazyIterator<O> {
     // TODO(soergel) move to tf.disposeExcept(in, out)?
     for (const t of inputTensors) {
       if (!isTensorInList(t, outputTensors)) {
+        // console.log(`disposing mapped: ${t}`);
         t.dispose();
       }
     }
@@ -555,6 +628,7 @@ class AsyncMapIterator<I, O> extends LazyIterator<O> {
     // TODO(soergel) move to tf.disposeExcept(in, out)?
     for (const t of inputTensors) {
       if (!isTensorInList(t, outputTensors)) {
+        // console.log(`disposing async mapped: ${t}`);
         t.dispose();
       }
     }
@@ -649,6 +723,7 @@ class FlatmapIterator<I, O> extends OneToManyIterator<O> {
     // TODO(soergel) move to tf.disposeExcept(in, out)?
     for (const t of inputTensors) {
       if (!isTensorInList(t, outputTensors)) {
+        // console.log(`disposing flatmapped: ${t}`);
         t.dispose();
       }
     }
