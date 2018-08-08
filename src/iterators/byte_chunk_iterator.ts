@@ -34,6 +34,10 @@ export abstract class ByteChunkIterator extends LazyIterator<Uint8Array> {
   decodeUTF8(): StringIterator {
     return new Utf8Iterator(this);
   }
+
+  disposeWhenDone() {
+    return false;
+  }
 }
 
 // ============================================================================
@@ -50,9 +54,14 @@ export abstract class ByteChunkIterator extends LazyIterator<Uint8Array> {
 class Utf8Iterator extends StringIterator {
   private impl: Utf8IteratorImpl;
 
-  constructor(upstream: LazyIterator<Uint8Array>) {
+  constructor(protected upstream: LazyIterator<Uint8Array>) {
     super();
     this.impl = new Utf8IteratorImpl(upstream);
+  }
+
+  summary() {
+    return `${this.upstream.summary()} -> Utf8${
+        this.disposeWhenDone() ? '' : ' (protected)'}.`;
   }
 
   async next() {
@@ -89,6 +98,15 @@ class Utf8IteratorImpl extends OneToManyIterator<string> {
 
   constructor(protected readonly upstream: LazyIterator<Uint8Array>) {
     super();
+  }
+
+  disposeWhenDone() {
+    return false;
+  }
+
+  summary() {
+    return `${this.upstream.summary()} -> Utf8Impl${
+        this.disposeWhenDone() ? '' : ' (protected)'}.`;
   }
 
   async pump(): Promise<boolean> {

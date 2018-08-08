@@ -62,6 +62,8 @@ export class BatchDataset {
  */
 function makeDatasetBatch(
     elements: TabularRecord[], disposeElements = true): DatasetBatch {
+  // console.log('Batching: ', elements);
+
   const rotated: {[key: string]: (ElementArray[]|string[])} = {};
 
   // Assume that the first element is representative.
@@ -97,6 +99,7 @@ function makeDatasetBatch(
     }
   });
   if (disposeElements) {
+    console.log('Disposing batched elements.');
     elements.forEach(tf.dispose);
   }
 

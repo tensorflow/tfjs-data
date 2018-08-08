@@ -33,6 +33,15 @@ export class TestIntegerIterator extends LazyIterator<number> {
     this.data = Array.from({length}, (v, k) => k);
   }
 
+  disposeWhenDone() {
+    return false;
+  }
+
+  summary() {
+    return `TestIntegers${this.disposeWhenDone() ? '' : ' (protected)'}.`;
+  }
+
+
   async next(): Promise<IteratorResult<number>> {
     if (this.currentIndex >= this.length) {
       return {value: null, done: true};

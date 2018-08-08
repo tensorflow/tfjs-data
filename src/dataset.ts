@@ -21,11 +21,12 @@ import * as seedrandom from 'seedrandom';
 
 import {BatchDataset} from './batch_dataset';
 // tslint:disable:max-line-length
-import {iteratorFromFunction, iteratorFromZipped, LazyIterator, ZipMismatchMode} from './iterators/lazy_iterator';
+import {CacheIterator, iteratorFromFunction, iteratorFromZipped, LazyIterator, MemoizingIterator, ZipMismatchMode} from './iterators/lazy_iterator';
 import {iteratorFromConcatenated} from './iterators/lazy_iterator';
 import {iteratorFromItems} from './iterators/lazy_iterator';
 import {DataElement, DatasetContainer} from './types';
 import {deepMapAndAwaitAll, isIterable} from './util/deep_map';
+import {createSharedPromiseCache, SharedCacheConfig} from './util/shared_promise_cache';
 
 // TODO(soergel): consider vectorized operations within the pipeline.
 
@@ -154,7 +155,7 @@ export abstract class Dataset<T extends DataElement> {
     const base = this;
     return datasetFromIteratorFn(async () => {
       const iteratorIterator = iteratorFromFunction(
-          async () => ({value: await base.iterator(), done: false}));
+          async () => ({value: await base.iterator(), done: false}), false);
       return iteratorFromConcatenated(iteratorIterator.take(count));
     });
   }
@@ -264,13 +265,53 @@ export abstract class Dataset<T extends DataElement> {
 
   // TODO(soergel): streaming cache, not full prefetch
   // TODO(soergel): protect against memory explosion
-  async cache(): Promise<Dataset<T>> {
-    return datasetFromElements(await this.collectAll());
+  // TODO(soergel): why do the elements not get disposed, as with cache()?
+  async cacheEager(maxItems?: number): Promise<Dataset<T>> {
+    return datasetFromElements(await this.collectAll(maxItems));
   }
+
+  async cache(config: SharedCacheConfig = {}): Promise<Dataset<T>> {
+    return new CacheDataset(await this.iterator(), config);
+  }
+
+  /*
+  async data(): Promise<Dataset<T>> {
+    const base = this;
+    return datasetFromIteratorFn(async () => {
+      const iter =
+          (await base.iterator()).map(x => deepMapAndAwaitAll(x, (x) => {
+                                        if (x instanceof tf.Tensor) {
+                                          return x.data();
+                                        } else {
+                                          return x;
+                                        }
+                                      }));
+      return iter;
+    });
+  }
+  */
 
   async serial(): Promise<Dataset<T>> {
     const base = this;
     return datasetFromIteratorFn(async () => (await base.iterator()).serial());
+  }
+}
+
+class CacheDataset<T extends DataElement> extends Dataset<T> {
+  private readonly memoizingIterator: MemoizingIterator<T>;
+
+  constructor(
+      readonly upstreamIterator: LazyIterator<T>,
+      readonly config: SharedCacheConfig = {}) {
+    super();
+    const sharedPromiseCache =
+        createSharedPromiseCache<IteratorResult<T>>(config);
+    this.memoizingIterator =
+        new MemoizingIterator(upstreamIterator, sharedPromiseCache);
+  }
+
+  async iterator(): Promise<LazyIterator<T>> {
+    return new CacheIterator(this.memoizingIterator);
   }
 }
 
@@ -281,8 +322,8 @@ export function datasetFromIteratorFn<T extends DataElement>(
     iteratorFn: () => Promise<LazyIterator<T>>): Dataset<T> {
   return new class extends Dataset<T> {
     /*
-     * Provide a new stream of elements.  Note this will also start new streams
-     * from any underlying `Dataset`s.
+     * Provide a new stream of elements.  Note this will also start new
+     * streams from any underlying `Dataset`s.
      */
     async iterator(): Promise<LazyIterator<T>> {
       return iteratorFn();
@@ -302,8 +343,8 @@ export function datasetFromElements<T extends DataElement>(items: T[]):
 /**
  * Create a `Dataset` by zipping together an array, dict, or nested
  * structure of `Dataset`s (and perhaps additional constants).
- * The underlying datasets must provide elements in a consistent order such that
- * they correspond.
+ * The underlying datasets must provide elements in a consistent order such
+ * that they correspond.
  *
  * The number of elements in the resulting dataset is the same as the size of
  * the smallest dataset in `datasets`.
@@ -317,15 +358,16 @@ export function datasetFromElements<T extends DataElement>(items: T[]):
  *
  * const ds1 : Dataset = ...;  // produces elements like {a: ...}
  * const ds1 : Dataset = ...;  // produces elements like {b: ...}
- * const ds3 = zip([ds1, ds2]);  // produces elements like [{a: ...}, {b: ...}]
+ * const ds3 = zip([ds1, ds2]);  // produces elements like [{a: ...}, {b:
+ * ...}]
  *
  * If the goal is to merge the dicts in order to produce elements like
  * {a: ..., b: ...}, this requires a second step such as:
  *
  * const ds4 = ds3.map(x=>{a: x[0].a, b: x[1].b});
  */
-export function zip<O extends DataElement>(datasets: DatasetContainer):
-    Dataset<O> {
+export function zip<O extends DataElement>(
+    datasets: DatasetContainer, disposeWhenDone = true): Dataset<O> {
   // manually type-check the argument for JS users
   if (!isIterable(datasets)) {
     throw new Error('The argument to zip() must be an object or array.');
@@ -342,6 +384,7 @@ export function zip<O extends DataElement>(datasets: DatasetContainer):
             'not primitives.');
       }
     });
-    return iteratorFromZipped<O>(streams, ZipMismatchMode.SHORTEST);
+    return iteratorFromZipped<O>(
+        streams, ZipMismatchMode.SHORTEST, disposeWhenDone);
   });
 }
