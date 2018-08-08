@@ -167,15 +167,28 @@ export abstract class LazyIterator<T> {
    * Obviously this will succeed only for small streams that fit in memory.
    * Useful for testing.
    *
+   * @param maxItems the maximum number of items to return.  If the stream
+   *   terminates, fewer items will be returned.  (default 1000)
+   * @param prefetch the size of the prefetch buffer to use when collecting
+   *   items.  Some amount of prefetch is important to test parallel streams,
+   *   i.e. with multiple Promises outstanding.  Without prefetch, this method
+   *   makes purely serial next() calls.
+   *
    * @returns A Promise for an array of stream elements, which will resolve
    *   when the stream is exhausted.
    */
-  async collectRemaining(): Promise<T[]> {
+  async collect(maxItems = 1000, prefetch = 100): Promise<T[]> {
+    const stream = prefetch > 0 ? this.prefetch(prefetch) : this;
     const result: T[] = [];
-    let x = await this.next();
+    let count = 0;
+    let x = await stream.next();
     while (!x.done) {
       result.push(x.value);
-      x = await this.next();
+      count++;
+      if (count >= maxItems) {
+        return result;
+      }
+      x = await stream.next();
     }
     return result;
   }
@@ -386,16 +399,31 @@ class FunctionCallIterator<T> extends LazyIterator<T> {
 }
 
 class SkipIterator<T> extends LazyIterator<T> {
+  // Strict Promise execution order:
+  // a next() call may not even begin until the previous one completes.
+  private lastRead: Promise<IteratorResult<T>>;
+
+  // Local state that should not be clobbered by out-of-order execution.
   count = 0;
+
   constructor(protected upstream: LazyIterator<T>, protected maxCount: number) {
     super();
+    this.lastRead = Promise.resolve({value: null, done: false});
   }
 
   async next(): Promise<IteratorResult<T>> {
-    // TODO(soergel): consider tradeoffs of reading in parallel, eg.
-    // collecting next() promises in an Array and then waiting for
-    // Promise.all() of those. Benefit: pseudo-parallel execution. Drawback:
-    // maybe delayed GC.
+    // This sets this.lastRead to a new Promise right away, as opposed to
+    // saying `await this.lastRead; this.lastRead = this.serialNext();` which
+    // would not work because this.nextRead would be updated only after the
+    // promise resolves.
+    this.lastRead = this.lastRead.then(() => this.serialNext());
+    return this.lastRead;
+  }
+
+  private async serialNext(): Promise<IteratorResult<T>> {
+    // TODO(soergel): consider tradeoffs of reading in parallel, eg. collecting
+    // next() promises in an Array and then waiting for Promise.all() of those.
+    // Benefit: pseudo-parallel execution.  Drawback: maybe delayed GC.
     while (this.count++ < this.maxCount) {
       const skipped = await this.upstream.next();
       // short-circuit if upstream is already empty
@@ -423,12 +451,27 @@ class TakeIterator<T> extends LazyIterator<T> {
 }
 
 class BatchIterator<T> extends LazyIterator<T[]> {
+  // Strict Promise execution order:
+  // a next() call may not even begin until the previous one completes.
+  private lastRead: Promise<IteratorResult<T[]>>;
+
   constructor(
       protected upstream: LazyIterator<T>, protected batchSize: number,
       protected enableSmallLastBatch = true) {
     super();
+    this.lastRead = Promise.resolve({value: null, done: false});
   }
+
   async next(): Promise<IteratorResult<T[]>> {
+    // This sets this.lastRead to a new Promise right away, as opposed to
+    // saying `await this.lastRead; this.lastRead = this.serialNext();` which
+    // would not work because this.nextRead would be updated only after the
+    // promise resolves.
+    this.lastRead = this.lastRead.then(() => this.serialNext());
+    return this.lastRead;
+  }
+
+  private async serialNext(): Promise<IteratorResult<T[]>> {
     const batch: T[] = [];
     while (batch.length < this.batchSize) {
       const item = await this.upstream.next();
@@ -445,12 +488,27 @@ class BatchIterator<T> extends LazyIterator<T[]> {
 }
 
 class FilterIterator<T> extends LazyIterator<T> {
+  // Strict Promise execution order:
+  // a next() call may not even begin until the previous one completes.
+  private lastRead: Promise<IteratorResult<T>>;
+
   constructor(
       protected upstream: LazyIterator<T>,
       protected predicate: (value: T) => boolean) {
     super();
+    this.lastRead = Promise.resolve({value: null, done: false});
   }
+
   async next(): Promise<IteratorResult<T>> {
+    // This sets this.lastRead to a new Promise right away, as opposed to
+    // saying `await this.lastRead; this.lastRead = this.serialNext();` which
+    // would not work because this.nextRead would be updated only after the
+    // promise resolves.
+    this.lastRead = this.lastRead.then(() => this.serialNext());
+    return this.lastRead;
+  }
+
+  private async serialNext(): Promise<IteratorResult<T>> {
     while (true) {
       const item = await this.upstream.next();
       if (item.done || this.predicate(item.value)) {
@@ -529,13 +587,29 @@ class ErrorHandlingLazyIterator<T> extends LazyIterator<T> {
  * mapped elements of this stream-- of which we need to return only one, so
  * we have to queue the rest.
  */
-export abstract class QueueIterator<T> extends LazyIterator<T> {
+export abstract class OneToManyIterator<T> extends LazyIterator<T> {
+  // Strict Promise execution order:
+  // a next() call may not even begin until the previous one completes.
+  private lastRead: Promise<IteratorResult<T>>;
+
+  // Local state that should not be clobbered by out-of-order execution.
   protected outputQueue: RingBuffer<T>;
 
   constructor() {
     super();
     this.outputQueue = new GrowingRingBuffer<T>();
+    this.lastRead = Promise.resolve({value: null, done: false});
   }
+
+  async next(): Promise<IteratorResult<T>> {
+    // This sets this.lastRead to a new Promise right away, as opposed to
+    // saying `await this.lastRead; this.lastRead = this.serialNext();` which
+    // would not work because this.nextRead would be updated only after the
+    // promise resolves.
+    this.lastRead = this.lastRead.then(() => this.serialNext());
+    return this.lastRead;
+  }
+
   /**
    * Read one or more chunks from upstream and process them, possibly
    * reading or writing a carryover, and adding processed items to the
@@ -550,7 +624,7 @@ export abstract class QueueIterator<T> extends LazyIterator<T> {
    */
   protected abstract async pump(): Promise<boolean>;
 
-  async next(): Promise<IteratorResult<T>> {
+  async serialNext(): Promise<IteratorResult<T>> {
     // Fetch so that the queue contains at least one item if possible.
     // If the upstream source is exhausted, AND there are no items left in
     // the output queue, then this stream is also exhausted.
@@ -563,7 +637,7 @@ export abstract class QueueIterator<T> extends LazyIterator<T> {
     return {value: this.outputQueue.shift(), done: false};
   }
 }
-class FlatmapIterator<I, O> extends QueueIterator<O> {
+class FlatmapIterator<I, O> extends OneToManyIterator<O> {
   constructor(
       protected upstream: LazyIterator<I>,
       protected transform: (value: I) => O[]) {
@@ -606,9 +680,13 @@ class FlatmapIterator<I, O> extends QueueIterator<O> {
  * called, even if the resulting Promises resolve in a different order.
  */
 export class ChainedIterator<T> extends LazyIterator<T> {
+  // Strict Promise execution order:
+  // a next() call may not even begin until the previous one completes.
+  private lastRead: Promise<IteratorResult<T>> = null;
+
+  // Local state that should not be clobbered by out-of-order execution.
   private iterator: LazyIterator<T> = null;
   private moreIterators: LazyIterator<LazyIterator<T>>;
-  private lastRead: Promise<IteratorResult<T>> = null;
 
   constructor(
       iterators: LazyIterator<LazyIterator<T>>,
@@ -624,11 +702,11 @@ export class ChainedIterator<T> extends LazyIterator<T> {
 
   private async readFromChain(lastRead: Promise<IteratorResult<T>>):
       Promise<IteratorResult<T>> {
-    // Must await on the previous read since the previous read may have
-    // advanced the stream of streams, from which we need to read. This is
-    // unfortunate since we can't parallelize reads. Which means prefetching
-    // of chained streams is a no-op.
-    // TODO(smilkov): Rework logic to allow parallel reads.
+    // Must await on the previous read since the previous read may have advanced
+    // the stream of streams, from which we need to read.
+    // This is unfortunate since we can't parallelize reads. Which means
+    // prefetching of chained streams is a no-op.
+    // One solution is to prefetch immediately upstream of this.
     await lastRead;
     if (this.iterator == null) {
       const iteratorResult = await this.moreIterators.next();
@@ -802,7 +880,13 @@ export class PrefetchIterator<T> extends LazyIterator<T> {
  * size increases.
  */
 export class ShuffleIterator<T> extends PrefetchIterator<T> {
-  private random: seedrandom.prng;
+  private readonly random: seedrandom.prng;
+
+  // Strict Promise execution order:
+  // a next() call may not even begin until the previous one completes.
+  private lastRead: Promise<IteratorResult<T>>;
+
+  // Local state that should not be clobbered by out-of-order execution.
   private upstreamExhausted = false;
 
   constructor(
@@ -810,6 +894,16 @@ export class ShuffleIterator<T> extends PrefetchIterator<T> {
       seed?: string) {
     super(upstream, windowSize);
     this.random = seedrandom.alea(seed || performance.now().toString());
+    this.lastRead = Promise.resolve({value: null, done: false});
+  }
+
+  async next(): Promise<IteratorResult<T>> {
+    // This sets this.lastRead to a new Promise right away, as opposed to
+    // saying `await this.lastRead; this.lastRead = this.serialNext();` which
+    // would not work because this.nextRead would be updated only after the
+    // promise resolves.
+    this.lastRead = this.lastRead.then(() => this.serialNext());
+    return this.lastRead;
   }
 
   private randomInt(max: number) {
@@ -820,7 +914,7 @@ export class ShuffleIterator<T> extends PrefetchIterator<T> {
     return this.randomInt(this.buffer.length());
   }
 
-  async next(): Promise<IteratorResult<T>> {
+  async serialNext(): Promise<IteratorResult<T>> {
     // TODO(soergel): consider performance
     if (!this.upstreamExhausted) {
       this.refill();
