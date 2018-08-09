@@ -47,10 +47,8 @@ export class FileChunkIterator extends ByteChunkIterator {
   }
 
   summary() {
-    return `FileChunks ${this.file}${
-        this.disposeWhenDone() ? '' : ' (protected)'}.`;
+    return `FileChunks ${this.file}`;
   }
-
 
   async next(): Promise<IteratorResult<Uint8Array>> {
     if (this.offset >= this.file.size) {

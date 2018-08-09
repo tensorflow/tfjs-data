@@ -50,9 +50,9 @@ export function iteratorFromIncrementing(start: number): LazyIterator<number> {
  * Create a `LazyIterator` from a function.
  */
 export function iteratorFromFunction<T>(
-    func: () => IteratorResult<T>| Promise<IteratorResult<T>>,
-    shouldDisposeWhenDone = true): LazyIterator<T> {
-  return new FunctionCallIterator(func, shouldDisposeWhenDone);
+    func: () =>
+        IteratorResult<T>| Promise<IteratorResult<T>>): LazyIterator<T> {
+  return new FunctionCallIterator(func);
 }
 
 /**
@@ -91,11 +91,9 @@ export function iteratorFromConcatenated<T>(
  */
 export function iteratorFromConcatenatedFunction<T>(
     iteratorFunc: () => IteratorResult<LazyIterator<T>>, count: number,
-    baseErrorHandler?: (e: Error) => boolean,
-    shouldDisposeWhenDone = true): LazyIterator<T> {
+    baseErrorHandler?: (e: Error) => boolean): LazyIterator<T> {
   return iteratorFromConcatenated(
-      iteratorFromFunction(iteratorFunc, shouldDisposeWhenDone).take(count),
-      baseErrorHandler);
+      iteratorFromFunction(iteratorFunc).take(count), baseErrorHandler);
 }
 
 /**
@@ -124,9 +122,8 @@ export function iteratorFromConcatenatedFunction<T>(
  */
 export function iteratorFromZipped<O extends DataElement>(
     iterators: IteratorContainer,
-    mismatchMode: ZipMismatchMode = ZipMismatchMode.FAIL,
-    disposeWhenDone = true): LazyIterator<O> {
-  return new ZipIterator<O>(iterators, mismatchMode, disposeWhenDone);
+    mismatchMode: ZipMismatchMode = ZipMismatchMode.FAIL): LazyIterator<O> {
+  return new ZipIterator<O>(iterators, mismatchMode);
 }
 
 export class IteratorProperties {
@@ -153,8 +150,6 @@ export abstract class LazyIterator<T> {
   // This class implements AsyncIterator<T>, but we have not yet set the
   // TypeScript --downlevelIteration flag to enable that.
   properties: IteratorProperties;
-
-  abstract disposeWhenDone(): boolean;
 
   abstract summary(): string;
 
@@ -433,12 +428,8 @@ class ArrayIterator<T> extends LazyIterator<T> {
     super();
   }
 
-  disposeWhenDone() {
-    return false;
-  }
-
   summary() {
-    return `Array of ${this.items.length} items (protected)`;
+    return `Array of ${this.items.length} items`;
   }
 
   async next(): Promise<IteratorResult<T>> {
@@ -456,17 +447,12 @@ class ArrayIterator<T> extends LazyIterator<T> {
 
 class FunctionCallIterator<T> extends LazyIterator<T> {
   constructor(
-      protected nextFn: () => IteratorResult<T>| Promise<IteratorResult<T>>,
-      private shouldDisposeWhenDone = true) {
+      protected nextFn: () => IteratorResult<T>| Promise<IteratorResult<T>>) {
     super();
   }
 
-  disposeWhenDone() {
-    return this.shouldDisposeWhenDone;
-  }
-
   summary() {
-    return `Function call${this.disposeWhenDone() ? '' : ' (protected)'}.`;
+    return `Function call`;
   }
 
   async next(): Promise<IteratorResult<T>> {
@@ -491,13 +477,8 @@ class SerialIterator<T> extends LazyIterator<T> {
     this.lastRead = Promise.resolve({value: null, done: false});
   }
 
-  disposeWhenDone() {
-    return this.upstream.disposeWhenDone();
-  }
-
   summary() {
-    return `${this.upstream.summary()} -> Serial${
-        this.disposeWhenDone() ? '' : ' (protected)'}.`;
+    return `${this.upstream.summary()} -> Serial`;
   }
 
   async next(): Promise<IteratorResult<T>> {
@@ -527,13 +508,8 @@ class SkipIterator<T> extends LazyIterator<T> {
     this.lastRead = Promise.resolve({value: null, done: false});
   }
 
-  disposeWhenDone() {
-    return this.upstream.disposeWhenDone();
-  }
-
   summary() {
-    return `${this.upstream.summary()} -> Skip${
-        this.disposeWhenDone() ? '' : ' (protected)'}.`;
+    return `${this.upstream.summary()} -> Skip`;
   }
 
   async next(): Promise<IteratorResult<T>> {
@@ -556,10 +532,7 @@ class SkipIterator<T> extends LazyIterator<T> {
       if (skipped.done) {
         return skipped;
       }
-      if (this.upstream.disposeWhenDone() === true) {
-        console.log('Disposing skipped: ', skipped.value);
-        tf.dispose(skipped.value as {});
-      }
+      tf.dispose(skipped.value as {});
     }
     return this.upstream.next();
   }
@@ -571,13 +544,8 @@ class TakeIterator<T> extends LazyIterator<T> {
     super();
   }
 
-  disposeWhenDone() {
-    return this.upstream.disposeWhenDone();
-  }
-
   summary() {
-    return `${this.upstream.summary()} -> Take${
-        this.disposeWhenDone() ? '' : ' (protected)'}.`;
+    return `${this.upstream.summary()} -> Take`;
   }
 
   async next(): Promise<IteratorResult<T>> {
@@ -603,13 +571,8 @@ class BatchIterator<T> extends LazyIterator<T[]> {
     this.lastRead = Promise.resolve({value: null, done: false});
   }
 
-  disposeWhenDone() {
-    return this.upstream.disposeWhenDone();
-  }
-
   summary() {
-    return `${this.upstream.summary()} -> Batch${
-        this.disposeWhenDone() ? '' : ' (protected)'}.`;
+    return `${this.upstream.summary()} -> Batch`;
   }
 
   async next(): Promise<IteratorResult<T[]>> {
@@ -649,13 +612,8 @@ class FilterIterator<T> extends LazyIterator<T> {
     this.lastRead = Promise.resolve({value: null, done: false});
   }
 
-  disposeWhenDone() {
-    return this.upstream.disposeWhenDone();
-  }
-
   summary() {
-    return `${this.upstream.summary()} -> Filter${
-        this.disposeWhenDone() ? '' : ' (protected)'}.`;
+    return `${this.upstream.summary()} -> Filter`;
   }
 
   async next(): Promise<IteratorResult<T>> {
@@ -673,10 +631,7 @@ class FilterIterator<T> extends LazyIterator<T> {
       if (item.done || this.predicate(item.value)) {
         return item;
       }
-      if (this.upstream.disposeWhenDone() === true) {
-        console.log('Disposing filtered: ', item.value);
-        tf.dispose(item.value as {});
-      }
+      tf.dispose(item.value as {});
     }
   }
 }
@@ -688,14 +643,8 @@ class MapIterator<I, O> extends LazyIterator<O> {
     super();
   }
 
-  disposeWhenDone() {
-    // TODO(soergel): hmmm
-    return this.upstream.disposeWhenDone();
-  }
-
   summary() {
-    return `${this.upstream.summary()} -> Map${
-        this.disposeWhenDone() ? '' : ' (protected)'}.`;
+    return `${this.upstream.summary()} -> Map`;
   }
 
   async next(): Promise<IteratorResult<O>> {
@@ -712,17 +661,15 @@ class MapIterator<I, O> extends LazyIterator<O> {
     // inputs.
     const mapped = this.transform(item.value);
     const outputTensors = getTensorsInContainer(mapped as {});
+
     // TODO(soergel) faster intersection
     // TODO(soergel) move to tf.disposeExcept(in, out)?
-
-    if (this.upstream.disposeWhenDone() === true) {
-      for (const t of inputTensors) {
-        if (!isTensorInList(t, outputTensors)) {
-          console.log('Disposing mapped: ', t, this.summary());
-          t.dispose();
-        }
+    for (const t of inputTensors) {
+      if (!isTensorInList(t, outputTensors)) {
+        t.dispose();
       }
     }
+
     return {value: mapped, done: false};
   }
 }
@@ -734,14 +681,8 @@ class AsyncMapIterator<I, O> extends LazyIterator<O> {
     super();
   }
 
-  disposeWhenDone() {
-    // TODO(soergel): hmmm
-    return this.upstream.disposeWhenDone();
-  }
-
   summary() {
-    return `${this.upstream.summary()} -> AsyncMap${
-        this.disposeWhenDone() ? '' : ' (protected)'}.`;
+    return `${this.upstream.summary()} -> AsyncMap`;
   }
 
   async next(): Promise<IteratorResult<O>> {
@@ -758,17 +699,15 @@ class AsyncMapIterator<I, O> extends LazyIterator<O> {
     // inputs.
     const mapped = await this.transform(item.value);
     const outputTensors = getTensorsInContainer(mapped as {});
+
     // TODO(soergel) faster intersection
     // TODO(soergel) move to tf.disposeExcept(in, out)?
-
-    if (this.upstream.disposeWhenDone() === true) {
-      for (const t of inputTensors) {
-        if (!isTensorInList(t, outputTensors)) {
-          console.log('Disposing Async Mapped: ', t, this.summary());
-          t.dispose();
-        }
+    for (const t of inputTensors) {
+      if (!isTensorInList(t, outputTensors)) {
+        t.dispose();
       }
     }
+
     return {value: mapped, done: false};
   }
 }
@@ -780,6 +719,10 @@ class ErrorHandlingLazyIterator<T> extends LazyIterator<T> {
       protected handler: (error: Error) => boolean) {
     super();
     this.lastRead = Promise.resolve({value: null, done: false});
+  }
+
+  summary() {
+    return `${this.upstream.summary()} -> handleErrors`;
   }
 
   // Strict Promise execution order:
@@ -882,14 +825,8 @@ class FlatmapIterator<I, O> extends OneToManyIterator<O> {
     super();
   }
 
-  disposeWhenDone() {
-    // TODO(soergel): hmmm
-    return this.upstream.disposeWhenDone();
-  }
-
   summary() {
-    return `${this.upstream.summary()} -> Flatmap${
-        this.disposeWhenDone() ? '' : ' (protected)'}.`;
+    return `${this.upstream.summary()} -> Flatmap`;
   }
 
   async pump(): Promise<boolean> {
@@ -909,13 +846,9 @@ class FlatmapIterator<I, O> extends OneToManyIterator<O> {
 
     // TODO(soergel) faster intersection, and deduplicate outputTensors
     // TODO(soergel) move to tf.disposeExcept(in, out)?
-
-    if (this.upstream.disposeWhenDone() === true) {
-      for (const t of inputTensors) {
-        if (!isTensorInList(t, outputTensors)) {
-          console.log('Disposing Flatmapped: ', t);
-          t.dispose();
-        }
+    for (const t of inputTensors) {
+      if (!isTensorInList(t, outputTensors)) {
+        t.dispose();
       }
     }
 
@@ -947,18 +880,9 @@ export class ChainedIterator<T> extends LazyIterator<T> {
     this.moreIterators = iterators;
   }
 
-  disposeWhenDone() {
-    // TODO(soergel): hmmm
-    if (this.iterator == null) {
-      return true;
-    }
-    return this.iterator.disposeWhenDone();
-  }
-
   summary() {
     const upstreamSummaries = 'TODO: fill in upstream of chained summaries';
-    return `${upstreamSummaries} -> Chained${
-        this.disposeWhenDone() ? '' : ' (protected)'}.`;
+    return `${upstreamSummaries} -> Chained`;
   }
 
   async next(): Promise<IteratorResult<T>> {
@@ -1035,21 +959,13 @@ class ZipIterator<O extends DataElement> extends LazyIterator<O> {
 
   constructor(
       protected readonly iterators: IteratorContainer,
-      protected readonly mismatchMode: ZipMismatchMode = ZipMismatchMode.FAIL,
-      protected shouldDisposeWhenDone = true) {
+      protected readonly mismatchMode: ZipMismatchMode = ZipMismatchMode.FAIL) {
     super();
-  }
-
-  disposeWhenDone() {
-    // TODO(soergel): hmmm
-    // TODO(soergel): infer from upstream iterators?  What if they disagree?
-    return this.shouldDisposeWhenDone;
   }
 
   summary() {
     const upstreamSummaries = 'TODO: fill in upstream of zip summaries';
-    return `{${upstreamSummaries}} -> Zip${
-        this.disposeWhenDone() ? '' : ' (protected)'}.`;
+    return `{${upstreamSummaries}} -> Zip`;
   }
 
   private async nextState(afterState: Promise<IteratorResult<O>>):
@@ -1130,14 +1046,8 @@ export class PrefetchIterator<T> extends LazyIterator<T> {
     this.buffer = new RingBuffer<Promise<IteratorResult<T>>>(bufferSize);
   }
 
-  disposeWhenDone() {
-    // TODO(soergel): hmmm
-    return this.upstream.disposeWhenDone();
-  }
-
   summary() {
-    return `${this.upstream.summary()} -> Prefetch${
-        this.disposeWhenDone() ? '' : ' (protected)'}.`;
+    return `${this.upstream.summary()} -> Prefetch`;
   }
 
   /**
@@ -1182,11 +1092,6 @@ export class ShuffleIterator<T> extends PrefetchIterator<T> {
     super(upstream, windowSize);
     this.random = seedrandom.alea(seed || performance.now().toString());
     this.lastRead = Promise.resolve({value: null, done: false});
-  }
-
-  disposeWhenDone() {
-    // TODO(soergel): hmmm
-    return this.upstream.disposeWhenDone();
   }
 
   async next(): Promise<IteratorResult<T>> {
@@ -1235,13 +1140,8 @@ export class MemoizingIterator<T> extends LazyIterator<T> {
     super();
   }
 
-  disposeWhenDone() {
-    return false;
-  }
-
   summary() {
-    return `${this.upstream.summary()} -> Memoize${
-        this.disposeWhenDone() ? '' : ' (protected)'}.`;
+    return `${this.upstream.summary()} -> Memoize`;
   }
 
   next(): Promise<IteratorResult<T>> {
@@ -1274,13 +1174,8 @@ export class CacheIterator<T> extends LazyIterator<T> {
     super();
   }
 
-  disposeWhenDone() {
-    return false;
-  }
-
   summary() {
-    return `${this.sharedUpstream.summary()} -> Cache${
-        this.disposeWhenDone() ? '' : ' (protected)'}.`;
+    return `${this.sharedUpstream.summary()} -> Cache`;
   }
 
   next(): Promise<IteratorResult<T>> {

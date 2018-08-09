@@ -20,13 +20,15 @@
 // tslint:disable:no-any
 
 import * as tf from '@tensorflow/tfjs-core';
-import {deepMap, DeepMapResult} from './deep_map';
+import {deepMap, DeepMapResult, isIterable} from './deep_map';
 
 function cloneIfTensor(input: any): DeepMapResult {
   if (input instanceof tf.Tensor) {
     return {value: input.clone(), recurse: false};
+  } else if (isIterable(input)) {
+    return {value: null, recurse: true};
   } else {
-    return {value: input, recurse: true};
+    return {value: input, recurse: false};
   }
 }
 

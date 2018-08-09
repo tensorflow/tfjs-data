@@ -40,10 +40,6 @@ export abstract class StringIterator extends LazyIterator<string> {
   split(separator: string): StringIterator {
     return new SplitIterator(this, separator);
   }
-
-  disposeWhenDone() {
-    return false;
-  }
 }
 
 // ============================================================================
@@ -66,8 +62,7 @@ class SplitIterator extends StringIterator {
   }
 
   summary() {
-    return `${this.upstream.summary()} -> Split${
-        this.disposeWhenDone() ? '' : ' (protected)'}.`;
+    return this.impl.summary();
   }
 
   async next() {
@@ -84,13 +79,8 @@ class SplitIteratorImpl extends OneToManyIterator<string> {
     super();
   }
 
-  disposeWhenDone() {
-    return false;
-  }
-
   summary() {
-    return `${this.upstream.summary()} -> SplitImpl${
-        this.disposeWhenDone() ? '' : ' (protected)'}.`;
+    return `${this.upstream.summary()} -> Split('${this.separator}')`;
   }
 
   async pump(): Promise<boolean> {

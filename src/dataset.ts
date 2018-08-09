@@ -156,7 +156,7 @@ export abstract class Dataset<T extends DataElement> {
     const base = this;
     return datasetFromIteratorFn(async () => {
       const iteratorIterator = iteratorFromFunction(
-          async () => ({value: await base.iterator(), done: false}), false);
+          async () => ({value: await base.iterator(), done: false}));
       return iteratorFromConcatenated(iteratorIterator.take(count));
     });
   }
@@ -370,8 +370,8 @@ export function datasetFromElements<T extends DataElement>(items: T[]):
  *
  * const ds4 = ds3.map(x=>{a: x[0].a, b: x[1].b});
  */
-export function zip<O extends DataElement>(
-    datasets: DatasetContainer, disposeWhenDone = true): Dataset<O> {
+export function zip<O extends DataElement>(datasets: DatasetContainer):
+    Dataset<O> {
   // manually type-check the argument for JS users
   if (!isIterable(datasets)) {
     throw new Error('The argument to zip() must be an object or array.');
@@ -388,7 +388,6 @@ export function zip<O extends DataElement>(
             'not primitives.');
       }
     });
-    return iteratorFromZipped<O>(
-        streams, ZipMismatchMode.SHORTEST, disposeWhenDone);
+    return iteratorFromZipped<O>(streams, ZipMismatchMode.SHORTEST);
   });
 }
