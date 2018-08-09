@@ -1145,18 +1145,13 @@ export class MemoizingIterator<T> extends LazyIterator<T> {
   }
 
   next(): Promise<IteratorResult<T>> {
+    // TODO(soergel): work out cache eviction settings
+    // Note the memoized items are never disposed (for now)!
     const item = this.upstream.next();
     this.index++;
     // TODO(soergel): consider whether to cache in GPU or main memory
     this.sharedPromiseCache.put(this.index, item);
     return item;
-
-    /*
-    return item.then((x) => {
-      tf.keepAll(x.value as {});
-      return item;
-    });
-    */
   }
 
   readUpTo(maxIndex: number) {
@@ -1178,11 +1173,11 @@ export class CacheIterator<T> extends LazyIterator<T> {
     return `${this.sharedUpstream.summary()} -> Cache`;
   }
 
-  next(): Promise<IteratorResult<T>> {
+  async next(): Promise<IteratorResult<T>> {
     this.index++;
     this.sharedUpstream.readUpTo(this.index);
     const item: Promise<IteratorResult<T>> =
         this.sharedUpstream.sharedPromiseCache.get(this.index);
-    return item;
+    return deepClone(await item);
   }
 }
