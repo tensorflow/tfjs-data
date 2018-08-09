@@ -209,11 +209,11 @@ export abstract class LazyIterator<T> {
   }
 
   /**
-   * Draw items from the stream until it is exhausted.
+   * Draw items from the stream until it is exhausted, or a predicate fails.
    *
    * This can be useful when the stream has side effects but no output.  In
-   * that case, calling this function guarantees that the stream will be fully
-   * processed.
+   * that case, calling this function guarantees that the stream will be
+   * fully processed.
    */
   async resolveWhile(predicate: (r: T) => boolean): Promise<void> {
     let x = await this.next();
