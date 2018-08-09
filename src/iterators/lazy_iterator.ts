@@ -557,21 +557,36 @@ class ErrorHandlingLazyIterator<T> extends LazyIterator<T> {
       protected upstream: LazyIterator<T>,
       protected handler: (error: Error) => boolean) {
     super();
+    this.lastRead = Promise.resolve({value: null, done: false});
   }
 
+  // Strict Promise execution order:
+  // a next() call may not even begin until the previous one completes.
+  private lastRead: Promise<IteratorResult<T>>;
+
   async next(): Promise<IteratorResult<T>> {
-    try {
-      return await this.upstream.next();
-    } catch (e) {
-      if (this.handler(e)) {
-        // Assume that exceptions are actually exceptional, so there won't
-        // be a long recursion here producing a stack overflow.  An iterator
-        // that is likely to produce a lot of consecutive exceptions should
-        // not ignore them.  I.e., this class should not be used for
-        // filtering.
-        return await this.next();
+    // This sets this.lastRead to a new Promise right away, as opposed to
+    // saying `await this.lastRead; this.lastRead = this.serialNext();` which
+    // would not work because this.nextRead would be updated only after the
+    // promise resolves.
+    this.lastRead = this.lastRead.then(() => this.serialNext());
+    return this.lastRead;
+  }
+
+  async serialNext(): Promise<IteratorResult<T>> {
+    while (true) {
+      try {
+        return await this.upstream.next();
+      } catch (e) {
+        if (!this.handler(e)) {
+          return {value: null, done: true};
+        }
+        // If the handler returns true, loop and fetch the next upstream item.
+
+        // If the upstream iterator throws an endless stream of errors, and if
+        // the handler says to ignore them, then we loop forever here.  That is
+        // the correct behavior-- it's up to the handler to decide when to stop.
       }
-      return {value: null, done: true};
     }
   }
 }
