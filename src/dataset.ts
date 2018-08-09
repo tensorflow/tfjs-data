@@ -92,7 +92,10 @@ export abstract class Dataset<T extends DataElement> {
    * Maps this dataset through an async 1-to-1 transform.
    *
    * @param transform A function mapping a dataset element to a `Promise` for a
-   *   transformed dataset element.
+   *   transformed dataset element.  This transform is responsible for disposing
+   *   any intermediate `Tensor`s, i.e. by wrapping its computation in
+   *   `tf.tidy()`; that cannot be automated here (as it is in the synchronous
+   *   `map()` case).
    *
    * @returns A `Dataset` of transformed elements.
    */
@@ -100,7 +103,6 @@ export abstract class Dataset<T extends DataElement> {
       Dataset<O> {
     const base = this;
     return datasetFromIteratorFn(async () => {
-      // Note the transform must tidy itself
       return (await base.iterator()).mapAsync(transform);
     });
   }
