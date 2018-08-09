@@ -339,8 +339,8 @@ export abstract class LazyIterator<T> {
    * @param iterator A `LazyIterator` to be concatenated onto this one.
    * @param baseErrorHandler An optional function that can intercept `Error`s
    *   raised during a `next()` call on the base stream.  This function can
-   * decide whether the error should be propagated, whether the error should
-   * be ignored, or whether the base stream should be terminated.
+   *   decide whether the error should be propagated, whether the error should
+   *   be ignored, or whether the base stream should be terminated.
    * @returns A `LazyIterator`.
    */
   concatenate(
@@ -674,44 +674,6 @@ class MapIterator<I, O> extends LazyIterator<O> {
   }
 }
 
-class AsyncMapIterator<I, O> extends LazyIterator<O> {
-  constructor(
-      protected upstream: LazyIterator<I>,
-      protected transform: (value: I) => Promise<O>) {
-    super();
-  }
-
-  summary() {
-    return `${this.upstream.summary()} -> AsyncMap`;
-  }
-
-  async next(): Promise<IteratorResult<O>> {
-    const item = await this.upstream.next();
-    if (item.done) {
-      return {value: null, done: true};
-    }
-    const inputTensors = getTensorsInContainer(item.value as {});
-    // Careful: the transform may mutate the item in place.
-    // That's why we have to remember the input Tensors above, and then
-    // below dispose only those that were not passed through to the output.
-    // Note too that the transform function is responsible for tidying
-    // any intermediate Tensors.  Here we are concerned only about the
-    // inputs.
-    const mapped = await this.transform(item.value);
-    const outputTensors = getTensorsInContainer(mapped as {});
-
-    // TODO(soergel) faster intersection
-    // TODO(soergel) move to tf.disposeExcept(in, out)?
-    for (const t of inputTensors) {
-      if (!isTensorInList(t, outputTensors)) {
-        t.dispose();
-      }
-    }
-
-    return {value: mapped, done: false};
-  }
-}
-
 class ErrorHandlingLazyIterator<T> extends LazyIterator<T> {
   count = 0;
   constructor(
@@ -749,11 +711,48 @@ class ErrorHandlingLazyIterator<T> extends LazyIterator<T> {
         // If the handler returns true, loop and fetch the next upstream item.
 
         // If the upstream iterator throws an endless stream of errors, and if
-        // the handler says to ignore them, then we loop forever here.  That
-        // is the correct behavior-- it's up to the handler to decide when to
-        // stop.
+        // the handler says to ignore them, then we loop forever here.  That is
+        // the correct behavior-- it's up to the handler to decide when to stop.
       }
     }
+  }
+}
+
+class AsyncMapIterator<I, O> extends LazyIterator<O> {
+  constructor(
+      protected upstream: LazyIterator<I>,
+      protected transform: (value: I) => Promise<O>) {
+    super();
+  }
+
+  summary() {
+    return `${this.upstream.summary()} -> AsyncMap`;
+  }
+
+  async next(): Promise<IteratorResult<O>> {
+    const item = await this.upstream.next();
+    if (item.done) {
+      return {value: null, done: true};
+    }
+    const inputTensors = getTensorsInContainer(item.value as {});
+    // Careful: the transform may mutate the item in place.
+    // That's why we have to remember the input Tensors above, and then
+    // below dispose only those that were not passed through to the output.
+    // Note too that the transform function is responsible for tidying
+    // any intermediate Tensors.  Here we are concerned only about the
+    // inputs.
+    const mapped = await this.transform(item.value);
+    const outputTensors = getTensorsInContainer(mapped as {});
+
+    // TODO(soergel) faster intersection
+    // TODO(soergel) move to tf.disposeExcept(in, out)?
+    for (const t of inputTensors) {
+      if (!isTensorInList(t, outputTensors)) {
+        t.dispose();
+      }
+    }
+
+    return {value: mapped, done: false};
   }
 }
 
@@ -855,6 +854,7 @@ class FlatmapIterator<I, O> extends OneToManyIterator<O> {
     return true;
   }
 }
+
 /**
  * Provides a `LazyIterator` that concatenates a stream of underlying
  * streams.

@@ -309,6 +309,10 @@ describe('LazyIterator', () => {
         super();
       }
 
+      summary() {
+        return `${this.upstream.summary} -> ParallelFilterIterator`;
+      }
+
       async next(): Promise<IteratorResult<T>> {
         while (true) {
           const item = await this.upstream.next();
