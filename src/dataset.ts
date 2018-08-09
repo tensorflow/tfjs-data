@@ -123,9 +123,8 @@ export abstract class Dataset<T extends DataElement> {
    *   than batchSize elements. Default true.
    * @returns A `BatchDataset`, from which a stream of batches can be obtained.
    */
-  batch(batchSize: number, smallLastBatch = true, disposeElements = true):
-      BatchDataset {
-    return new BatchDataset(this, batchSize, smallLastBatch, disposeElements);
+  batch(batchSize: number, smallLastBatch = true): BatchDataset {
+    return new BatchDataset(this, batchSize, smallLastBatch);
   }
 
   /**
