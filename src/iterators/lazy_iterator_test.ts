@@ -109,6 +109,20 @@ describe('LazyIterator', () => {
         .catch(done.fail);
   });
 
+  it('maps elements through an async function', done => {
+    const readIterator =
+        new TestIntegerIterator().mapAsync(x => Promise.resolve(`item ${x}`));
+    readIterator.collect()
+        .then(result => {
+          expect(result.length).toEqual(100);
+          for (let i = 0; i < 100; i++) {
+            expect(result[i]).toEqual(`item ${i}`);
+          }
+        })
+        .then(done)
+        .catch(done.fail);
+  });
+
   it('flatmaps simple elements', done => {
     const readStream = new TestIntegerIterator().flatmap(
         x => [`item ${x} A`, `item ${x} B`, `item ${x} C`]);

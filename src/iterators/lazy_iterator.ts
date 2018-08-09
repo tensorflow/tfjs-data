@@ -667,12 +667,10 @@ class MapIterator<I, O> extends LazyIterator<O> {
     }
     const inputTensors = getTensorsInContainer(item.value as {});
     // Careful: the transform may mutate the item in place.
-    // that's why we have to remember the input Tensors above, and then
-    // below
-    // dispose only those that were not passed through to the output.
+    // That's why we have to remember the input Tensors above, and then
+    // below dispose only those that were not passed through to the output.
     // Note too that the transform function is responsible for tidying
-    // any
-    // intermediate Tensors.  Here we are concerned only about the
+    // any intermediate Tensors.  Here we are concerned only about the
     // inputs.
     const mapped = this.transform(item.value);
     const outputTensors = getTensorsInContainer(mapped as {});
@@ -715,12 +713,10 @@ class AsyncMapIterator<I, O> extends LazyIterator<O> {
     }
     const inputTensors = getTensorsInContainer(item.value as {});
     // Careful: the transform may mutate the item in place.
-    // that's why we have to remember the input Tensors above, and then
-    // below
-    // dispose only those that were not passed through to the output.
+    // That's why we have to remember the input Tensors above, and then
+    // below dispose only those that were not passed through to the output.
     // Note too that the transform function is responsible for tidying
-    // any
-    // intermediate Tensors.  Here we are concerned only about the
+    // any intermediate Tensors.  Here we are concerned only about the
     // inputs.
     const mapped = await this.transform(item.value);
     const outputTensors = getTensorsInContainer(mapped as {});
