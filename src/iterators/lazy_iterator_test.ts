@@ -277,7 +277,10 @@ describe('LazyIterator', () => {
         .then(
             () =>
                 done.fail('collect should have propagated the upstream error'))
-        .catch((e) => done());
+        .catch((e) => {
+          expect(e.message).toEqual('Oh no, an even number: 2');
+          done();
+        });
   });
 
   it('can be created from an array', done => {
