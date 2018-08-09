@@ -178,7 +178,7 @@ export abstract class LazyIterator<T> {
    * @returns A Promise for an array of stream elements, which will resolve
    *   when the stream is exhausted.
    */
-  async collect(maxItems = 1000, prefetch = 100, keep = false): Promise<T[]> {
+  async collect(maxItems = 1000, prefetch = 100): Promise<T[]> {
     const stream = prefetch > 0 ? this.prefetch(prefetch) : this;
     const result: T[] = [];
     let count = 0;
@@ -227,10 +227,10 @@ export abstract class LazyIterator<T> {
   /**
    * Handles errors thrown on this stream using a provided handler function.
    *
-   * @param handler A function that handles any `Error` thrown during a
-   * `next()` call and returns true if the stream should continue (dropping
-   * the failed call) or false if the stream should quietly terminate.  If the
-   * handler itself throws (or rethrows) an `Error`, that will be propagated.
+   * @param handler A function that handles any `Error` thrown during a `next()`
+   *   call and returns true if the stream should continue (dropping the failed
+   *   call) or false if the stream should quietly terminate.  If the handler
+   *   itself throws (or rethrows) an `Error`, that will be propagated.
    *
    * @returns A `LazyIterator` of elements passed through from upstream,
    *   possibly filtering or terminating on upstream `next()` calls that
@@ -669,7 +669,6 @@ class MapIterator<I, O> extends LazyIterator<O> {
         t.dispose();
       }
     }
-
     return {value: mapped, done: false};
   }
 }
@@ -751,7 +750,6 @@ class AsyncMapIterator<I, O> extends LazyIterator<O> {
         t.dispose();
       }
     }
-
     return {value: mapped, done: false};
   }
 }
@@ -892,11 +890,12 @@ export class ChainedIterator<T> extends LazyIterator<T> {
 
   private async readFromChain(lastRead: Promise<IteratorResult<T>>):
       Promise<IteratorResult<T>> {
-    // Must await on the previous read since the previous read may have
-    // advanced the stream of streams, from which we need to read. This is
-    // unfortunate since we can't parallelize reads. Which means prefetching
-    // of chained streams is a no-op. One solution is to prefetch immediately
-    // upstream of this.
+    // Must await on the previous read since the previous read may have advanced
+    // the stream of streams, from which we need to read.
+    // This is unfortunate since we can't parallelize reads. Which means
+    // prefetching of chained streams is a no-op.
+    // One solution is to prefetch immediately upstream of this.
+
     await lastRead;
     if (this.iterator == null) {
       const iteratorResult = await this.moreIterators.next();

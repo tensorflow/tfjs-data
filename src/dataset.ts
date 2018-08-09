@@ -325,8 +325,8 @@ export function datasetFromIteratorFn<T extends DataElement>(
     iteratorFn: () => Promise<LazyIterator<T>>): Dataset<T> {
   return new class extends Dataset<T> {
     /*
-     * Provide a new stream of elements.  Note this will also start new
-     * streams from any underlying `Dataset`s.
+     * Provide a new stream of elements.  Note this will also start new streams
+     * from any underlying `Dataset`s.
      */
     async iterator(): Promise<LazyIterator<T>> {
       return iteratorFn();
@@ -346,8 +346,8 @@ export function datasetFromElements<T extends DataElement>(items: T[]):
 /**
  * Create a `Dataset` by zipping together an array, dict, or nested
  * structure of `Dataset`s (and perhaps additional constants).
- * The underlying datasets must provide elements in a consistent order such
- * that they correspond.
+ * The underlying datasets must provide elements in a consistent order such that
+ * they correspond.
  *
  * The number of elements in the resulting dataset is the same as the size of
  * the smallest dataset in `datasets`.
@@ -361,8 +361,7 @@ export function datasetFromElements<T extends DataElement>(items: T[]):
  *
  * const ds1 : Dataset = ...;  // produces elements like {a: ...}
  * const ds1 : Dataset = ...;  // produces elements like {b: ...}
- * const ds3 = zip([ds1, ds2]);  // produces elements like [{a: ...}, {b:
- * ...}]
+ * const ds3 = zip([ds1, ds2]);  // produces elements like [{a: ...}, {b: ...}]
  *
  * If the goal is to merge the dicts in order to produce elements like
  * {a: ..., b: ...}, this requires a second step such as:
