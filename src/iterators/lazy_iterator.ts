@@ -16,12 +16,9 @@
  * =============================================================================
  */
 
-// tslint:disable:max-line-length
 import * as tf from '@tensorflow/tfjs-core';
 import {getTensorsInContainer, isTensorInList} from '@tensorflow/tfjs-core/dist/tensor_util';
 import * as seedrandom from 'seedrandom';
-
-// tslint:enable:max-line-length
 
 import {DataElement, IteratorContainer} from '../types';
 import {deepClone} from '../util/deep_clone';
@@ -65,10 +62,15 @@ export function iteratorFromFunction<T>(
  * This can also be thought of as a "stream flatten" operation.
  *
  * @param baseIterators A stream of streams to be concatenated.
+ * @param baseErrorHandler An optional function that can intercept `Error`s
+ *   raised during a `next()` call on the base stream.  This function can decide
+ *   whether the error should be propagated, whether the error should be
+ *   ignored, or whether the base stream should be terminated.
  */
 export function iteratorFromConcatenated<T>(
-    baseIterators: LazyIterator<LazyIterator<T>>): LazyIterator<T> {
-  return ChainedIterator.create(baseIterators);
+    baseIterators: LazyIterator<LazyIterator<T>>,
+    baseErrorHandler?: (e: Error) => boolean): LazyIterator<T> {
+  return new ChainedIterator(baseIterators, baseErrorHandler);
 }
 
 /**
@@ -82,35 +84,43 @@ export function iteratorFromConcatenated<T>(
  *
  * @param iteratorFunc: A function that produces a new stream on each call.
  * @param count: The number of times to call the function.
+ * @param baseErrorHandler An optional function that can intercept `Error`s
+ *   raised during a `next()` call on the base stream.  This function can decide
+ *   whether the error should be propagated, whether the error should be
+ *   ignored, or whether the base stream should be terminated.
  */
 export function iteratorFromConcatenatedFunction<T>(
     iteratorFunc: () => IteratorResult<LazyIterator<T>>, count: number,
+    baseErrorHandler?: (e: Error) => boolean,
     shouldDisposeWhenDone = true): LazyIterator<T> {
   return iteratorFromConcatenated(
-      iteratorFromFunction(iteratorFunc, shouldDisposeWhenDone).take(count));
+      iteratorFromFunction(iteratorFunc, shouldDisposeWhenDone).take(count),
+      baseErrorHandler);
 }
 
 /**
  * Create a `LazyIterator` by zipping together an array, dict, or nested
  * structure of `LazyIterator`s (and perhaps additional constants).
  *
- * The underlying streams must provide elements in a consistent order such that
- * they correspond.
+ * The underlying streams must provide elements in a consistent order such
+ * that they correspond.
  *
- * Typically, the underlying streams should have the same number of elements.
- * If they do not, the behavior is determined by the `mismatchMode` argument.
+ * Typically, the underlying streams should have the same number of
+ * elements. If they do not, the behavior is determined by the
+ * `mismatchMode` argument.
  *
  * The nested structure of the `iterators` argument determines the
  * structure of elements in the resulting iterator.
  *
- * @param iterators: An array or object containing LazyIterators at the leaves.
- * @param mismatchMode: Determines what to do when one underlying iterator is
- *   exhausted before the others.  `ZipMismatchMode.FAIL` (the default) causes
- *   an error to be thrown in this case.  `ZipMismatchMode.SHORTEST` causes the
- *   zipped iterator to terminate with the furst underlying streams, so elements
- *   remaining on the longer streams are ignored.  `ZipMismatchMode.LONGEST`
- *   causes the zipped stream to continue, filling in nulls for the exhausted
- *   streams, until all streams are exhausted.
+ * @param iterators: An array or object containing LazyIterators at the
+ * leaves.
+ * @param mismatchMode: Determines what to do when one underlying iterator
+ * is exhausted before the others.  `ZipMismatchMode.FAIL` (the default)
+ * causes an error to be thrown in this case.  `ZipMismatchMode.SHORTEST`
+ * causes the zipped iterator to terminate with the furst underlying
+ * streams, so elements remaining on the longer streams are ignored.
+ * `ZipMismatchMode.LONGEST` causes the zipped stream to continue, filling
+ * in nulls for the exhausted streams, until all streams are exhausted.
  */
 export function iteratorFromZipped<O extends DataElement>(
     iterators: IteratorContainer,
@@ -120,24 +130,24 @@ export function iteratorFromZipped<O extends DataElement>(
 }
 
 export class IteratorProperties {
-  // Is each returned item an independent unit (such as an example or a batch),
-  // as opposed to a stream segment (like a chunk of a file)?
+  // Is each returned item an independent unit (such as an example or a
+  // batch), as opposed to a stream segment (like a chunk of a file)?
   independent: boolean;
 
   // Is the iteration order meaningful?
   ordered: boolean;
 
   // How many initial dimensions of contained Tensors are batch dimensions.
-  // i.e. 0 means we have independent examples, 1 means we have normal batches,
-  // 2 means we have batches of batches.
+  // i.e. 0 means we have independent examples, 1 means we have normal
+  // batches, 2 means we have batches of batches.
   batchDimensions: number;
 
   columnarBatchDimensions: number;
 }
 
 /**
- * An asynchronous iterator, providing lazy access to a potentially unbounded
- * stream of elements.
+ * An asynchronous iterator, providing lazy access to a potentially
+ * unbounded stream of elements.
  */
 export abstract class LazyIterator<T> {
   // This class implements AsyncIterator<T>, but we have not yet set the
@@ -193,8 +203,8 @@ export abstract class LazyIterator<T> {
    * Draw items from the stream until it is exhausted.
    *
    * This can be useful when the stream has side effects but no output.  In
-   * that case, calling this function guarantees that the stream will be fully
-   * processed.
+   * that case, calling this function guarantees that the stream will be
+   * fully processed.
    */
   async resolveFully(): Promise<void> {
     let x = await this.next();
@@ -217,6 +227,22 @@ export abstract class LazyIterator<T> {
       x = await this.next();
       shouldContinue = predicate(x.value);
     }
+  }
+
+  /**
+   * Handles errors thrown on this stream using a provided handler function.
+   *
+   * @param handler A function that handles any `Error` thrown during a
+   * `next()` call and returns true if the stream should continue (dropping
+   * the failed call) or false if the stream should quietly terminate.  If the
+   * handler itself throws (or rethrows) an `Error`, that will be propagated.
+   *
+   * @returns A `LazyIterator` of elements passed through from upstream,
+   *   possibly filtering or terminating on upstream `next()` calls that
+   *   throw an `Error`.
+   */
+  handleErrors(handler: (error: Error) => boolean): LazyIterator<T> {
+    return new ErrorHandlingLazyIterator(this, handler);
   }
 
   // TODO(soergel): Implement reduce() etc.
@@ -316,17 +342,24 @@ export abstract class LazyIterator<T> {
    * Concatenate this `LazyIterator` with another.
    *
    * @param iterator A `LazyIterator` to be concatenated onto this one.
+   * @param baseErrorHandler An optional function that can intercept `Error`s
+   *   raised during a `next()` call on the base stream.  This function can
+   * decide whether the error should be propagated, whether the error should
+   * be ignored, or whether the base stream should be terminated.
    * @returns A `LazyIterator`.
    */
-  concatenate(iterator: LazyIterator<T>): LazyIterator<T> {
-    return ChainedIterator.create(iteratorFromItems([this, iterator]));
+  concatenate(
+      iterator: LazyIterator<T>,
+      baseErrorHandler?: (e: Error) => boolean): LazyIterator<T> {
+    return new ChainedIterator(
+        iteratorFromItems([this, iterator]), baseErrorHandler);
   }
 
   /**
    * Limits this stream to return at most `count` items.
    *
-   * @param count The maximum number of items to provide from the stream.  If a
-   *   negative or undefined value is given, the entire stream is returned
+   * @param count The maximum number of items to provide from the stream. If
+   * a negative or undefined value is given, the entire stream is returned
    *   unaltered.
    */
   take(count: number): LazyIterator<T> {
@@ -339,8 +372,8 @@ export abstract class LazyIterator<T> {
   /**
    * Skips the first `count` items in this stream.
    *
-   * @param count The number of items to skip.  If a negative or undefined value
-   *   is given, the entire stream is returned unaltered.
+   * @param count The number of items to skip.  If a negative or undefined
+   * value is given, the entire stream is returned unaltered.
    */
   skip(count: number): LazyIterator<T> {
     if (count < 0 || count == null) {
@@ -367,10 +400,10 @@ export abstract class LazyIterator<T> {
   /**
    * Randomly shuffles the elements of this stream.
    *
-   * @param bufferSize: An integer specifying the number of elements from this
-   *   stream from which the new stream will sample.
-   * @param seed: (Optional.) An integer specifying the random seed that will
-   *   be used to create the distribution.
+   * @param bufferSize: An integer specifying the number of elements from
+   * this stream from which the new stream will sample.
+   * @param seed: (Optional.) An integer specifying the random seed that
+   * will be used to create the distribution.
    */
   shuffle(windowSize: number, seed?: string): LazyIterator<T> {
     return new ShuffleIterator(this, windowSize, seed);
@@ -387,8 +420,8 @@ export abstract class LazyIterator<T> {
 
 // ============================================================================
 // The following private classes serve to implement the chainable methods
-// on LazyIterator.  Unfortunately they can't be placed in separate files, due
-// to resulting trouble with circular imports.
+// on LazyIterator.  Unfortunately they can't be placed in separate files,
+// due to resulting trouble with circular imports.
 // ============================================================================
 
 // Iterators that just extend LazyIterator directly
@@ -415,7 +448,8 @@ class ArrayIterator<T> extends LazyIterator<T> {
     const result = this.items[this.trav];
     this.trav++;
     // If the result contains `Tensor`s, we should return clones-- else when
-    // the `Tensor`s are disposed downstream, this array would become unusable.
+    // the `Tensor`s are disposed downstream, this array would become
+    // unusable.
     return {value: deepClone(result), done: false};
   }
 }
@@ -441,7 +475,7 @@ class FunctionCallIterator<T> extends LazyIterator<T> {
     } catch (e) {
       // Modify the error message but leave the stack trace intact
       e.message =
-          'Error thrown while iterating through a dataset: ' + e.message;
+          `Error thrown while iterating through a dataset: ${e.message}`;
       throw e;
     }
   }
@@ -512,9 +546,10 @@ class SkipIterator<T> extends LazyIterator<T> {
   }
 
   private async serialNext(): Promise<IteratorResult<T>> {
-    // TODO(soergel): consider tradeoffs of reading in parallel, eg. collecting
-    // next() promises in an Array and then waiting for Promise.all() of those.
-    // Benefit: pseudo-parallel execution.  Drawback: maybe delayed GC.
+    // TODO(soergel): consider tradeoffs of reading in parallel, eg.
+    // collecting next() promises in an Array and then waiting for
+    // Promise.all() of those. Benefit: pseudo-parallel execution.  Drawback:
+    // maybe delayed GC.
     while (this.count++ < this.maxCount) {
       const skipped = await this.upstream.next();
       // short-circuit if upstream is already empty
@@ -738,6 +773,47 @@ class AsyncMapIterator<I, O> extends LazyIterator<O> {
   }
 }
 
+class ErrorHandlingLazyIterator<T> extends LazyIterator<T> {
+  count = 0;
+  constructor(
+      protected upstream: LazyIterator<T>,
+      protected handler: (error: Error) => boolean) {
+    super();
+    this.lastRead = Promise.resolve({value: null, done: false});
+  }
+
+  // Strict Promise execution order:
+  // a next() call may not even begin until the previous one completes.
+  private lastRead: Promise<IteratorResult<T>>;
+
+  async next(): Promise<IteratorResult<T>> {
+    // This sets this.lastRead to a new Promise right away, as opposed to
+    // saying `await this.lastRead; this.lastRead = this.serialNext();` which
+    // would not work because this.nextRead would be updated only after the
+    // promise resolves.
+    this.lastRead = this.lastRead.then(() => this.serialNext());
+    return this.lastRead;
+  }
+
+  async serialNext(): Promise<IteratorResult<T>> {
+    while (true) {
+      try {
+        return await this.upstream.next();
+      } catch (e) {
+        if (!this.handler(e)) {
+          return {value: null, done: true};
+        }
+        // If the handler returns true, loop and fetch the next upstream item.
+
+        // If the upstream iterator throws an endless stream of errors, and if
+        // the handler says to ignore them, then we loop forever here.  That
+        // is the correct behavior-- it's up to the handler to decide when to
+        // stop.
+      }
+    }
+  }
+}
+
 // Iterators that maintain a queue of pending items
 // ============================================================================
 
@@ -745,9 +821,9 @@ class AsyncMapIterator<I, O> extends LazyIterator<O> {
  * A base class for transforming streams that operate by maintaining an
  * output queue of elements that are ready to return via next().  This is
  * commonly required when the transformation is 1-to-many:  A call to next()
- * may trigger a call to the underlying stream, which will produce many mapped
- * elements of this stream-- of which we need to return only one, so we have to
- * queue the rest.
+ * may trigger a call to the underlying stream, which will produce many
+ * mapped elements of this stream-- of which we need to return only one, so
+ * we have to queue the rest.
  */
 export abstract class OneToManyIterator<T> extends LazyIterator<T> {
   // Strict Promise execution order:
@@ -773,23 +849,23 @@ export abstract class OneToManyIterator<T> extends LazyIterator<T> {
   }
 
   /**
-   * Read one or more chunks from upstream and process them, possibly reading or
-   * writing a carryover, and adding processed items to the output queue.  Note
-   * it's possible that no items are added to the queue on a given
-   * pump() call, even if the upstream stream is not closed (e.g., because items
-   * are filtered).
+   * Read one or more chunks from upstream and process them, possibly
+   * reading or writing a carryover, and adding processed items to the
+   * output queue.  Note it's possible that no items are added to the queue
+   * on a given pump() call, even if the upstream stream is not closed
+   * (e.g., because items are filtered).
    *
    * @return `true` if any action was taken, i.e. fetching items from the
    *   upstream source OR adding items to the output queue.  `false` if the
-   *   upstream source is exhausted AND nothing was added to the queue (i.e.,
-   *   any remaining carryover).
+   *   upstream source is exhausted AND nothing was added to the queue
+   * (i.e., any remaining carryover).
    */
   protected abstract async pump(): Promise<boolean>;
 
   async serialNext(): Promise<IteratorResult<T>> {
     // Fetch so that the queue contains at least one item if possible.
-    // If the upstream source is exhausted, AND there are no items left in the
-    // output queue, then this stream is also exhausted.
+    // If the upstream source is exhausted, AND there are no items left in
+    // the output queue, then this stream is also exhausted.
     while (this.outputQueue.length() === 0) {
       // TODO(soergel): consider parallel reads.
       if (!await this.pump()) {
@@ -823,8 +899,8 @@ class FlatmapIterator<I, O> extends OneToManyIterator<O> {
     }
     const inputTensors = getTensorsInContainer(item.value as {});
     // Careful: the transform may mutate the item in place.
-    // that's why we have to remember the input Tensors above, and then below
-    // dispose only those that were not passed through to the output.
+    // that's why we have to remember the input Tensors above, and then
+    // below dispose only those that were not passed through to the output.
     // Note too that the transform function is responsible for tidying any
     // intermediate Tensors.  Here we are concerned only about the inputs.
     const mappedArray = this.transform(item.value);
@@ -847,12 +923,13 @@ class FlatmapIterator<I, O> extends OneToManyIterator<O> {
   }
 }
 /**
- * Provides a `LazyIterator` that concatenates a stream of underlying streams.
+ * Provides a `LazyIterator` that concatenates a stream of underlying
+ * streams.
  *
- * Doing this in a concurrency-safe way requires some trickery.  In particular,
- * we want this stream to return the elements from the underlying streams in
- * the correct order according to when next() was called, even if the resulting
- * Promises resolve in a different order.
+ * Doing this in a concurrency-safe way requires some trickery.  In
+ * particular, we want this stream to return the elements from the
+ * underlying streams in the correct order according to when next() was
+ * called, even if the resulting Promises resolve in a different order.
  */
 export class ChainedIterator<T> extends LazyIterator<T> {
   // Strict Promise execution order:
@@ -863,11 +940,11 @@ export class ChainedIterator<T> extends LazyIterator<T> {
   private iterator: LazyIterator<T> = null;
   private moreIterators: LazyIterator<LazyIterator<T>>;
 
-  static create<T>(iterators: LazyIterator<LazyIterator<T>>):
-      ChainedIterator<T> {
-    const c = new ChainedIterator<T>();
-    c.moreIterators = iterators;
-    return c;
+  constructor(
+      iterators: LazyIterator<LazyIterator<T>>,
+      private readonly baseErrorHandler?: (e: Error) => boolean) {
+    super();
+    this.moreIterators = iterators;
   }
 
   disposeWhenDone() {
@@ -891,11 +968,11 @@ export class ChainedIterator<T> extends LazyIterator<T> {
 
   private async readFromChain(lastRead: Promise<IteratorResult<T>>):
       Promise<IteratorResult<T>> {
-    // Must await on the previous read since the previous read may have advanced
-    // the stream of streams, from which we need to read.
-    // This is unfortunate since we can't parallelize reads. Which means
-    // prefetching of chained streams is a no-op.
-    // One solution is to prefetch immediately upstream of this.
+    // Must await on the previous read since the previous read may have
+    // advanced the stream of streams, from which we need to read. This is
+    // unfortunate since we can't parallelize reads. Which means prefetching
+    // of chained streams is a no-op. One solution is to prefetch immediately
+    // upstream of this.
     await lastRead;
     if (this.iterator == null) {
       const iteratorResult = await this.moreIterators.next();
@@ -904,6 +981,9 @@ export class ChainedIterator<T> extends LazyIterator<T> {
         return {value: null, done: true};
       }
       this.iterator = iteratorResult.value;
+      if (this.baseErrorHandler != null) {
+        this.iterator = this.iterator.handleErrors(this.baseErrorHandler);
+      }
     }
     const itemResult = await this.iterator.next();
     if (itemResult.done) {
@@ -924,28 +1004,30 @@ export enum ZipMismatchMode {
  * Provides a `LazyIterator` that zips together an array, dict, or nested
  * structure of `LazyIterator`s (and perhaps additional constants).
  *
- * The underlying streams must provide elements in a consistent order such that
- * they correspond.
+ * The underlying streams must provide elements in a consistent order such
+ * that they correspond.
  *
- * Typically, the underlying streams should have the same number of elements.
- * If they do not, the behavior is determined by the `mismatchMode` argument.
+ * Typically, the underlying streams should have the same number of
+ * elements. If they do not, the behavior is determined by the
+ * `mismatchMode` argument.
  *
  * The nested structure of the `iterators` argument determines the
  * structure of elements in the resulting iterator.
  *
- * Doing this in a concurrency-safe way requires some trickery.  In particular,
- * we want this stream to return the elements from the underlying streams in
- * the correct order according to when next() was called, even if the resulting
- * Promises resolve in a different order.
+ * Doing this in a concurrency-safe way requires some trickery.  In
+ * particular, we want this stream to return the elements from the
+ * underlying streams in the correct order according to when next() was
+ * called, even if the resulting Promises resolve in a different order.
  *
- * @param iterators: An array or object containing LazyIterators at the leaves.
- * @param mismatchMode: Determines what to do when one underlying iterator is
- *   exhausted before the others.  `ZipMismatchMode.FAIL` (the default) causes
- *   an error to be thrown in this case.  `ZipMismatchMode.SHORTEST` causes the
- *   zipped iterator to terminate with the furst underlying streams, so elements
- *   remaining on the longer streams are ignored.  `ZipMismatchMode.LONGEST`
- *   causes the zipped stream to continue, filling in nulls for the exhausted
- *   streams, until all streams are exhausted.
+ * @param iterators: An array or object containing LazyIterators at the
+ * leaves.
+ * @param mismatchMode: Determines what to do when one underlying iterator
+ * is exhausted before the others.  `ZipMismatchMode.FAIL` (the default)
+ * causes an error to be thrown in this case.  `ZipMismatchMode.SHORTEST`
+ * causes the zipped iterator to terminate with the furst underlying
+ * streams, so elements remaining on the longer streams are ignored.
+ * `ZipMismatchMode.LONGEST` causes the zipped stream to continue, filling
+ * in nulls for the exhausted streams, until all streams are exhausted.
  */
 class ZipIterator<O extends DataElement> extends LazyIterator<O> {
   private count = 0;
@@ -976,7 +1058,8 @@ class ZipIterator<O extends DataElement> extends LazyIterator<O> {
     // before the previous ones have resolved.
     await afterState;
 
-    // Collect underlying iterator "done" signals as a side effect in getNext()
+    // Collect underlying iterator "done" signals as a side effect in
+    // getNext()
     let numIterators = 0;
     let iteratorsDone = 0;
 
@@ -1070,18 +1153,18 @@ export class PrefetchIterator<T> extends LazyIterator<T> {
 
   next(): Promise<IteratorResult<T>> {
     this.refill();
-    // This shift will never throw an error because the buffer is always full
-    // after a refill. If the stream is exhausted, the buffer will be full of
-    // Promises that will resolve to the end-of-stream signal.
+    // This shift will never throw an error because the buffer is always
+    // full after a refill. If the stream is exhausted, the buffer will be
+    // full of Promises that will resolve to the end-of-stream signal.
     return this.buffer.shift();
   }
 }
 
 /**
  * A stream that performs a sliding-window random shuffle on an upstream
- * source. This is like a `PrefetchIterator` except that the items are returned
- * in randomized order.  Mixing naturally improves as the buffer size
- * increases.
+ * source. This is like a `PrefetchIterator` except that the items are
+ * returned in randomized order.  Mixing naturally improves as the buffer
+ * size increases.
  */
 export class ShuffleIterator<T> extends PrefetchIterator<T> {
   private readonly random: seedrandom.prng;

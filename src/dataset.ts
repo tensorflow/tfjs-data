@@ -20,7 +20,6 @@ import * as tf from '@tensorflow/tfjs-core';
 import * as seedrandom from 'seedrandom';
 
 import {BatchDataset} from './batch_dataset';
-// tslint:disable:max-line-length
 import {CacheIterator, iteratorFromFunction, iteratorFromZipped, LazyIterator, MemoizingIterator, ZipMismatchMode} from './iterators/lazy_iterator';
 import {iteratorFromConcatenated} from './iterators/lazy_iterator';
 import {iteratorFromItems} from './iterators/lazy_iterator';

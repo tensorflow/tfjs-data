@@ -16,13 +16,11 @@
  * =============================================================================
  */
 
-// tslint:disable:max-line-length
 import {DataElement, DataElementArray, DataElementObject} from '../types';
 import {iteratorFromIncrementing, iteratorFromZipped, LazyIterator, ZipMismatchMode} from './lazy_iterator';
 import {iteratorFromConcatenated} from './lazy_iterator';
 import {iteratorFromConcatenatedFunction} from './lazy_iterator';
 import {iteratorFromFunction, iteratorFromItems} from './lazy_iterator';
-// tslint:enable:max-line-length
 
 export class TestIntegerIterator extends LazyIterator<number> {
   currentIndex = 0;
@@ -255,6 +253,57 @@ describe('LazyIterator', () => {
         .catch(done.fail);
   });
 
+  it('can selectively ignore upstream errors', async () => {
+    const readIterator = new TestIntegerIterator().take(10).map(x => {
+      if (x % 2 === 0) {
+        throw new Error('Oh no, an even number!');
+      }
+      return x;
+    });
+    // The 'true' response means the iterator should continue.
+    const errorIgnoringIterator = readIterator.handleErrors((e) => true);
+    const result = await errorIgnoringIterator.collect();
+    expect(result).toEqual([1, 3, 5, 7, 9]);
+  });
+
+  it('can terminate cleanly based on upstream errors', async () => {
+    const readIterator = new TestIntegerIterator().map(x => {
+      if (x % 2 === 0) {
+        throw new Error(`Oh no, an even number: ${x}`);
+      }
+      return x;
+    });
+    // The 'true' response means the iterator should continue.
+    // But in the case of 10, return false, terminating the stream.
+    const errorHandlingIterator = readIterator.handleErrors(
+        (e) => e.message !== 'Oh no, an even number: 10');
+    const result = await errorHandlingIterator.collect();
+    expect(result).toEqual([1, 3, 5, 7, 9]);
+  });
+
+  it('can selectively propagate upstream errors', done => {
+    const readIterator = new TestIntegerIterator().map(x => {
+      if (x % 2 === 0) {
+        throw new Error(`Oh no, an even number: ${x}`);
+      }
+      return x;
+    });
+    const errorHandlingIterator = readIterator.handleErrors((e) => {
+      if (e.message === 'Oh no, an even number: 2') {
+        throw e;
+      }
+      return true;
+    });
+    errorHandlingIterator.collect()
+        .then(
+            () =>
+                done.fail('collect should have propagated the upstream error'))
+        .catch((e) => {
+          expect(e.message).toEqual('Oh no, an even number: 2');
+          done();
+        });
+  });
+
   it('can be created from an array', done => {
     const readIterator = iteratorFromItems([1, 2, 3, 4, 5, 6]);
     readIterator.collect()
@@ -335,7 +384,7 @@ describe('LazyIterator', () => {
     try {
       const a = new TestIntegerIterator();
       const b = new TestIntegerIterator().map(x => x * 10);
-      const c = new TestIntegerIterator().map(x => 'string ' + x);
+      const c = new TestIntegerIterator().map(x => `string ${x}`);
       const readStream = iteratorFromZipped([a, b, c]);
       const result = await readStream.collect();
       expect(result.length).toEqual(100);
@@ -345,7 +394,7 @@ describe('LazyIterator', () => {
       for (const e of result) {
         const ee = e as DataElementArray;
         expect(ee[1]).toEqual(ee[0] as number * 10);
-        expect(ee[2]).toEqual('string ' + ee[0]);
+        expect(ee[2]).toEqual(`string ${ee[0]}`);
       }
       done();
     } catch (e) {
@@ -357,7 +406,7 @@ describe('LazyIterator', () => {
     try {
       const a = new TestIntegerIterator();
       const b = new TestIntegerIterator().map(x => x * 10);
-      const c = new TestIntegerIterator().map(x => 'string ' + x);
+      const c = new TestIntegerIterator().map(x => `string ${x}`);
       const readStream = iteratorFromZipped({a, b, c});
       const result = await readStream.collect();
       expect(result.length).toEqual(100);
@@ -367,7 +416,7 @@ describe('LazyIterator', () => {
       for (const e of result) {
         const ee = e as DataElementObject;
         expect(ee['b']).toEqual(ee['a'] as number * 10);
-        expect(ee['c']).toEqual('string ' + ee['a']);
+        expect(ee['c']).toEqual(`string ${ee['a']}`);
       }
       done();
     } catch (e) {
@@ -380,7 +429,7 @@ describe('LazyIterator', () => {
       const a = new TestIntegerIterator().map(x => ({'a': x, 'constant': 12}));
       const b = new TestIntegerIterator().map(
           x => ({'b': x * 10, 'array': [x * 100, x * 200]}));
-      const c = new TestIntegerIterator().map(x => ({'c': 'string ' + x}));
+      const c = new TestIntegerIterator().map(x => ({'c': `string ${x}`}));
       const readStream = iteratorFromZipped([a, b, c]);
       const result = await readStream.collect();
       expect(result.length).toEqual(100);
@@ -402,7 +451,7 @@ describe('LazyIterator', () => {
         expect(bb['array']).toEqual([
           aa['a'] as number * 100, aa['a'] as number * 200
         ]);
-        expect(cc['c']).toEqual('string ' + aa['a']);
+        expect(cc['c']).toEqual(`string ${aa['a']}`);
       }
       done();
     } catch (e) {
@@ -458,8 +507,8 @@ describe('LazyIterator', () => {
      });
 
   /**
-   * This test demonstrates behavior that is intrinsic to the tf.data zip() API,
-   * but that may not be what users ultimately want when zipping dicts.
+   * This test demonstrates behavior that is intrinsic to the tf.data zip()
+   * API, but that may not be what users ultimately want when zipping dicts.
    * This may merit a convenience function (e.g., maybe flatZip()).
    */
   it('zipping DataElement streams requires manual merge', async done => {
@@ -475,7 +524,7 @@ describe('LazyIterator', () => {
     try {
       const a = new TestIntegerIterator().map(x => ({'a': x}));
       const b = new TestIntegerIterator().map(x => ({'b': x * 10}));
-      const c = new TestIntegerIterator().map(x => ({'c': 'string ' + x}));
+      const c = new TestIntegerIterator().map(x => ({'c': `string ${x}`}));
       const zippedStream = iteratorFromZipped([a, b, c]);
       // At first, each result has the form
       // [{a: x}, {b: x * 10}, {c: 'string ' + x}]
@@ -490,7 +539,7 @@ describe('LazyIterator', () => {
       for (const e of result) {
         const ee = e as DataElementObject;
         expect(ee['b']).toEqual(ee['a'] as number * 10);
-        expect(ee['c']).toEqual('string ' + ee['a']);
+        expect(ee['c']).toEqual(`string ${ee['a']}`);
       }
       done();
     } catch (e) {
