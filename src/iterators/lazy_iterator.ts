@@ -24,6 +24,7 @@ import * as seedrandom from 'seedrandom';
 // tslint:enable:max-line-length
 
 import {DataElement, IteratorContainer} from '../types';
+import {deepClone} from '../util/deep_clone';
 import {deepMapAndAwaitAll, DeepMapAsyncResult} from '../util/deep_map';
 import {GrowingRingBuffer} from '../util/growing_ring_buffer';
 import {RingBuffer} from '../util/ring_buffer';
@@ -376,7 +377,7 @@ export abstract class LazyIterator<T> {
   }
 
   /**
-   * Force an iterator te execute serially: each next() call will await the
+   * Force an iterator to execute serially: each next() call will await the
    * prior one, so that they cannot execute concurrently.
    */
   serial(): LazyIterator<T> {
@@ -413,7 +414,9 @@ class ArrayIterator<T> extends LazyIterator<T> {
     }
     const result = this.items[this.trav];
     this.trav++;
-    return {value: result, done: false};
+    // If the result contains `Tensor`s, we should return clones-- else when
+    // the `Tensor`s are disposed downstream, this array would become unusable.
+    return {value: deepClone(result), done: false};
   }
 }
 

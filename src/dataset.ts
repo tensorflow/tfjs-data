@@ -265,34 +265,37 @@ export abstract class Dataset<T extends DataElement> {
   Dataset.padded_batch()
   */
 
-  // TODO(soergel): streaming cache, not full prefetch
-  // TODO(soergel): protect against memory explosion
-  // TODO(soergel): why do the elements not get disposed, as with cache()?
+  /**
+   * Load the entire `Dataset` into memory right away, and provide a new
+   * `Dataset` that reads from this cache.  If the underlying `Dataset` includes
+   * `Tensor`s, then these will be retained on the GPU.
+   *
+   * Obviously this will succeed only for small `Dataset`s that fit in memory.
+   * Useful for testing.
+   */
   async cacheEager(maxItems?: number): Promise<Dataset<T>> {
+    // TODO(soergel): protect against memory explosion?
     return datasetFromElements(await this.collectAll(maxItems));
   }
 
+  /**
+   * Lazily cache a dataset as it streams through.
+   *
+   * Elements may be retained in GPU memory, in main memory, or on disk,
+   * according to the provided configuration.
+   *
+   * @param config A `SharedCacheConfig` object describing how much data should
+   *   be stored in the GPU, in main memory, and on disk.
+   */
   async cache(config: SharedCacheConfig = {}): Promise<Dataset<T>> {
     return new CacheDataset(await this.iterator(), config);
   }
 
-  /*
-  async data(): Promise<Dataset<T>> {
-    const base = this;
-    return datasetFromIteratorFn(async () => {
-      const iter =
-          (await base.iterator()).map(x => deepMapAndAwaitAll(x, (x) => {
-                                        if (x instanceof tf.Tensor) {
-                                          return x.data();
-                                        } else {
-                                          return x;
-                                        }
-                                      }));
-      return iter;
-    });
-  }
-  */
-
+  /**
+   * Force a dataset to be read serially: for each provided iterator, each
+   * next() call will await the prior one, so that they cannot execute
+   * concurrently.
+   */
   async serial(): Promise<Dataset<T>> {
     const base = this;
     return datasetFromIteratorFn(async () => (await base.iterator()).serial());
