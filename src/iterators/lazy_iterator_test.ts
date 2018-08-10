@@ -109,7 +109,11 @@ describe('LazyIterator', () => {
       }
       return Promise.resolve(`item ${x}`);
     });
-    readIterator.collect()
+    // It's important to prefetch in order to test the promise randomization
+    // above.  Note collect() already prefetches by default, but here we do it
+    // explicitly anyway just to be extra clear.
+    readIterator.prefetch(200)
+        .collect()
         .then(result => {
           expect(result.length).toEqual(100);
           for (let i = 0; i < 100; i++) {
