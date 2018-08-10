@@ -56,7 +56,7 @@ class Utf8Iterator extends StringIterator {
   }
 
   summary() {
-    return `${this.upstream.summary()} -> Utf8`;
+    return this.impl.summary();
   }
 
   async next() {
@@ -95,7 +95,7 @@ class Utf8IteratorImpl extends OneToManyIterator<string> {
     super();
   }
   summary() {
-    return `${this.upstream.summary()} -> Utf8Impl`;
+    return `${this.upstream.summary()} -> Utf8`;
   }
 
   async pump(): Promise<boolean> {
