@@ -103,9 +103,21 @@ describe('LazyIterator', () => {
   });
 
   it('maps elements through an async function', done => {
-    const readIterator =
-        new TestIntegerIterator().mapAsync(x => Promise.resolve(`item ${x}`));
-    readIterator.collect()
+    const readIterator = new TestIntegerIterator().mapAsync(async x => {
+      // Sleep for a millisecond every so often.
+      // This purposely scrambles the order in which these promises are
+      // resolved, to demonstrate that we still process the
+      // stream in the correct order.
+      if (Math.random() < 0.1) {
+        await new Promise(res => setTimeout(res, 1));
+      }
+      return Promise.resolve(`item ${x}`);
+    });
+    // It's important to prefetch in order to test the promise randomization
+    // above.  Note collect() already prefetches by default, but here we do it
+    // explicitly anyway just to be extra clear.
+    readIterator.prefetch(200)
+        .collect()
         .then(result => {
           expect(result.length).toEqual(100);
           for (let i = 0; i < 100; i++) {
