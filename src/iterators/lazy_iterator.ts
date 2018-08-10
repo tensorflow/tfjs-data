@@ -275,7 +275,7 @@ export abstract class LazyIterator<T> {
   }
 
   /**
-   * Maps this stream through a 1-to-1 transform.
+   * Maps this stream through a 1-to-1 transform, forcing serial execution.
    *
    * @param predicate A function mapping a stream element to a transformed
    *   element.
@@ -308,7 +308,7 @@ export abstract class LazyIterator<T> {
   }
 
   /**
-   * Apply a function to every element of the stream.
+   * Apply a function to every element of the stream, forcing serial execution.
    *
    * @param f A function to apply to each stream element.
    */
