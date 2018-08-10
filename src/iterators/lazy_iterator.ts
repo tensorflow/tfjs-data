@@ -310,7 +310,9 @@ export abstract class LazyIterator<T> {
   /**
    * Apply a function to every element of the stream, forcing serial execution.
    *
-   * @param f A function to apply to each stream element.
+   * @param f A function to apply to each stream element.  Should return 'true'
+   *   to indicate that the stream should continue, or 'false' to cause it to
+   *   terminate.
    */
   async serialForEach(f: (value: T) => Promise<boolean>): Promise<void> {
     return this.serialMapAsync(f).resolveWhile(x => (x === true));
