@@ -16,8 +16,7 @@
     "vega-lite": "^2.3.1"
   },
   "scripts": {
-    "build": "tsc",
-    "watch": "cross-env NODE_ENV=development parcel index.html --no-hmr --open"
+    "watch": "tsc && cross-env NODE_ENV=development parcel index.html --no-hmr --open"
   },
   "devDependencies": {
     "babel-plugin-transform-runtime": "~6.23.0",
