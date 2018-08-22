@@ -1,5 +1,5 @@
 {
-  "name": "tfjs-examples-mlr-core",
+  "name": "tfjs-data-demo-boston-housing",
   "version": "0.1.0",
   "description": "",
   "main": "index.js",
