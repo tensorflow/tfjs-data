@@ -46,29 +46,18 @@ async function getCSVData(url: string) {
   const source = new URLDataSource(url);
   const dataset =
       await CSVDataset.create(source, CsvHeaderConfig.READ_FIRST_LINE);
-
-  const result = await dataset.collectAll() as Array<{[key: string]: number}>;
-  return parseCsv(result);
-}
-
-/**
- * Given CSV data returns an array of arrays of numbers.
- */
-const parseCsv = async(data: Array<{[key: string]: number}>): Promise<{}> => {
-  return new Promise(resolve => {
-    const result: number[][] = data.map((row: {[key: string]: number}) => {
-      return Object.keys(row).sort().map(key => Number(row[key]));
-    });
-    resolve(result);
+  const result = await dataset.collectAll();
+  return result.map((row: {[key: string]: number}) => {
+    return Object.keys(row).sort().map(key => Number(row[key]));
   });
-};
+}
 
 /** Helper class to handle loading training and test data. */
 export class BostonHousingDataset {
   trainFeatures: number[][];
-  trainTarget: number[];
+  trainTarget: number[][];
   testFeatures: number[][];
-  testTarget: number[];
+  testTarget: number[][];
 
   constructor() {
     // Arrays to hold the data.
@@ -92,7 +81,7 @@ export class BostonHousingDataset {
         await Promise.all([
           loadCsv(TRAIN_FEATURES_FN), loadCsv(TRAIN_TARGET_FN),
           loadCsv(TEST_FEATURES_FN), loadCsv(TEST_TARGET_FN)
-        ]) as [number[][], number[], number[][], number[]];
+        ]) as [number[][], number[][], number[][], number[][]];
     this.shuffle(this.trainFeatures, this.trainTarget);
     this.shuffle(this.testFeatures, this.testTarget);
   }
@@ -101,7 +90,7 @@ export class BostonHousingDataset {
    * Shuffles data and target (maintaining alignment) using Fisher-Yates
    * algorithm.flab
    */
-  shuffle(data: number[][], target: number[]): void {
+  shuffle(data: number[][], target: number[][]): void {
     let counter = data.length;
     let temp: number|number[];
     let index = 0;
