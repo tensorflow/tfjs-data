@@ -35,9 +35,31 @@ export const loadCsv = async(filename: string): Promise<{}> => {
     const url = `${BASE_URL}${filename}`;
 
     console.log(`  * Downloading data from: ${url}`);
-    const source = new URLDataSource(url);
-    const dataset = CSVDataset.create(source, CsvHeaderConfig.READ_FIRST_LINE);
+
+    const dataset = getCSVData(url);
     resolve(dataset);
+  });
+};
+
+
+async function getCSVData(url: string) {
+  const source = new URLDataSource(url);
+  const dataset =
+      await CSVDataset.create(source, CsvHeaderConfig.READ_FIRST_LINE);
+
+  const result = await dataset.collectAll() as Array<{[key: string]: number}>;
+  return parseCsv(result);
+}
+
+/**
+ * Given CSV data returns an array of arrays of numbers.
+ */
+const parseCsv = async(data: Array<{[key: string]: number}>): Promise<{}> => {
+  return new Promise(resolve => {
+    const result: number[][] = data.map((row: {[key: string]: number}) => {
+      return Object.keys(row).sort().map(key => Number(row[key]));
+    });
+    resolve(result);
   });
 };
 
