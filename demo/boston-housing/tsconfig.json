@@ -21,8 +21,5 @@
     "allowUnreachableCode": false,
     "experimentalDecorators": true,
     "skipLibCheck": true
-  },
-  "include": [
-    "src/"
-  ]
+  }
 }

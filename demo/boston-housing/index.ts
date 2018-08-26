@@ -46,6 +46,9 @@ const tensors: Tensors = {
   testTarget: null
 };
 
+// TODO(kangyizhang): Remove this function when model.fitDataset(dataset) is
+//  available. This work should be done by dataset class itself.
+
 // Convert loaded data into tensors and creates normalized versions of the
 // features.
 export const arraysToTensors = () => {

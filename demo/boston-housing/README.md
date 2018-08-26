@@ -11,9 +11,5 @@ $ yarn
 
 To build and watch the example, run:
 ```sh
-$ yarn build
-```
-then
-```sh
 $ yarn watch
 ```

@@ -18,7 +18,7 @@
 import renderChart from 'vega-embed';
 import {VisualizationSpec} from 'vega-embed';
 
-import {linearRegressionModel, multiLayerPerceptronRegressionModel, run} from '.';
+import {linearRegressionModel, multiLayerPerceptronRegressionModel, run} from './index';
 
 const statusElement = document.getElementById('status') as HTMLTextAreaElement;
 export const updateStatus = (message: string) => {

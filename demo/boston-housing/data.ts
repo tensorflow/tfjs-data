@@ -15,8 +15,8 @@
  * =============================================================================
  */
 
-import {CSVDataset, CsvHeaderConfig} from '../../../src/datasets/csv_dataset';
-import {URLDataSource} from '../../../src/sources/url_data_source';
+import {CSVDataset, CsvHeaderConfig} from '../../src/datasets/csv_dataset';
+import {URLDataSource} from '../../src/sources/url_data_source';
 
 // Boston Housing data constants:
 const BASE_URL =
@@ -30,24 +30,24 @@ const TEST_TARGET_FN = 'test-target.csv';
 /**
  * Downloads and returns the csv.
  */
-export const loadCsv = async(filename: string): Promise<{}> => {
-  return new Promise(resolve => {
-    const url = `${BASE_URL}${filename}`;
+async function loadCsv(filename: string) {
+  const url = `${BASE_URL}${filename}`;
 
-    console.log(`  * Downloading data from: ${url}`);
+  console.log(`  * Downloading data from: ${url}`);
 
-    const dataset = getCSVData(url);
-    resolve(dataset);
-  });
-};
+  const dataset = await getCSVData(url);
+  const iter = await dataset.iterator();
+  return iter.collect();
+}
 
-
+/**
+ * Get csv file from the url and map it.
+ */
 async function getCSVData(url: string) {
   const source = new URLDataSource(url);
   const dataset =
       await CSVDataset.create(source, CsvHeaderConfig.READ_FIRST_LINE);
-  const result = await dataset.collectAll();
-  return result.map((row: {[key: string]: number}) => {
+  return dataset.map((row: {[key: string]: string}) => {
     return Object.keys(row).sort().map(key => Number(row[key]));
   });
 }

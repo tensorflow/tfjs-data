@@ -10,12 +10,9 @@
   },
   "dependencies": {
     "@tensorflow/tfjs": "^0.12.5",
-    "@types/papaparse": "^4.5.2",
-    "vega-embed": "^3.18.1",
-    "vega-lite": "^2.3.1"
+    "vega-embed": "^3.18.1"
   },
   "scripts": {
-    "build": "tsc",
     "watch": "cross-env NODE_ENV=development parcel index.html --no-hmr --open"
   },
   "devDependencies": {
