@@ -15,6 +15,7 @@
  * =============================================================================
  */
 
+import {zip} from '../../src/dataset';
 import {CSVDataset, CsvHeaderConfig} from '../../src/datasets/csv_dataset';
 import {URLDataSource} from '../../src/sources/url_data_source';
 
@@ -35,16 +36,8 @@ async function loadCsv(filename: string) {
 
   console.log(`  * Downloading data from: ${url}`);
 
-  const dataset = await getCSVData(url);
-  const iter = await dataset.iterator();
-  return iter.collect();
-}
-
-/**
- * Get csv file from the url and map it.
- */
-async function getCSVData(url: string) {
   const source = new URLDataSource(url);
+
   const dataset =
       await CSVDataset.create(source, CsvHeaderConfig.READ_FIRST_LINE);
   return dataset.map((row: {[key: string]: string}) => {
@@ -75,36 +68,39 @@ export class BostonHousingDataset {
     return this.trainFeatures[0].length;
   }
 
-  /** Loads training and test data. */
   async loadData() {
-    [this.trainFeatures, this.trainTarget, this.testFeatures, this.testTarget] =
-        await Promise.all([
-          loadCsv(TRAIN_FEATURES_FN), loadCsv(TRAIN_TARGET_FN),
-          loadCsv(TEST_FEATURES_FN), loadCsv(TEST_TARGET_FN)
-        ]) as [number[][], number[][], number[][], number[][]];
-    this.shuffle(this.trainFeatures, this.trainTarget);
-    this.shuffle(this.testFeatures, this.testTarget);
+    const trainFeaturesDataset = await loadCsv(TRAIN_FEATURES_FN);
+    const trainTargetDataset = await loadCsv(TRAIN_TARGET_FN);
+    const testFeaturesDataset = await loadCsv(TEST_FEATURES_FN);
+    const testTargetDataset = await loadCsv(TEST_TARGET_FN);
+
+    // TODO(kangyizhang): Remove usage of iterator.collect() when
+    // model.fitDataset(dataset) is available.
+    const trainIter = await zip([trainFeaturesDataset, trainTargetDataset])
+                          .shuffle(1000)
+                          .iterator();
+    const trainData = await trainIter.collect() as number[][][];
+    const testIter = await zip([testFeaturesDataset, testTargetDataset])
+                         .shuffle(1000)
+                         .iterator();
+    const testData = await testIter.collect() as number[][][];
+
+    this.trainFeatures = await this.extractData(trainData, true);
+    this.trainTarget = await this.extractData(trainData, false);
+    this.testFeatures = await this.extractData(testData, true);
+    this.testTarget = await this.extractData(testData, false);
   }
 
   /**
-   * Shuffles data and target (maintaining alignment) using Fisher-Yates
-   * algorithm.flab
+   * Extract feature or target data as number[][] from shuffled data.
    */
-  shuffle(data: number[][], target: number[][]): void {
-    let counter = data.length;
-    let temp: number|number[];
-    let index = 0;
-    while (counter > 0) {
-      index = (Math.random() * counter) | 0;
-      counter--;
-      // data:
-      temp = data[counter];
-      data[counter] = data[index];
-      data[index] = temp;
-      // target:
-      temp = target[counter];
-      target[counter] = target[index];
-      target[index] = temp;
-    }
+  async extractData(data: Array<Array<{}>>, isFeature: boolean) {
+    return data.map((row: number[][]) => {
+      if (isFeature) {
+        return row[0];
+      } else {
+        return row[1];
+      }
+    });
   }
 }
