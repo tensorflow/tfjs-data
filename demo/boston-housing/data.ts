@@ -23,27 +23,10 @@ import {URLDataSource} from '../../src/sources/url_data_source';
 const BASE_URL =
     'https://storage.googleapis.com/tfjs-examples/multivariate-linear-regression/data/';
 
-const TRAIN_FEATURES_FN = 'train-data.csv';
-const TRAIN_TARGET_FN = 'train-target.csv';
-const TEST_FEATURES_FN = 'test-data.csv';
-const TEST_TARGET_FN = 'test-target.csv';
-
-/**
- * Downloads and returns the csv.
- */
-async function loadCsv(filename: string) {
-  const url = `${BASE_URL}${filename}`;
-
-  console.log(`  * Downloading data from: ${url}`);
-
-  const source = new URLDataSource(url);
-
-  const dataset =
-      await CSVDataset.create(source, CsvHeaderConfig.READ_FIRST_LINE);
-  return dataset.map((row: {[key: string]: string}) => {
-    return Object.keys(row).sort().map(key => Number(row[key]));
-  });
-}
+const TRAIN_FEATURES_FILENAME = 'train-data.csv';
+const TRAIN_TARGET_FILENAME = 'train-target.csv';
+const TEST_FEATURES_FILENAME = 'test-data.csv';
+const TEST_TARGET_FILENAME = 'test-target.csv';
 
 /** Helper class to handle loading training and test data. */
 export class BostonHousingDataset {
@@ -51,56 +34,79 @@ export class BostonHousingDataset {
   trainTarget: number[][];
   testFeatures: number[][];
   testTarget: number[][];
+  numFeatures: number;
 
-  constructor() {
+  private constructor() {
     // Arrays to hold the data.
     this.trainFeatures = null;
     this.trainTarget = null;
     this.testFeatures = null;
     this.testTarget = null;
+    this.numFeatures = null;
   }
 
-  get numFeatures() {
-    // If numFetures is accessed before the data is loaded, raise an error.
-    if (this.trainFeatures == null) {
-      throw new Error('\'loadData()\' must be called before numFeatures');
-    }
-    return this.trainFeatures[0].length;
-  }
-
-  async loadData() {
-    const trainFeaturesDataset = await loadCsv(TRAIN_FEATURES_FN);
-    const trainTargetDataset = await loadCsv(TRAIN_TARGET_FN);
-    const testFeaturesDataset = await loadCsv(TEST_FEATURES_FN);
-    const testTargetDataset = await loadCsv(TEST_TARGET_FN);
-
-    // TODO(kangyizhang): Remove usage of iterator.collect() when
-    // model.fitDataset(dataset) is available.
-    const trainIter = await zip([trainFeaturesDataset, trainTargetDataset])
-                          .shuffle(1000)
-                          .iterator();
-    const trainData = await trainIter.collect() as number[][][];
-    const testIter = await zip([testFeaturesDataset, testTargetDataset])
-                         .shuffle(1000)
-                         .iterator();
-    const testData = await testIter.collect() as number[][][];
-
-    this.trainFeatures = await this.extractData(trainData, true);
-    this.trainTarget = await this.extractData(trainData, false);
-    this.testFeatures = await this.extractData(testData, true);
-    this.testTarget = await this.extractData(testData, false);
+  static async create() {
+    const result = new BostonHousingDataset();
+    await result.setData();
+    return result;
   }
 
   /**
-   * Extract feature or target data as number[][] from shuffled data.
+   * Downloads and returns the csv in array of numbers.
    */
-  async extractData(data: Array<Array<{}>>, isFeature: boolean) {
-    return data.map((row: number[][]) => {
-      if (isFeature) {
-        return row[0];
-      } else {
-        return row[1];
-      }
+  async loadCsv(filename: string) {
+    const url = `${BASE_URL}${filename}`;
+
+    console.log(`  * Downloading data from: ${url}`);
+
+    const source = new URLDataSource(url);
+
+    const dataset =
+        await CSVDataset.create(source, CsvHeaderConfig.READ_FIRST_LINE);
+
+    // Sets number of features so it can be used in the model.
+    if (filename === TRAIN_FEATURES_FILENAME) {
+      this.numFeatures = dataset.csvColumnNames.length;
+    }
+
+    // Reduces the object-type data to an array of numbers.
+    return dataset.map((row: {[key: string]: string}) => {
+      return Object.keys(row).sort().map(key => Number(row[key]));
     });
+  }
+
+  /**
+   * Downloads, converts and shuffles the data.
+   */
+  private async setData() {
+    const trainFeaturesDataset = await this.loadCsv(TRAIN_FEATURES_FILENAME);
+    const trainTargetDataset = await this.loadCsv(TRAIN_TARGET_FILENAME);
+    const testFeaturesDataset = await this.loadCsv(TEST_FEATURES_FILENAME);
+    const testTargetDataset = await this.loadCsv(TEST_TARGET_FILENAME);
+
+    // TODO(kangyizhang): Remove usage of iterator.collect() when
+    // model.fitDataset(dataset) is available.
+
+    const trainIter =
+        await zip({features: trainFeaturesDataset, target: trainTargetDataset})
+            .shuffle(1000)
+            .iterator();
+    const trainData = await trainIter.collect() as
+        Array<{features: number[], target: number[]}>;
+    const testIter =
+        await zip({features: testFeaturesDataset, target: testTargetDataset})
+            .shuffle(1000)
+            .iterator();
+    const testData = await testIter.collect() as
+        Array<{features: number[], target: number[]}>;
+
+    this.trainFeatures = trainData.map(
+        (row: {features: number[], target: number[]}) => row.features);
+    this.trainTarget = trainData.map(
+        (row: {features: number[], target: number[]}) => row.target);
+    this.testFeatures = testData.map(
+        (row: {features: number[], target: number[]}) => row.features);
+    this.testTarget = testData.map(
+        (row: {features: number[], target: number[]}) => row.target);
   }
 }

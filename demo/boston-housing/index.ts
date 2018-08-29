@@ -27,7 +27,6 @@ const NUM_EPOCHS = 250;
 const BATCH_SIZE = 40;
 const LEARNING_RATE = 0.01;
 
-const bostonData = new BostonHousingDataset();
 interface Tensors {
   rawTrainFeatures: Tensor2D;
   trainFeatures: Tensor2D;
@@ -45,6 +44,8 @@ const tensors: Tensors = {
   testFeatures: null,
   testTarget: null
 };
+
+let bostonData: BostonHousingDataset;
 
 // TODO(kangyizhang): Remove this function when model.fitDataset(dataset) is
 //  available. This work should be done by dataset class itself.
@@ -147,7 +148,7 @@ export const computeBaseline = () => {
 };
 
 document.addEventListener('DOMContentLoaded', async () => {
-  await bostonData.loadData();
+  bostonData = await BostonHousingDataset.create();
   ui.updateStatus('Data loaded, converting to tensors');
   arraysToTensors();
   ui.updateStatus(
