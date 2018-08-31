@@ -18,7 +18,7 @@
 import * as tf from '@tensorflow/tfjs-core';
 import {describeWithFlags} from '@tensorflow/tfjs-core/dist/jasmine_util';
 
-import {Dataset} from '.';
+import {Dataset} from './dataset';
 import {TestDataset} from './dataset_test';
 import {computeDatasetStatistics, scaleTo01} from './statistics';
 import {TabularRecord} from './types';
@@ -39,6 +39,35 @@ describeWithFlags('makeDatasetStatistics', tf.test_util.ALL_ENVS, () => {
         .then(done)
         .catch(done.fail);
   });
+
+  it('computes numeric mean and variance over numbers, arrays, and Tensors',
+     done => {
+       // According to https://github.com/tensorflow/tfjs/issues/658, unit tests
+       // for mean and variance will use small numbers.
+       const ds = new TestDataset().take(10) as Dataset<TabularRecord>;
+       computeDatasetStatistics(ds)
+           .then(stats => {
+             expect(stats['number'].min).toEqual(0);
+             expect(stats['number'].max).toEqual(9);
+             expect(stats['number'].mean).toEqual(4.5);
+             expect(stats['number'].variance).toEqual(8.25);
+             // The TestDataset includes cubes of the indices
+             expect(stats['numberArray'].min).toEqual(0);
+             expect(stats['numberArray'].max).toEqual(729);
+             tf.test_util.expectNumbersClose(
+                 stats['numberArray'].mean, 78.50000066757202);
+             tf.test_util.expectNumbersClose(
+                 stats['numberArray'].variance, 26971.849851671857);
+             expect(stats['Tensor'].min).toEqual(0);
+             expect(stats['Tensor'].max).toEqual(729);
+             tf.test_util.expectNumbersClose(
+                 stats['numberArray'].mean, 78.50000066757202);
+             tf.test_util.expectNumbersClose(
+                 stats['numberArray'].variance, 26971.849851671857);
+           })
+           .then(done)
+           .catch(done.fail);
+     });
 });
 
 describeWithFlags('scaleTo01', tf.test_util.ALL_ENVS, () => {
