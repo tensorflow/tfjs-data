@@ -49,10 +49,10 @@ let bostonData: BostonHousingDataset;
 // TODO(kangyizhang): Remove this function when model.fitDataset(dataset) is
 //  available. This work should be done by dataset class itself.
 
-// Convert loaded data into tensors and creates normalized versions of the
+// Converts loaded data into tensors and creates normalized versions of the
 // features.
 export async function arraysToTensors() {
-  // Normalize mean and standard deviation of data.
+  // Gets mean and standard deviation of data.
   const trainFeaturesStats = await computeDatasetStatistics(
       await bostonData.trainDataset.map(
           (row: {features: {key: number}, target: {key: number}}) =>
@@ -65,19 +65,21 @@ export async function arraysToTensors() {
       Object.values(trainFeaturesStats)
           .map((row: NumericColumnStatistics) => Math.sqrt(row.variance)));
 
+  // Materializes data into arrays.
   const trainIter = await bostonData.trainDataset.iterator();
   const trainData = await trainIter.collect();
   const testIter = await bostonData.testDataset.iterator();
   const testData = await testIter.collect();
 
+  // Normalizes features data and covnerts data into tensors.
   tensors.trainFeatures =
       tf.tensor2d(trainData.map((row: {features: number[],
                                        target: number[]}) => row.features))
           .sub(dataMean)
           .div(dataStd);
-
   tensors.trainTarget = tf.tensor2d(trainData.map(
       (row: {features: number[], target: number[]}) => row.target));
+
   tensors.testFeatures =
       tf.tensor2d(testData.map((row: {features: number[],
                                       target: number[]}) => row.features))
