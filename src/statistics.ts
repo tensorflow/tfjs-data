@@ -27,13 +27,17 @@ import {ElementArray, TabularRecord} from './types';
 // length histogram, etc.
 // Collecting only numeric min and max is just the bare minimum for now.
 
-export type NumericColumnStatistics = {
-  min: number; max: number; mean: number; variance: number; length: number;
-};
+export interface NumericColumnStatistics {
+  min: number;
+  max: number;
+  mean: number;
+  variance: number;
+  length: number;
+}
 
-export type DatasetStatistics = {
-  [key: string]: NumericColumnStatistics
-};
+export interface DatasetStatistics {
+  [key: string]: NumericColumnStatistics;
+}
 
 /**
  * Provides a function that scales numeric values into the [0, 1] interval.
