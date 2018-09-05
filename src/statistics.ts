@@ -32,6 +32,7 @@ export interface NumericColumnStatistics {
   max: number;
   mean: number;
   variance: number;
+  stddev: number;
   length: number;
 }
 
@@ -97,6 +98,7 @@ export async function computeDatasetStatistics(
             max: Number.NEGATIVE_INFINITY,
             mean: 0,
             variance: 0,
+            stddev: 0,
             length: 0
           };
           result[key] = columnStats;
@@ -110,6 +112,9 @@ export async function computeDatasetStatistics(
 
         // Calculate accumulated mean and variance following tf.Transform
         // implementation
+        let valueLength = 0;
+        let valueMean = 0;
+        let valueVariance = 0;
         let combinedLength = 0;
         let combinedMean = 0;
         let combinedVariance = 0;
@@ -118,51 +123,46 @@ export async function computeDatasetStatistics(
           recordMin = value.min().dataSync()[0];
           recordMax = value.max().dataSync()[0];
           const valueMoment = tf.moments(value);
-          const valueMean = valueMoment.mean.get();
-          const valueVariance = valueMoment.variance.get();
-          combinedLength = previousLength + value.size;
-          combinedMean = previousMean +
-              (value.size / combinedLength) * (valueMean - previousMean);
+          valueMean = valueMoment.mean.get();
+          valueVariance = valueMoment.variance.get();
+          valueLength = value.size;
 
-          combinedVariance = previousVariance +
-              (value.size / combinedLength) *
-                  (valueVariance +
-                   ((valueMean - combinedMean) * (valueMean - previousMean)) -
-                   previousVariance);
+
+
         } else if (value instanceof Array) {
           recordMin = value.reduce((a, b) => Math.min(a, b));
           recordMax = value.reduce((a, b) => Math.max(a, b));
           const valueMoment = tf.moments(value);
-          const valueMean = valueMoment.mean.get();
-          const valueVariance = valueMoment.variance.get();
-          combinedLength = previousLength + value.length;
-          combinedMean = previousMean +
-              (value.length / combinedLength) * (valueMean - previousMean);
+          valueMean = valueMoment.mean.get();
+          valueVariance = valueMoment.variance.get();
+          valueLength = value.length;
 
-          combinedVariance = previousVariance +
-              (value.length / combinedLength) *
-                  (valueVariance +
-                   ((valueMean - combinedMean) * (valueMean - previousMean)) -
-                   previousVariance);
         } else if (!isNaN(value) && isFinite(value)) {
           recordMin = value;
           recordMax = value;
-          combinedLength = previousLength + 1;
-          combinedMean =
-              previousMean + (1 / combinedLength) * (value - previousMean);
-          combinedVariance = previousVariance +
-              (1 / combinedLength) *
-                  (((value - combinedMean) * (value - previousMean)) -
-                   previousVariance);
+          valueMean = value;
+          valueVariance = 0;
+          valueLength = 1;
+
         } else {
           columnStats = null;
           continue;
         }
+        combinedLength = previousLength + valueLength;
+        combinedMean = previousMean +
+            (valueLength / combinedLength) * (valueMean - previousMean);
+        combinedVariance = previousVariance +
+            (valueLength / combinedLength) *
+                (valueVariance +
+                 ((valueMean - combinedMean) * (valueMean - previousMean)) -
+                 previousVariance);
+
         columnStats.min = Math.min(columnStats.min, recordMin);
         columnStats.max = Math.max(columnStats.max, recordMax);
         columnStats.length = combinedLength;
         columnStats.mean = combinedMean;
         columnStats.variance = combinedVariance;
+        columnStats.stddev = Math.sqrt(combinedVariance);
       }
     }
   });

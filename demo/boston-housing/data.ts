@@ -31,16 +31,11 @@ const TEST_TARGET_FILENAME = 'test-target.csv';
 
 /** Helper class to handle loading training and test data. */
 export class BostonHousingDataset {
-  trainDataset: Dataset<DataElement>;
-  testDataset: Dataset<DataElement>;
-  numFeatures: number;
+  trainDataset: Dataset<DataElement> = null;
+  testDataset: Dataset<DataElement> = null;
+  numFeatures: number = null;
 
-  private constructor() {
-    // Arrays to hold the data.
-    this.trainDataset = null;
-    this.testDataset = null;
-    this.numFeatures = null;
-  }
+  private constructor() {}
 
   static async create() {
     const result = new BostonHousingDataset();
@@ -66,8 +61,6 @@ export class BostonHousingDataset {
       this.numFeatures = dataset.csvColumnNames.length;
     }
 
-    // Reduces the object-type data to an array of numbers.
-    // return dataset;
     return dataset.map((row: {[key: string]: string}) => {
       return Object.keys(row).sort().map(key => Number(row[key]));
     });
@@ -81,9 +74,6 @@ export class BostonHousingDataset {
     const trainTargetDataset = await this.loadCsv(TRAIN_TARGET_FILENAME);
     const testFeaturesDataset = await this.loadCsv(TEST_FEATURES_FILENAME);
     const testTargetDataset = await this.loadCsv(TEST_TARGET_FILENAME);
-
-    // TODO(kangyizhang): Remove usage of iterator.collect() when
-    // model.fitDataset(dataset) is available.
 
     this.trainDataset = await zip({
                           features: trainFeaturesDataset,
