@@ -79,6 +79,9 @@ export async function loadDataAndNormalize() {
       (row: {features: number[], target: number[]}) => row.target));
 }
 
+/**
+ * Normalizes features with statistics and returns a new object.
+ */
 function normalizeFeatures(row: {features: number[], target: number[]}) {
   const features = row.features;
   const normalizedFeatures: number[] = [];
