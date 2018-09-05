@@ -61,6 +61,7 @@ export class BostonHousingDataset {
       this.numFeatures = dataset.csvColumnNames.length;
     }
 
+    // Reduces the object-type data to an array of numbers.
     return dataset.map((row: {[key: string]: string}) => {
       return Object.keys(row).sort().map(key => Number(row[key]));
     });

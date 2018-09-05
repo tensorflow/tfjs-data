@@ -30,14 +30,14 @@ const NUM_EPOCHS = 250;
 const BATCH_SIZE = 40;
 const LEARNING_RATE = 0.01;
 
-interface Tensors {
+interface PreparedData {
   normalizedTrainFeatures: Tensor2D;
   trainTarget: Tensor2D;
   normalizedTestFeatures: Tensor2D;
   testTarget: Tensor2D;
 }
 
-const tensors: Tensors = {
+const preparedData: PreparedData = {
   normalizedTrainFeatures: null,
   trainTarget: null,
   normalizedTestFeatures: null,
@@ -63,20 +63,27 @@ export async function loadDataAndNormalize() {
           (row: {features: {key: number}, target: {key: number}}) =>
               row.features) as Dataset<TabularRecord>);
 
-  // Materializes data into arrays.
-  const trainIter = await bostonData.trainDataset.iterator();
+  // Normalizes features data.
+  const normalizedTrainData = bostonData.trainDataset.map(normalizeFeatures);
+  const normalizedTestData = bostonData.testDataset.map(normalizeFeatures);
+
+  // Materializes data into arrays. Following codes should be removed once
+  // model.fitDataset is available.
+  const trainIter = await normalizedTrainData.iterator();
   const trainData = await trainIter.collect();
-  const testIter = await bostonData.testDataset.iterator();
+  const testIter = await normalizedTestData.iterator();
   const testData = await testIter.collect();
 
-  // Normalizes features data and covnerts data into tensors.
-  tensors.normalizedTrainFeatures =
-      tf.tensor2d(trainData.map(normalizeFeatures));
-  tensors.trainTarget = tf.tensor2d(trainData.map(
-      (row: {features: number[], target: number[]}) => row.target));
-  tensors.normalizedTestFeatures = tf.tensor2d(testData.map(normalizeFeatures));
-  tensors.testTarget = tf.tensor2d(testData.map(
-      (row: {features: number[], target: number[]}) => row.target));
+  preparedData.normalizedTrainFeatures = tf.tensor2d(trainData.map(
+      (row: {normalizedFeatures: number[], target: number[]}) =>
+          row.normalizedFeatures));
+  preparedData.trainTarget = tf.tensor2d(trainData.map(
+      (row: {normalizedFeatures: number[], target: number[]}) => row.target));
+  preparedData.normalizedTestFeatures = tf.tensor2d(testData.map(
+      (row: {normalizedFeatures: number[], target: number[]}) =>
+          row.normalizedFeatures));
+  preparedData.testTarget = tf.tensor2d(testData.map(
+      (row: {normalizedFeatures: number[], target: number[]}) => row.target));
 }
 
 /**
@@ -88,7 +95,7 @@ function normalizeFeatures(row: {features: number[], target: number[]}) {
   features.forEach(
       (value, index) => normalizedFeatures.push(
           (value - stats[index].mean) / stats[index].stddev));
-  return normalizedFeatures;
+  return {normalizedFeatures, target: row.target};
 }
 
 /**
@@ -136,24 +143,27 @@ export const run = async (model: tf.Sequential) => {
   let trainLoss: number;
   let valLoss: number;
   await ui.updateStatus('Starting training process...');
-  await model.fit(tensors.normalizedTrainFeatures, tensors.trainTarget, {
-    batchSize: BATCH_SIZE,
-    epochs: NUM_EPOCHS,
-    validationSplit: 0.2,
-    callbacks: {
-      onEpochEnd: async (epoch, logs) => {
-        await ui.updateStatus(`Epoch ${epoch + 1} of ${NUM_EPOCHS} completed.`);
-        trainLoss = logs.loss;
-        valLoss = logs.val_loss;
-        await ui.plotData(epoch, trainLoss, valLoss);
-      }
-    }
-  });
+  await model.fit(
+      preparedData.normalizedTrainFeatures, preparedData.trainTarget, {
+        batchSize: BATCH_SIZE,
+        epochs: NUM_EPOCHS,
+        validationSplit: 0.2,
+        callbacks: {
+          onEpochEnd: async (epoch, logs) => {
+            await ui.updateStatus(
+                `Epoch ${epoch + 1} of ${NUM_EPOCHS} completed.`);
+            trainLoss = logs.loss;
+            valLoss = logs.val_loss;
+            await ui.plotData(epoch, trainLoss, valLoss);
+          }
+        }
+      });
 
   await ui.updateStatus('Running on test data...');
-  const result = model.evaluate(
-                     tensors.normalizedTestFeatures, tensors.testTarget,
-                     {batchSize: BATCH_SIZE}) as Tensor;
+  const result =
+      model.evaluate(
+          preparedData.normalizedTestFeatures, preparedData.testTarget,
+          {batchSize: BATCH_SIZE}) as Tensor;
   const testLoss = result.dataSync()[0];
   await ui.updateStatus(
       `Final train-set loss: ${trainLoss.toFixed(4)}\n` +
@@ -162,9 +172,10 @@ export const run = async (model: tf.Sequential) => {
 };
 
 export const computeBaseline = () => {
-  const avgPrice = tf.mean(tensors.trainTarget);
+  const avgPrice = tf.mean(preparedData.trainTarget);
   console.log(`Average price: ${avgPrice.dataSync()}`);
-  const baseline = tf.mean(tf.pow(tf.sub(tensors.testTarget, avgPrice), 2));
+  const baseline =
+      tf.mean(tf.pow(tf.sub(preparedData.testTarget, avgPrice), 2));
   console.log(`Baseline loss: ${baseline.dataSync()}`);
   const baselineMsg = `Baseline loss (meanSquaredError) is ${
       baseline.dataSync()[0].toFixed(2)}`;
