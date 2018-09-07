@@ -16,8 +16,7 @@
  */
 
 import {Dataset, zip} from '../../src/dataset';
-import {CSVDataset, CsvHeaderConfig} from '../../src/datasets/csv_dataset';
-import {URLDataSource} from '../../src/sources/url_data_source';
+import {csv} from '../../src/readers';
 import {DataElement} from '../../src/types';
 
 // Boston Housing data constants:
@@ -39,42 +38,38 @@ export class BostonHousingDataset {
 
   static async create() {
     const result = new BostonHousingDataset();
-    await result.setData();
+    await result.loadData();
     return result;
-  }
-
-  /**
-   * Downloads and returns the csv in array of numbers.
-   */
-  async loadCsv(filename: string) {
-    const url = `${BASE_URL}${filename}`;
-
-    console.log(`  * Downloading data from: ${url}`);
-
-    const source = new URLDataSource(url);
-
-    const dataset =
-        await CSVDataset.create(source, CsvHeaderConfig.READ_FIRST_LINE);
-
-    // Sets number of features so it can be used in the model.
-    if (filename === TRAIN_FEATURES_FILENAME) {
-      this.numFeatures = dataset.csvColumnNames.length;
-    }
-
-    // Reduces the object-type data to an array of numbers.
-    return dataset.map((row: {[key: string]: string}) => {
-      return Object.keys(row).sort().map(key => Number(row[key]));
-    });
   }
 
   /**
    * Downloads, converts and shuffles the data.
    */
-  private async setData() {
-    const trainFeaturesDataset = await this.loadCsv(TRAIN_FEATURES_FILENAME);
-    const trainTargetDataset = await this.loadCsv(TRAIN_TARGET_FILENAME);
-    const testFeaturesDataset = await this.loadCsv(TEST_FEATURES_FILENAME);
-    const testTargetDataset = await this.loadCsv(TEST_TARGET_FILENAME);
+  private async loadData() {
+    const fileUrls = [
+      `${BASE_URL}${TRAIN_FEATURES_FILENAME}`,
+      `${BASE_URL}${TRAIN_TARGET_FILENAME}`,
+      `${BASE_URL}${TEST_FEATURES_FILENAME}`,
+      `${BASE_URL}${TEST_TARGET_FILENAME}`
+    ];
+    console.log('* Downloading data *');
+    const csvDatasetsWithColumnNames = csv(fileUrls, true);
+
+    // Sets number of features so it can be used in the model.
+    this.numFeatures =
+        (await csvDatasetsWithColumnNames[0]).csvColumnNames.length;
+
+    // Reduces the object-type data to an array of numbers.
+    const csvDatasets = csvDatasetsWithColumnNames.map(
+        async (dataset) =>
+            (await dataset).map((row: {[key: string]: string}) => {
+              return Object.keys(row).sort().map(key => Number(row[key]));
+            }));
+
+    const trainFeaturesDataset = await csvDatasets[0];
+    const trainTargetDataset = await csvDatasets[1];
+    const testFeaturesDataset = await csvDatasets[2];
+    const testTargetDataset = await csvDatasets[3];
 
     this.trainDataset = await zip({
                           features: trainFeaturesDataset,
