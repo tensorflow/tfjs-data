@@ -107,6 +107,12 @@ export class CSVDataset extends Dataset<DataElement> {
    *   header line providing the column names.  If this argument is not provided
    *   (or is null or undefined), then the column names are read from the first
    *   line of the input.
+   * @param dataTypes The types of the columns, in order. If this argument is
+   *   provided, it is assumed that the values of input columns matche the
+   *   provided types. If this argument is not provided, the values will be
+   *   converted to number, or string if NaN.
+   * @param delimiter The string used to parse each line of the input file. If
+   *   this argument is not provided, use default delimiter `,`.
    */
   static async create(
       input: DataSource,

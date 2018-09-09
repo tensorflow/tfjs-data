@@ -21,6 +21,17 @@ import {DataType} from '@tensorflow/tfjs-core';
 import {CSVDataset, CsvHeaderConfig} from './datasets/csv_dataset';
 import {URLDataSource} from './sources/url_data_source';
 
+/**
+ * Create a `CSVDataset` by reading and decoding CSV file(s) from provided URLs.
+ *
+ * @param source One or more URLs to read CSV file(s).
+ * @param header (Optional)A boolean value indicating whether the CSV files(s)
+ *   have header line(s) that should be skipped when parsing. Defaults to
+ *   `False`.
+ * @param dataTypes (Optional)The types of the columns, in order.
+ * @param delimiter (Optional)The string used to parse each line of the input
+ *   file. Defaults to `,`.
+ */
 export function csv(
     source: string|string[], header = false, dataTypes?: DataType[],
     delimiter = ','): Array<Promise<CSVDataset>> {
