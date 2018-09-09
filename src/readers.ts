@@ -32,9 +32,9 @@ export function csv(
 function makeCsvDataset(
     sources: string[], header: boolean, dataTypes: DataType[],
     delimiter: string): Array<Promise<CSVDataset>> {
-  return sources.map(
-      async (source) => {return CSVDataset.create(
-          new URLDataSource(source),
-          header ? CsvHeaderConfig.READ_FIRST_LINE :
-                   CsvHeaderConfig.NUMBERED)});
+  return sources.map(async (source) => {
+    return CSVDataset.create(
+        new URLDataSource(source),
+        header ? CsvHeaderConfig.READ_FIRST_LINE : CsvHeaderConfig.NUMBERED);
+  });
 }

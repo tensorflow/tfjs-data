@@ -53,23 +53,22 @@ export class BostonHousingDataset {
       `${BASE_URL}${TEST_TARGET_FILENAME}`
     ];
     console.log('* Downloading data *');
-    const csvDatasetsWithColumnNames = csv(fileUrls, true);
+    const csvDatasets = csv(fileUrls, true);
 
     // Sets number of features so it can be used in the model.
-    this.numFeatures =
-        (await csvDatasetsWithColumnNames[0]).csvColumnNames.length;
+    this.numFeatures = (await csvDatasets[0]).csvColumnNames.length;
 
     // Reduces the object-type data to an array of numbers.
-    const csvDatasets = csvDatasetsWithColumnNames.map(
+    const convertedDatasets = csvDatasets.map(
         async (dataset) =>
             (await dataset).map((row: {[key: string]: string}) => {
               return Object.keys(row).sort().map(key => Number(row[key]));
             }));
 
-    const trainFeaturesDataset = await csvDatasets[0];
-    const trainTargetDataset = await csvDatasets[1];
-    const testFeaturesDataset = await csvDatasets[2];
-    const testTargetDataset = await csvDatasets[3];
+    const trainFeaturesDataset = await convertedDatasets[0];
+    const trainTargetDataset = await convertedDatasets[1];
+    const testFeaturesDataset = await convertedDatasets[2];
+    const testTargetDataset = await convertedDatasets[3];
 
     this.trainDataset = await zip({
                           features: trainFeaturesDataset,

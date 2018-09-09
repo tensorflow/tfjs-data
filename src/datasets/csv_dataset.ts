@@ -16,6 +16,9 @@
  * =============================================================================
  */
 
+import {DataType} from '@tensorflow/tfjs-core';
+import {DType} from '@tensorflow/tfjs-core/dist/types';
+
 import {Dataset} from '../dataset';
 import {DataSource} from '../datasource';
 import {LazyIterator} from '../iterators/lazy_iterator';
@@ -43,6 +46,8 @@ export class CSVDataset extends Dataset<DataElement> {
   base: TextLineDataset;
   private hasHeaderLine = false;
   private _csvColumnNames: string[];
+  private _dataTypes: DataType[] = null;
+  private _delimiter = ',';
 
   /**
    * Create a `CSVDataset`.  Note this CSVDataset cannot be used until
@@ -57,6 +62,14 @@ export class CSVDataset extends Dataset<DataElement> {
     this.base = new TextLineDataset(input);
   }
 
+  private setDelimiter(delimiter: string) {
+    this._delimiter = delimiter;
+  }
+
+  private setDatatypes(_dataTypes: DataType[]) {
+    this._dataTypes = _dataTypes;
+  }
+
   get csvColumnNames(): string[] {
     return this._csvColumnNames;
   }
@@ -69,8 +82,8 @@ export class CSVDataset extends Dataset<DataElement> {
         throw new Error('No data was found for CSV parsing.');
       }
       const firstLine: string = firstElement.value;
-      this._csvColumnNames =
-          Array.from(firstLine.split(',').keys()).map(x => x.toString());
+      this._csvColumnNames = Array.from(firstLine.split(this._delimiter).keys())
+                                 .map(x => x.toString());
     } else if (csvColumnNames === CsvHeaderConfig.READ_FIRST_LINE) {
       const iter = await this.base.iterator();
       const firstElement = await iter.next();
@@ -78,7 +91,7 @@ export class CSVDataset extends Dataset<DataElement> {
         throw new Error('No data was found for CSV parsing.');
       }
       const firstLine: string = firstElement.value;
-      this._csvColumnNames = firstLine.split(',');
+      this._csvColumnNames = firstLine.split(this._delimiter);
       this.hasHeaderLine = true;
     } else {
       this._csvColumnNames = csvColumnNames;
@@ -97,8 +110,13 @@ export class CSVDataset extends Dataset<DataElement> {
    */
   static async create(
       input: DataSource,
-      csvColumnNames: CsvHeaderConfig|string[] = CsvHeaderConfig.NUMBERED) {
+      csvColumnNames: CsvHeaderConfig|string[] = CsvHeaderConfig.NUMBERED,
+      dataTypes?: DataType[], delimiter?: string) {
     const result = new CSVDataset(input);
+    if (delimiter !== undefined) result.setDelimiter(delimiter);
+    if (dataTypes !== undefined && dataTypes.length !== 0) {
+      result.setDatatypes(dataTypes);
+    }
     await result.setCsvColumnNames(csvColumnNames);
     return result;
   }
@@ -116,8 +134,9 @@ export class CSVDataset extends Dataset<DataElement> {
   makeDataElement(line: string): DataElement {
     // TODO(soergel): proper CSV parsing with escaping, quotes, etc.
     // TODO(soergel): alternate separators, e.g. for TSV
-    const values = line.split(',');
+    const values = line.split(this._delimiter);
     const result: {[key: string]: ElementArray} = {};
+    let datatypeIter = 0;
     for (let i = 0; i < this._csvColumnNames.length; i++) {
       const value = values[i];
       // TODO(soergel): specify data type using a schema
@@ -126,13 +145,42 @@ export class CSVDataset extends Dataset<DataElement> {
       } else {
         const valueAsNum = Number(value);
         if (isNaN(valueAsNum)) {
-          result[this._csvColumnNames[i]] = value;
-        } else {
+          if (this._dataTypes !== null &&
+              this._dataTypes[datatypeIter] === DType.bool) {
+            result[this._csvColumnNames[i]] = this.getBoolean(value);
+          } else {
+            result[this._csvColumnNames[i]] = value;
+          }
+          datatypeIter++;
+        } else if (this._dataTypes === null) {
           result[this._csvColumnNames[i]] = valueAsNum;
+        } else {
+          switch (this._dataTypes[datatypeIter]) {
+            case DType.float32:
+              result[this._csvColumnNames[i]] = valueAsNum;
+              break;
+            case DType.int32:
+              result[this._csvColumnNames[i]] = Math.floor(valueAsNum);
+              break;
+            case DType.bool:
+              result[this._csvColumnNames[i]] = this.getBoolean(value);
+              break;
+            default:
+              result[this._csvColumnNames[i]] = valueAsNum;
+          }
+          datatypeIter++;
         }
       }
     }
     return result;
+  }
+
+  private getBoolean(value: string): number {
+    if (value === '1' || value.toLowerCase() === 'true') {
+      return 1;
+    } else {
+      return 0;
+    }
   }
 }
 

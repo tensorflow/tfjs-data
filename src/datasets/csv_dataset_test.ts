@@ -16,6 +16,8 @@
  * =============================================================================
  */
 
+import {DType} from '@tensorflow/tfjs-core/dist/types';
+
 import {FileDataSource} from '../sources/file_data_source';
 
 import {CSVDataset, CsvHeaderConfig} from './csv_dataset';
@@ -44,7 +46,27 @@ const csvDataExtra = `A,B,C
 6,2,3
 7,2,3`;
 
+const csvDataSemicolon = `A;B;C
+1;2;3
+2;2;3
+3;2;3
+4;2;3
+5;2;3
+6;2;3
+7;2;3`;
+
+const csvMixedType = `1,True,3
+2,False,2
+3,True,1
+1,False,3
+2,True,2
+3,False,1
+1,True,3
+2,False,2`;
+
 const csvBlobWithHeadersExtra = new Blob([csvDataExtra]);
+const csvBlobWithSemicolon = new Blob([csvDataSemicolon]);
+const csvBlobWithMixedType = new Blob([csvMixedType]);
 
 describe('CSVDataset', () => {
   it('produces a stream of dicts containing UTF8-decoded csv data',
@@ -122,4 +144,40 @@ describe('CSVDataset', () => {
     expect(elements[3].value).toEqual({A: 4, B: 2, C: 3});
     expect(elements[4].value).toEqual({A: 5, B: 2, C: 3});
   });
+
+  it('provide delimiter through parameter', async () => {
+    const source = new FileDataSource(csvBlobWithSemicolon, {chunkSize: 10});
+    const dataset = await CSVDataset.create(
+        source, CsvHeaderConfig.READ_FIRST_LINE, undefined, ';');
+    expect(dataset.csvColumnNames).toEqual(['A', 'B', 'C']);
+    const iter = await dataset.iterator();
+    const result = await iter.collect();
+
+    expect(result[0]).toEqual({A: 1, B: 2, C: 3});
+    expect(result[1]).toEqual({A: 2, B: 2, C: 3});
+    expect(result[2]).toEqual({A: 3, B: 2, C: 3});
+    expect(result[3]).toEqual({A: 4, B: 2, C: 3});
+    expect(result[4]).toEqual({A: 5, B: 2, C: 3});
+  });
+
+  it('provide datatype through parameter to parse different types',
+     async () => {
+       const source = new FileDataSource(csvBlobWithMixedType, {chunkSize: 10});
+       const dataset = await CSVDataset.create(
+           source, undefined, [DType.int32, DType.bool, DType.int32]);
+       expect(dataset.csvColumnNames).toEqual(['0', '1', '2']);
+       const iter = await dataset.iterator();
+       const result = await iter.collect();
+
+       expect(result).toEqual([
+         {'0': 1, '1': 1, '2': 3},
+         {'0': 2, '1': 0, '2': 2},
+         {'0': 3, '1': 1, '2': 1},
+         {'0': 1, '1': 0, '2': 3},
+         {'0': 2, '1': 1, '2': 2},
+         {'0': 3, '1': 0, '2': 1},
+         {'0': 1, '1': 1, '2': 3},
+         {'0': 2, '1': 0, '2': 2},
+       ]);
+     });
 });
