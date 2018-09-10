@@ -114,7 +114,7 @@ function deepMapInternal(
  *   that the node should be processed recursively.
  */
 export function deepZip(
-    inputs: any[], zipFn: (xs: any[]) => DeepMapResult): any|any[] {
+    inputs: any[], zipFn: (xs: any[]) => DeepMapResult = zipToList): any|any[] {
   return deepZipInternal(inputs, zipFn);
 }
 
@@ -160,6 +160,20 @@ function deepZipInternal(
     return mappedIterable;
   } else {
     throw new Error(`Can't recurse into non-iterable type: ${input}`);
+  }
+}
+
+// tslint:disable-next-line:no-any
+function zipToList(x: any[]): DeepMapResult {
+  if (x === null) {
+    return null;
+  }
+  // TODO(soergel): validate array type?
+
+  if (isIterable(x[0])) {
+    return {value: null, recurse: true};
+  } else {
+    return {value: x, recurse: false};
   }
 }
 

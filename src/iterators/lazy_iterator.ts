@@ -20,7 +20,7 @@ import * as tf from '@tensorflow/tfjs-core';
 import {getTensorsInContainer, isTensorInList} from '@tensorflow/tfjs-core/dist/tensor_util';
 import * as seedrandom from 'seedrandom';
 
-import {DataElement, DataElementArray, IteratorContainer} from '../types';
+import {DataElement, IteratorContainer} from '../types';
 import {deepMapAndAwaitAll, DeepMapAsyncResult, deepZip} from '../util/deep_map';
 import {GrowingRingBuffer} from '../util/growing_ring_buffer';
 import {RingBuffer} from '../util/ring_buffer';
@@ -318,66 +318,7 @@ export abstract class LazyIterator<T> {
 
   columnMajorBatch(batchSize: number, smallLastBatch = true):
       LazyIterator<DataElement> {
-    return this.rowMajorBatch(batchSize, smallLastBatch)
-        .map(this.makeDatasetBatch);
-  }
-
-  /**
-   * Rotates a row-major array of examples into a columnar representation.
-   */
-  private makeDatasetBatch(elements: T[]): DataElement {
-    // const rotated: DataElement = {};
-
-    // Assume that the first element is representative.
-    // We do end up enforcing Tensor shape consistency below, but not
-    // cleanly.
-    // TODO(soergel) validate against a schema, allow missing keys, etc.
-    // etc.
-    const firstElement: T = elements[0];
-
-    const rotated = deepZip(elements, (xs: any[]) => {
-      if (isIterable(input)) {
-      } else {
-      }
-    });
-
-    deepmap...
-
-        // Assume that the first element is representative.
-        // We do end up enforcing Tensor shape consistency below, but not
-        // cleanly.
-        // TODO(soergel) validate against a schema, allow missing keys, etc.
-        // etc.
-        const firstElement: T = elements[0];
-    const keys = Object.keys(firstElement);
-    keys.forEach(key => {
-      rotated[key] = [];
-    });
-
-    for (const e of elements) {
-      keys.forEach(key => {
-        const value = e[key];
-        (rotated[key] as DataElement[]).push(value);
-      });
-    }
-
-    const result: {[key: string]: (DataElement|string[])} = {};
-    keys.forEach(key => {
-      // this sanity check should always pass
-      if (rotated[key].length !== elements.length) {
-        throw new Error(
-            `Batching failed to get a '${key}' value for each element.`);
-      }
-      if (typeof rotated[key][0] === 'string') {
-        result[key] = rotated[key] as string[];
-      } else {
-        result[key] =
-            batchConcat(rotated[key] as Array<number|number[]|tf.Tensor>);
-      }
-    });
-    elements.forEach(tf.dispose);
-
-    return result;
+    return this.rowMajorBatch(batchSize, smallLastBatch).map(deepZip);
   }
 
   /**
@@ -1169,41 +1110,5 @@ export class ShuffleIterator<T> extends PrefetchIterator<T> {
       }
     }
     return {value: null, done: true};
-  }
-}
-
-/**
- * Assembles a list of same-shaped numbers, number arrays, or Tensors
- * into a single new Tensor where axis 0 is the batch dimension.
- */
-function batchConcat(arrays: Array<number|number[]|tf.Tensor>): tf.Tensor {
-  // Should we use GPU-enabled concat ops in deeplearn's math.ts?
-  // Probably not; the GPU roundtrip is not worth it for a trivial
-  // operation.
-  const [elementShape, ] = shapeAndValues(arrays[0]);
-  const batchShape = [arrays.length].concat(elementShape);
-  const resultVals = new Float32Array(batchShape.reduce((x, y) => x * y));
-
-  let offset = 0;
-  for (const a of arrays) {
-    const [aShape, aVals] = shapeAndValues(a);
-    if (!tf.util.arraysEqual(aShape, elementShape)) {
-      throw new Error('Elements must have the same shape to be batched');
-    }
-    resultVals.set(aVals, offset);
-    offset += aVals.length;
-  }
-  const result = tf.Tensor.make(batchShape, {values: resultVals});
-  return result;
-}
-
-function shapeAndValues(array: number|number[]|tf.Tensor):
-    [number[], number[]|Float32Array|Int32Array|Uint8Array] {
-  if (array instanceof tf.Tensor) {
-    return [array.shape, array.dataSync()];
-  } else if (Array.isArray(array)) {
-    return [[array.length], array];
-  } else {
-    return [[], [array]];
   }
 }

@@ -19,6 +19,7 @@
 import * as tf from '@tensorflow/tfjs-core';
 
 import {Dataset} from './dataset';
+import {DataElement} from './types';
 
 // TODO(soergel): Flesh out collected statistics.
 // For numeric columns we should provide mean, stddev, histogram, etc.
@@ -46,12 +47,12 @@ export interface DatasetStatistics {
  * @param max the upper bound of the inputs, which should be mapped to 1,
  * @return A function that maps an input ElementArray to a scaled ElementArray.
  */
-export function scaleTo01(min: number, max: number): (value: ElementArray) =>
-    ElementArray {
+export function scaleTo01(min: number, max: number): (value: DataElement) =>
+    DataElement {
   const range = max - min;
   const minTensor: tf.Tensor = tf.scalar(min);
   const rangeTensor: tf.Tensor = tf.scalar(range);
-  return (value: ElementArray): ElementArray => {
+  return (value: DataElement): DataElement => {
     if (typeof (value) === 'string') {
       throw new Error('Can\'t scale a string.');
     } else {
@@ -59,16 +60,22 @@ export function scaleTo01(min: number, max: number): (value: ElementArray) =>
         const result = value.sub(minTensor).div(rangeTensor);
         return result;
       } else if (value instanceof Array) {
-        return value.map(v => (v - min) / range);
-      } else {
+        // Assume array elements are numeric or Tensor; not worth checking.
+        // If they're not we'll get a runtime error anyway.
+        // tslint:disable-next-line:no-any
+        return value.map(v => ((v as any) - min) / range);
+      } else if (typeof (value) === `number`) {
         return (value - min) / range;
+      } else {
+        throw new Error(
+            `Value ${value} cannot be scaled; unknown type ${typeof (value)}`);
       }
     }
   };
 }
 
 export async function computeDatasetStatistics(
-    dataset: Dataset<TabularRecord>, sampleSize?: number,
+    dataset: Dataset<DataElement>, sampleSize?: number,
     shuffleWindowSize?: number): Promise<DatasetStatistics> {
   let sampleDataset = dataset;
   // TODO(soergel): allow for deep shuffle where possible.

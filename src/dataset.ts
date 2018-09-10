@@ -23,7 +23,7 @@ import {iteratorFromFunction, iteratorFromZipped, LazyIterator, ZipMismatchMode}
 import {iteratorFromConcatenated} from './iterators/lazy_iterator';
 import {iteratorFromItems} from './iterators/lazy_iterator';
 import {DataElement, DatasetContainer} from './types';
-import {deepMapAndAwaitAll, isIterable} from './util/deep_map';
+import {deepMap, deepMapAndAwaitAll, DeepMapResult, isIterable} from './util/deep_map';
 
 // TODO(soergel): consider vectorized operations within the pipeline.
 
@@ -121,8 +121,13 @@ export abstract class Dataset<T extends DataElement> {
    *   than batchSize elements. Default true.
    * @returns A `BatchDataset`, from which a stream of batches can be obtained.
    */
-  batch(batchSize: number, smallLastBatch = true): Dataset<Batch<T>> {
-    return new BatchDataset(this, batchSize, smallLastBatch);
+  batch(batchSize: number, smallLastBatch = true): Dataset<DataElement> {
+    const base = this;
+    return datasetFromIteratorFn(async () => {
+      return (await base.iterator())
+          .columnMajorBatch(batchSize, smallLastBatch)
+          .map(x => deepMap(x, deepBatchConcat));
+    });
   }
 
   /**
@@ -332,4 +337,55 @@ export function zip<O extends DataElement>(datasets: DatasetContainer):
     });
     return iteratorFromZipped<O>(streams, ZipMismatchMode.SHORTEST);
   });
+}
+
+// tslint:disable-next-line:no-any
+function deepBatchConcat(x: any[]): DeepMapResult {
+  if (x === null) {
+    return null;
+  }
+  // TODO(soergel): validate array type?
+
+  if (isIterable(x[0])) {
+    return {value: null, recurse: true};
+  } else {
+    return {value: batchConcat(x), recurse: false};
+  }
+}
+
+/**
+ * Assembles a list of same-shaped numbers, number arrays, or Tensors
+ * into a single new Tensor where axis 0 is the batch dimension.
+ */
+function batchConcat(arrays: Array<number|number[]|tf.Tensor>): tf.Tensor {
+  // Should we use GPU-enabled concat ops in deeplearn's math.ts?
+  // Probably not; the GPU roundtrip is not worth it for a trivial
+  // operation.
+  const [elementShape, ] = shapeAndValues(arrays[0]);
+  const batchShape = [arrays.length].concat(elementShape);
+  const resultVals = new Float32Array(batchShape.reduce((x, y) => x * y));
+
+  let offset = 0;
+  for (const a of arrays) {
+    const [aShape, aVals] = shapeAndValues(a);
+    if (!tf.util.arraysEqual(aShape, elementShape)) {
+      throw new Error('Elements must have the same shape to be batched');
+    }
+    resultVals.set(aVals, offset);
+    offset += aVals.length;
+  }
+  const result = tf.Tensor.make(batchShape, {values: resultVals});
+  tf.dispose(arrays);
+  return result;
+}
+
+function shapeAndValues(array: number|number[]|tf.Tensor):
+    [number[], number[]|Float32Array|Int32Array|Uint8Array] {
+  if (array instanceof tf.Tensor) {
+    return [array.shape, array.dataSync()];
+  } else if (Array.isArray(array)) {
+    return [[array.length], array];
+  } else {
+    return [[], [array]];
+  }
 }

@@ -16,7 +16,6 @@
  * =============================================================================
  */
 
-import * as tf from '@tensorflow/tfjs-core';
 import {TensorContainer, TensorContainerArray, TensorContainerObject} from '@tensorflow/tfjs-core/dist/tensor_types';
 
 import {Dataset} from '.';
