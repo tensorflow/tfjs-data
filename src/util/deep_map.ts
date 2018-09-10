@@ -97,21 +97,26 @@ function deepMapInternal(
 }
 
 /**
- * Apply a zipping function to a nested structure in a recursive manner.
+ * Zip nested structures together in a recursive manner.
  *
- * The result of the mapping is an object with the same nested structure (i.e.,
- * of arrays and dicts) as the input, except that some subtrees are replaced,
- * according to the results of the mapping function.
+ * This has the effect of transposing or pivoting data, e.g. converting it from
+ * a row-major representation to a column-major representation.
  *
- * Mappings are memoized.  Thus, if the nested structure contains the same
- * object in multiple positions, the output will contain the same mapped object
- * in those positions.  Cycles are not supported, however.
+ * For example, `deepZip([{a: 1, b: 2}, {a: 3, b: 4}])` returns
+ * `{a: [1, 3], b: [2, 4]}`.
  *
- * @param input: The object to which to apply the mapping function.
- * @param mapFn: A function that expects a single node of the object tree, and
- *   returns a `DeepMapResult`.  The `DeepMapResult` either provides a
- *   replacement value for that node (i.e., replacing the subtree), or indicates
- *   that the node should be processed recursively.
+ * The inputs should all have the same nested structure (i.e., of arrays and
+ * dicts).  The result is a single object with the same nested structure, where
+ * the leaves are arrays collecting the values of the inputs at that location
+ * (or, optionally, the result of a custom function applied to those arrays).
+ *
+ * @param inputs: An array of the objects to zip together.
+ * @param zipFn: (optional) A function that expects an array of elements at a
+ *   single node of the object tree, and returns a `DeepMapResult`.  The
+ *   `DeepMapResult` either provides a result value for that node (i.e.,
+ *   representing the subtree), or indicates that the node should be processed
+ *   recursively.  The default zipFn recurses as far as possible and places
+ *   arrays at the leaves.
  */
 export function deepZip(
     inputs: any[], zipFn: (xs: any[]) => DeepMapResult = zipToList): any|any[] {
@@ -119,23 +124,17 @@ export function deepZip(
 }
 
 /**
- * @param seen: A Map of known object mappings (i.e., memoized results of
- *   `mapFn()`)
  * @param containedIn: An set containing objects on the reference path currently
  *   being processed (used to detect cycles).
  */
 function deepZipInternal(
     inputs: any[], zipFn: (xs: any[]) => DeepMapResult,
-    seen: Map<any, any> = new Map(), containedIn: Set<{}> = new Set()): any|
-    any[] {
+    containedIn: Set<{}> = new Set()): any|any[] {
   // The recursion follows the structure of input 0; it's assumed that all the
   // other inputs have the same structure.
   const input = inputs[0];
   if (containedIn.has(input)) {
     throw new Error('Circular references are not supported.');
-  }
-  if (seen.has(input)) {
-    return seen.get(input);
   }
   const result = zipFn(inputs);
 
@@ -145,7 +144,6 @@ function deepZipInternal(
   }
 
   if (!result.recurse) {
-    seen.set(input, result.value);
     return result.value;
   } else if (isIterable(input)) {
     // tslint:disable-next-line:no-any
@@ -153,7 +151,7 @@ function deepZipInternal(
     containedIn.add(input);
     for (const k in input) {
       const children = inputs.map(x => x[k]);
-      const childResult = deepZipInternal(children, zipFn, seen, containedIn);
+      const childResult = deepZipInternal(children, zipFn, containedIn);
       mappedIterable[k] = childResult;
     }
     containedIn.delete(input);
