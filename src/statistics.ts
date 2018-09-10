@@ -19,7 +19,30 @@
 import * as tf from '@tensorflow/tfjs-core';
 
 import {Dataset} from './dataset';
-import {DataElement} from './types';
+
+/**
+ * The value associated with a given key for a single element.
+ *
+ * Such a value may not have a batch dimension.  A value may be a scalar or an
+ * n-dimensional array.
+ */
+export type ElementArray = number|number[]|tf.Tensor|string;
+
+/**
+ * The value associated with a given key for a batch of elements.
+ *
+ * Such a value must always have a batch dimension, even if it is of length 1.
+ */
+export type BatchArray = tf.Tensor|string[];
+
+/**
+ * A map from string keys (aka column names) to values for a single element.
+ */
+export type TabularRecord = {
+  // TODO(soergel): eliminate the need for TabularRecord.
+  // (It's still an issue for BatchDataset and Statistics.)
+  [key: string]: ElementArray
+};
 
 // TODO(soergel): Flesh out collected statistics.
 // For numeric columns we should provide mean, stddev, histogram, etc.
@@ -47,12 +70,12 @@ export interface DatasetStatistics {
  * @param max the upper bound of the inputs, which should be mapped to 1,
  * @return A function that maps an input ElementArray to a scaled ElementArray.
  */
-export function scaleTo01(min: number, max: number): (value: DataElement) =>
-    DataElement {
+export function scaleTo01(min: number, max: number): (value: ElementArray) =>
+    ElementArray {
   const range = max - min;
   const minTensor: tf.Tensor = tf.scalar(min);
   const rangeTensor: tf.Tensor = tf.scalar(range);
-  return (value: DataElement): DataElement => {
+  return (value: ElementArray): ElementArray => {
     if (typeof (value) === 'string') {
       throw new Error('Can\'t scale a string.');
     } else {
@@ -60,22 +83,16 @@ export function scaleTo01(min: number, max: number): (value: DataElement) =>
         const result = value.sub(minTensor).div(rangeTensor);
         return result;
       } else if (value instanceof Array) {
-        // Assume array elements are numeric or Tensor; not worth checking.
-        // If they're not we'll get a runtime error anyway.
-        // tslint:disable-next-line:no-any
-        return value.map(v => ((v as any) - min) / range);
-      } else if (typeof (value) === `number`) {
-        return (value - min) / range;
+        return value.map(v => (v - min) / range);
       } else {
-        throw new Error(
-            `Value ${value} cannot be scaled; unknown type ${typeof (value)}`);
+        return (value - min) / range;
       }
     }
   };
 }
 
 export async function computeDatasetStatistics(
-    dataset: Dataset<DataElement>, sampleSize?: number,
+    dataset: Dataset<TabularRecord>, sampleSize?: number,
     shuffleWindowSize?: number): Promise<DatasetStatistics> {
   let sampleDataset = dataset;
   // TODO(soergel): allow for deep shuffle where possible.
