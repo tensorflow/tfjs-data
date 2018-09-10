@@ -131,9 +131,6 @@ function deepZipInternal(
   // The recursion follows the structure of input 0; it's assumed that all the
   // other inputs have the same structure.
   const input = inputs[0];
-  if (input == null) {
-    return null;
-  }
   if (containedIn.has(input)) {
     throw new Error('Circular references are not supported.');
   }
@@ -227,5 +224,5 @@ export async function deepMapAndAwaitAll(
 
 // tslint:disable-next-line:no-any
 export function isIterable(obj: any): boolean {
-  return Array.isArray(obj) || typeof obj === 'object';
+  return obj != null && (Array.isArray(obj) || typeof obj === 'object');
 }
