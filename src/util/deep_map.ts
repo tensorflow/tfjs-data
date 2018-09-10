@@ -102,12 +102,13 @@ function deepMapInternal(
  * This has the effect of transposing or pivoting data, e.g. converting it from
  * a row-major representation to a column-major representation.
  *
- * The inputs should all have the same nested structure (i.e., of arrays and
- * dicts).  The result is a single object with the same nested structure, where
- * the leaves are arrays collecting the values of the inputs at that location.
- *
  * For example, `deepZip([{a: 1, b: 2}, {a: 3, b: 4}])` returns
  * `{a: [1, 3], b: [2, 4]}`.
+ *
+ * The inputs should all have the same nested structure (i.e., of arrays and
+ * dicts).  The result is a single object with the same nested structure, where
+ * the leaves are arrays collecting the values of the inputs at that location
+ * (or, optionally, the result of a custom function applied to those arrays).
  *
  * @param inputs: An array of the objects to zip together.
  * @param zipFn: (optional) A function that expects an array of elements at a

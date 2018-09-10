@@ -224,13 +224,12 @@ describe('asyncDeepMap', () => {
 });
 
 describe('deepZip', () => {
-  it('zips arrays of primitives', done => {
+  it('zips arrays of primitives', () => {
     expect(deepZip([1, 2, 3])).toEqual([1, 2, 3]);
     expect(deepZip([null, 1])).toEqual([null, 1]);
     expect(deepZip([1, 'hello', 3, null])).toEqual([1, 'hello', 3, null]);
-    done();
   });
-  it('zips objects containing simple fields', done => {
+  it('zips objects containing simple fields', () => {
     expect(deepZip([
       {a: 1, b: 2}, {a: 3, b: 4}
     ])).toEqual({a: [1, 3], b: [2, 4]});
@@ -243,27 +242,27 @@ describe('deepZip', () => {
       c: [4, 5, 6],
       d: [null, 7, null]
     });
-    done();
   });
-  it('maps nested structures containing mappable fields', done => {
+  it('zips arrays containing simple fields', () => {
+    expect(deepZip([[1, 2], [3, 4]])).toEqual([[1, 3], [2, 4]]);
+  });
+  it('zips nested structures', () => {
     const input = [
-      {a: 'hello', b: [2, 3, null, {ba: 0, bb: 'world'}]},
-      {a: 'hello2', b: [22, 32, 42, {ba: 5, bb: 'world2'}]}
+      {a: 'plums', b: [1, 2, null, {ba: 3, bb: 'sweet'}]},
+      {a: 'icebox', b: [3, 4, 5, {ba: 6, bb: 'cold'}]}
     ];
     const expected = {
-      a: ['hello', 'hello2'],
-      b: [[2, 22], [3, 32], [null, 42], {ba: [0, 5], bb: ['world', 'world2']}]
+      a: ['plums', 'icebox'],
+      b: [[1, 3], [2, 4], [null, 5], {ba: [3, 6], bb: ['sweet', 'cold']}]
     };
     expect(deepZip(input)).toEqual(expected);
-    done();
   });
-  it('detects and rejects cycles', done => {
+  it('detects and rejects cycles', () => {
     // tslint:disable-next-line:no-any
     const b: any[] = [2, 3, null, {ba: 0, bb: 'world'}];
     const c = {a: 'hello', b};
     b[4] = c;
     const input = [b, c];
     expect(() => deepZip(input)).toThrowError();
-    done();
   });
 });
