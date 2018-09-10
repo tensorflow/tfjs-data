@@ -237,18 +237,18 @@ function zipToList(x: any[]): DeepMapResult {
   }
 }
 
-fdescribe('deepZip', () => {
+describe('deepZip', () => {
   it('zips arrays of primitives', done => {
-    expect(deepZip([null, 1], zipToList)).toEqual([null, 1]);
     expect(deepZip([1, 2, 3], zipToList)).toEqual([1, 2, 3]);
+    expect(deepZip([null, 1], zipToList)).toEqual([null, 1]);
     expect(deepZip([1, 'hello', 3, null], zipToList)).toEqual([
       1, 'hello', 3, null
     ]);
     done();
   });
   it('zips objects containing simple fields', done => {
-    expect(deepZip([{a: 1, b: 2}, {a: 3, b: 3}], zipToList))
-        .toEqual({a: [1, 2], b: [3, 4]});
+    expect(deepZip([{a: 1, b: 2}, {a: 3, b: 4}], zipToList))
+        .toEqual({a: [1, 3], b: [2, 4]});
     expect(deepZip(
                [
                  {a: 1, b: 'hello', c: 4, d: null},
