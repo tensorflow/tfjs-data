@@ -222,3 +222,69 @@ describe('asyncDeepMap', () => {
     }
   });
 });
+
+/*
+// tslint:disable-next-line:no-any
+function zipToList(x: any[]): DeepMapResult {
+  if (x === null) {
+    return null;
+  }
+  // TODO(soergel): validate array type?
+
+  if (isIterable(x[0])) {
+    return {value: null, recurse: true};
+  } else {
+    return {value: x, recurse: false};
+  }
+}
+
+/*
+describe('deepZip', () => {
+  it('zips arrays of primitives', done => {
+    expect(deepZip([null, 1], zipToList)).toEqual([null, 1]);
+    expect(deepZip([1, 2, 3], zipToList)).toEqual([1, 2, 3]);
+    expect(deepZip([1, 'hello', 3, null], zipToList)).toEqual([
+      1, 'hello', 3, null
+    ]);
+    done();
+  });
+  it('zips objects containing simple fields', done => {
+    expect(deepZip([{a: 1, b: 2}, {a: 3, b: 3}], zipToList))
+        .toEqual({a: [1, 2], b: [3, 4]});
+    expect(deepZip(
+               [
+                 {a: 1, b: 'hello', c: 4, d: null},
+                 {a: 2, b: 'world', c: 5, d: 7}, {a: 3, b: '!', c: 6, d: null}
+               ],
+               zipToList))
+        .toEqual({
+          a: [1, 2, 3],
+          b: ['hello', 'world', '!'],
+          c: [4, 5, 6],
+          d: [null, 7, null]
+        });
+    done();
+  });
+  it('maps nested structures containing mappable fields', done => {
+    const input = [
+      {a: 'hello', b: [2, 3, null, {ba: 0, bb: 'world'}]},
+      {a: 'hello2', b: [22, 32, 42, {ba: 5, bb: 'world2'}]}
+    ];
+    const expected = {
+      a: ['hello', 'hello2'],
+      b: [[2, 22], [3, 32], [null, 42], {ba: [0, 5], bb: ['world', 'world2']}]
+    };
+    expect(deepZip(input, zipToList)).toEqual(expected);
+    done();
+  });
+  it('detects and rejects cycles', done => {
+    // tslint:disable-next-line:no-any
+    const b: any[] = [2, 3, null, {ba: 0, bb: 'world'}];
+    const c = {a: 'hello', b};
+    b[4] = c;
+    const input = [b, c];
+    expect(() => deepZip(input, zipToList)).toThrowError();
+    done();
+  });
+});
+*/
