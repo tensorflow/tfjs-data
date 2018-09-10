@@ -19,8 +19,6 @@
 import * as tf from '@tensorflow/tfjs-core';
 import * as seedrandom from 'seedrandom';
 
-import {BatchDataset} from './batch_dataset';
-
 import {iteratorFromFunction, iteratorFromZipped, LazyIterator, ZipMismatchMode} from './iterators/lazy_iterator';
 import {iteratorFromConcatenated} from './iterators/lazy_iterator';
 import {iteratorFromItems} from './iterators/lazy_iterator';
@@ -123,7 +121,7 @@ export abstract class Dataset<T extends DataElement> {
    *   than batchSize elements. Default true.
    * @returns A `BatchDataset`, from which a stream of batches can be obtained.
    */
-  batch(batchSize: number, smallLastBatch = true): BatchDataset {
+  batch(batchSize: number, smallLastBatch = true): Dataset<Batch<T>> {
     return new BatchDataset(this, batchSize, smallLastBatch);
   }
 

@@ -19,7 +19,6 @@
 import * as tf from '@tensorflow/tfjs-core';
 
 import {Dataset} from './dataset';
-import {ElementArray, TabularRecord} from './types';
 
 // TODO(soergel): Flesh out collected statistics.
 // For numeric columns we should provide mean, stddev, histogram, etc.

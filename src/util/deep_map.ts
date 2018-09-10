@@ -125,7 +125,7 @@ export function deepZip(
  *   being processed (used to detect cycles).
  */
 function deepZipInternal(
-    inputs: any[], mapFn: (xs: any[]) => DeepMapResult,
+    inputs: any[], zipFn: (xs: any[]) => DeepMapResult,
     seen: Map<any, any> = new Map(), containedIn: Set<{}> = new Set()): any|
     any[] {
   // The recursion follows the structure of input 0; it's assumed that all the
@@ -140,7 +140,7 @@ function deepZipInternal(
   if (seen.has(input)) {
     return seen.get(input);
   }
-  const result = mapFn(inputs);
+  const result = zipFn(inputs);
 
   if (result.recurse && result.value !== null) {
     throw new Error(
@@ -156,7 +156,7 @@ function deepZipInternal(
     containedIn.add(input);
     for (const k in input) {
       const children = inputs.map(x => x[k]);
-      const childResult = deepZipInternal(children, mapFn, seen, containedIn);
+      const childResult = deepZipInternal(children, zipFn, seen, containedIn);
       mappedIterable[k] = childResult;
     }
     containedIn.delete(input);
