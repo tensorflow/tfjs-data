@@ -31,23 +31,7 @@ import {LazyIterator} from './iterators/lazy_iterator';
  * Such a value may not have a batch dimension.  A value may be a scalar or an
  * n-dimensional array.
  */
-export type ElementArray = number|number[]|tf.Tensor|string;
-
-/**
- * The value associated with a given key for a batch of elements.
- *
- * Such a value must always have a batch dimension, even if it is of length 1.
- */
-export type BatchArray = tf.Tensor|string[];
-
-/**
- * A map from string keys (aka column names) to values for a single element.
- */
-export type TabularRecord = {
-  // TODO(soergel): eliminate the need for TabularRecord.
-  // (It's still an issue for BatchDataset and Statistics.)
-  [key: string]: ElementArray
-};
+// export type ElementArray = number|number[]|tf.Tensor|string;
 
 /**
  * JSON-like type representing a nested structure of primitives or Tensors.
@@ -79,10 +63,3 @@ export type DatasetContainer = Container<Dataset<DataElement>>;
  * A nested structure of LazyIterators, used as the input to zip().
  */
 export type IteratorContainer = Container<LazyIterator<DataElement>>;
-
-/**
- * A map from string keys (aka column names) to values for a batch of elements.
- */
-export type DatasetBatch = {
-  [key: string]: BatchArray
-};

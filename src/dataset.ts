@@ -48,7 +48,7 @@ export abstract class Dataset<T extends DataElement> {
    *
    * CAUTION: Any Tensors contained within the elements returned from
    * this stream *must* be manually disposed to avoid a GPU memory leak.
-   * The tf.tidy() approach cannot be used in a asynchronous context.
+   * The tf.tidy() approach cannot be used in an asynchronous context.
    */
   abstract async iterator(): Promise<LazyIterator<T>>;
 

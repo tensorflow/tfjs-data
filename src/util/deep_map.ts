@@ -97,6 +97,76 @@ function deepMapInternal(
 }
 
 /**
+ * Apply a zipping function to a nested structure in a recursive manner.
+ *
+ * The result of the mapping is an object with the same nested structure (i.e.,
+ * of arrays and dicts) as the input, except that some subtrees are replaced,
+ * according to the results of the mapping function.
+ *
+ * Mappings are memoized.  Thus, if the nested structure contains the same
+ * object in multiple positions, the output will contain the same mapped object
+ * in those positions.  Cycles are not supported, however.
+ *
+ * @param input: The object to which to apply the mapping function.
+ * @param mapFn: A function that expects a single node of the object tree, and
+ *   returns a `DeepMapResult`.  The `DeepMapResult` either provides a
+ *   replacement value for that node (i.e., replacing the subtree), or indicates
+ *   that the node should be processed recursively.
+ */
+export function deepZip(
+    inputs: any[], zipFn: (xs: any[]) => DeepMapResult): any|any[] {
+  return deepZipInternal(inputs, zipFn);
+}
+
+/**
+ * @param seen: A Map of known object mappings (i.e., memoized results of
+ *   `mapFn()`)
+ * @param containedIn: An set containing objects on the reference path currently
+ *   being processed (used to detect cycles).
+ */
+function deepZipInternal(
+    inputs: any[], mapFn: (xs: any[]) => DeepMapResult,
+    seen: Map<any, any> = new Map(), containedIn: Set<{}> = new Set()): any|
+    any[] {
+  // The recursion follows the structure of input 0; it's assumed that all the
+  // other inputs have the same structure.
+  const input = inputs[0];
+  if (input == null) {
+    return null;
+  }
+  if (containedIn.has(input)) {
+    throw new Error('Circular references are not supported.');
+  }
+  if (seen.has(input)) {
+    return seen.get(input);
+  }
+  const result = mapFn(inputs);
+
+  if (result.recurse && result.value !== null) {
+    throw new Error(
+        'A deep zip function may not return both a value and recurse=true.');
+  }
+
+  if (!result.recurse) {
+    seen.set(input, result.value);
+    return result.value;
+  } else if (isIterable(input)) {
+    // tslint:disable-next-line:no-any
+    const mappedIterable: any|any[] = Array.isArray(input) ? [] : {};
+    containedIn.add(input);
+    for (const k in input) {
+      const children = inputs.map(x => x[k]);
+      const childResult = deepZipInternal(children, mapFn, seen, containedIn);
+      mappedIterable[k] = childResult;
+    }
+    containedIn.delete(input);
+    return mappedIterable;
+  } else {
+    throw new Error(`Can't recurse into non-iterable type: ${input}`);
+  }
+}
+
+/**
  * A return value for an async map function for use with deepMapAndAwaitAll.
  *
  * If recurse is true, the value should be empty, and iteration will continue
