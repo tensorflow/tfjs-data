@@ -23,7 +23,7 @@ import {iteratorFromFunction, iteratorFromZipped, LazyIterator, ZipMismatchMode}
 import {iteratorFromConcatenated} from './iterators/lazy_iterator';
 import {iteratorFromItems} from './iterators/lazy_iterator';
 import {DataElement, DatasetContainer} from './types';
-import {deepMap, deepMapAndAwaitAll, DeepMapResult, isIterable} from './util/deep_map';
+import {deepMapAndAwaitAll, DeepMapResult, isIterable} from './util/deep_map';
 
 // TODO(soergel): consider vectorized operations within the pipeline.
 
@@ -125,8 +125,7 @@ export abstract class Dataset<T extends DataElement> {
     const base = this;
     return datasetFromIteratorFn(async () => {
       return (await base.iterator())
-          .columnMajorBatch(batchSize, smallLastBatch)
-          .map(x => deepMap(x, deepBatchConcat));
+          .columnMajorBatch(batchSize, smallLastBatch, deepBatchConcat);
     });
   }
 
@@ -349,6 +348,7 @@ function deepBatchConcat(x: any[]): DeepMapResult {
   if (isIterable(x[0])) {
     return {value: null, recurse: true};
   } else {
+    // console.log(`Found leaf: ${x}`);
     return {value: batchConcat(x), recurse: false};
   }
 }
@@ -358,6 +358,8 @@ function deepBatchConcat(x: any[]): DeepMapResult {
  * into a single new Tensor where axis 0 is the batch dimension.
  */
 function batchConcat(arrays: Array<number|number[]|tf.Tensor>): tf.Tensor {
+  // console.log(`Batching: ${arrays}`);
+
   // Should we use GPU-enabled concat ops in deeplearn's math.ts?
   // Probably not; the GPU roundtrip is not worth it for a trivial
   // operation.
@@ -374,6 +376,7 @@ function batchConcat(arrays: Array<number|number[]|tf.Tensor>): tf.Tensor {
     resultVals.set(aVals, offset);
     offset += aVals.length;
   }
+  // console.log(`Batching: ${batchShape}, ${resultVals}`);
   const result = tf.Tensor.make(batchShape, {values: resultVals});
   tf.dispose(arrays);
   return result;

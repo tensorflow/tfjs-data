@@ -29,13 +29,6 @@ import {Dataset} from './dataset';
 export type ElementArray = number|number[]|tf.Tensor|string;
 
 /**
- * The value associated with a given key for a batch of elements.
- *
- * Such a value must always have a batch dimension, even if it is of length 1.
- */
-export type BatchArray = tf.Tensor|string[];
-
-/**
  * A map from string keys (aka column names) to values for a single element.
  */
 export type TabularRecord = {

@@ -96,6 +96,9 @@ function deepMapInternal(
   }
 }
 
+// TODO(soergel, kangyizhang) Reconsider naming of deepZip() to avoid confusion
+// with zip()
+
 /**
  * Zip nested structures together in a recursive manner.
  *
@@ -162,7 +165,7 @@ function deepZipInternal(
 }
 
 // tslint:disable-next-line:no-any
-function zipToList(x: any[]): DeepMapResult {
+export function zipToList(x: any[]): DeepMapResult {
   if (x === null) {
     return null;
   }

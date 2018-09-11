@@ -21,7 +21,7 @@ import {getTensorsInContainer, isTensorInList} from '@tensorflow/tfjs-core/dist/
 import * as seedrandom from 'seedrandom';
 
 import {DataElement, IteratorContainer} from '../types';
-import {deepMapAndAwaitAll, DeepMapAsyncResult, deepZip} from '../util/deep_map';
+import {deepMapAndAwaitAll, DeepMapAsyncResult, DeepMapResult, deepZip, zipToList} from '../util/deep_map';
 import {GrowingRingBuffer} from '../util/growing_ring_buffer';
 import {RingBuffer} from '../util/ring_buffer';
 
@@ -316,9 +316,34 @@ export abstract class LazyIterator<T> {
     return new RowMajorBatchIterator(this, batchSize, smallLastBatch);
   }
 
-  columnMajorBatch(batchSize: number, smallLastBatch = true):
+  /**
+   * Groups elements into batches, represented in column-major form.
+   *
+   * The inputs should all have the same nested structure (i.e., of arrays and
+   * dicts).  The result is a single object with the same nested structure,
+   * where the leaves are arrays collecting the values of the inputs at that
+   * location (or, optionally, the result of a custom function applied to those
+   * arrays).
+   *
+   * @param batchSize The number of elements desired per batch.
+   * @param smallLastBatch Whether to emit the final batch when it has fewer
+   *   than batchSize elements. Default true.
+   * @param zipFn: (optional) A function that expects an array of elements at a
+   *   single node of the object tree, and returns a `DeepMapResult`.  The
+   *   `DeepMapResult` either provides a result value for that node (i.e.,
+   *   representing the subtree), or indicates that the node should be processed
+   *   recursively.  The default zipFn recurses as far as possible and places
+   *   arrays at the leaves.
+   * @returns A `LazyIterator` of batches of elements, represented as an object
+   *   with collections at the leaves.
+   */
+  columnMajorBatch(
+      batchSize: number, smallLastBatch = true,
+      // tslint:disable-next-line:no-any
+      zipFn: (xs: any[]) => DeepMapResult = zipToList):
       LazyIterator<DataElement> {
-    return this.rowMajorBatch(batchSize, smallLastBatch).map(deepZip);
+    return this.rowMajorBatch(batchSize, smallLastBatch)
+        .map(x => deepZip(x, zipFn));
   }
 
   /**
