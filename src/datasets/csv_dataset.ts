@@ -108,7 +108,7 @@ export class CSVDataset extends Dataset<DataElement> {
    *   (or is null or undefined), then the column names are read from the first
    *   line of the input.
    * @param dataTypes The types of the columns, in order. If this argument is
-   *   provided, it is assumed that the values of input columns matche the
+   *   provided, it is assumed that the values of input columns match the
    *   provided types. If this argument is not provided, the values will be
    *   converted to number, or string if NaN.
    * @param delimiter The string used to parse each line of the input file. If
@@ -119,7 +119,9 @@ export class CSVDataset extends Dataset<DataElement> {
       csvColumnNames: CsvHeaderConfig|string[] = CsvHeaderConfig.NUMBERED,
       dataTypes?: DataType[], delimiter?: string) {
     const result = new CSVDataset(input);
-    if (delimiter !== undefined) result.setDelimiter(delimiter);
+    if (delimiter !== undefined) {
+      result.setDelimiter(delimiter);
+    }
     if (dataTypes !== undefined && dataTypes.length !== 0) {
       result.setDatatypes(dataTypes);
     }
