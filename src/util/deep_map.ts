@@ -96,6 +96,9 @@ function deepMapInternal(
   }
 }
 
+// TODO(soergel, kangyizhang) Reconsider naming of deepZip() to avoid confusion
+// with zip()
+
 /**
  * Zip nested structures together in a recursive manner.
  *
