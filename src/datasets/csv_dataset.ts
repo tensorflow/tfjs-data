@@ -45,9 +45,9 @@ export enum CsvHeaderConfig {
 export class CSVDataset extends Dataset<DataElement> {
   base: TextLineDataset;
   private _hasHeaderLine = false;
-  private _csvColumnNames: string[];
+  private _csvColumnNames: string[] = null;
   private _dataTypes: DataType[] = null;
-  private _delimiter = ',';
+  private _delimiter: string = null;
   private _selectColumnIndexes: number[] = null;
 
   /**
@@ -79,6 +79,12 @@ export class CSVDataset extends Dataset<DataElement> {
     return this._csvColumnNames;
   }
 
+  /* 1) If csvColumnNames is provided as string[], use this string[] as output
+   * keys in corresponded order, and each key must exist in header line if
+   * hasHeaderLine is true.
+   * 2) Otherwise parse header line as result keys if hasHeaderLine, or use
+   * numbers.
+   */
   private async setCsvColumnNames(csvColumnNames: CsvHeaderConfig|string[]) {
     if (Array.isArray(csvColumnNames)) {
       this._csvColumnNames = csvColumnNames;
@@ -104,8 +110,6 @@ export class CSVDataset extends Dataset<DataElement> {
                 this._selectColumnIndexes.push(index);
           }
         }
-      } else {
-        throw new Error('Provided column names does not match header line.');
       }
     } else {
       const iter = await this.base.iterator();
@@ -114,8 +118,8 @@ export class CSVDataset extends Dataset<DataElement> {
         throw new Error('No data was found for CSV parsing.');
       }
       const firstLine: string = firstElement.value;
-      if (csvColumnNames === CsvHeaderConfig.READ_FIRST_LINE ||
-          (this._hasHeaderLine && csvColumnNames == null)) {
+      if (this._hasHeaderLine ||
+          csvColumnNames === CsvHeaderConfig.READ_FIRST_LINE) {
         this._csvColumnNames = firstLine.split(this._delimiter);
       } else {
         this._csvColumnNames =
@@ -151,12 +155,10 @@ export class CSVDataset extends Dataset<DataElement> {
   static async create(
       input: DataSource, header = false,
       csvColumnNames: CsvHeaderConfig|string[] = CsvHeaderConfig.NUMBERED,
-      dataTypes?: DataType[], delimiter?: string) {
+      dataTypes?: DataType[], delimiter = ',') {
     const result = new CSVDataset(input);
     result.setHasHeaderLine(header);
-    if (delimiter !== undefined) {
-      result.setDelimiter(delimiter);
-    }
+    result.setDelimiter(delimiter);
     if (dataTypes !== undefined && dataTypes.length !== 0) {
       result.setDatatypes(dataTypes);
     }
