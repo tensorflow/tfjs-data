@@ -97,7 +97,7 @@ export class CSVDataset extends Dataset<DataElement> {
         const firstLine: string = firstElement.value;
         const columnNames = firstLine.split(this._delimiter);
 
-        // Generate an array(this._selectColumnIndexes) which is holding the
+        // Generate an array(this._selectColumnIndexes) which holds the
         // selected column indexes in order.
         for (let i = 0; i < csvColumnNames.length; i++) {
           const index = columnNames.indexOf(csvColumnNames[i]);
@@ -195,6 +195,7 @@ export class CSVDataset extends Dataset<DataElement> {
               this._dataTypes[datatypeIter] === DType.bool) {
             result[this._csvColumnNames[i]] = this.getBoolean(value);
           } else {
+            // Set value as string
             result[this._csvColumnNames[i]] = value;
           }
           datatypeIter++;
