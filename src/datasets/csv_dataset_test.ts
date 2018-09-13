@@ -72,7 +72,8 @@ describe('CSVDataset', () => {
   it('produces a stream of dicts containing UTF8-decoded csv data',
      async () => {
        const source = new FileDataSource(csvBlob, {chunkSize: 10});
-       const dataset = await CSVDataset.create(source, ['foo', 'bar', 'baz']);
+       const dataset =
+           await CSVDataset.create(source, false, ['foo', 'bar', 'baz']);
 
        expect(dataset.csvColumnNames).toEqual(['foo', 'bar', 'baz']);
 
@@ -93,7 +94,7 @@ describe('CSVDataset', () => {
   it('reads CSV column headers when requested', async () => {
     const source = new FileDataSource(csvBlobWithHeaders, {chunkSize: 10});
     const dataset =
-        await CSVDataset.create(source, CsvHeaderConfig.READ_FIRST_LINE);
+        await CSVDataset.create(source, true, CsvHeaderConfig.READ_FIRST_LINE);
 
     expect(dataset.csvColumnNames).toEqual(['foo', 'bar', 'baz']);
     const iter = await dataset.iterator();
@@ -130,7 +131,8 @@ describe('CSVDataset', () => {
 
   it('emits rows in order despite async requests', async () => {
     const source = new FileDataSource(csvBlobWithHeadersExtra, {chunkSize: 10});
-    const ds = await CSVDataset.create(source, CsvHeaderConfig.READ_FIRST_LINE);
+    const ds =
+        await CSVDataset.create(source, true, CsvHeaderConfig.READ_FIRST_LINE);
     expect(ds.csvColumnNames).toEqual(['A', 'B', 'C']);
     const csvIterator = await ds.iterator();
     const promises = [
@@ -148,7 +150,7 @@ describe('CSVDataset', () => {
   it('provide delimiter through parameter', async () => {
     const source = new FileDataSource(csvBlobWithSemicolon, {chunkSize: 10});
     const dataset = await CSVDataset.create(
-        source, CsvHeaderConfig.READ_FIRST_LINE, undefined, ';');
+        source, true, CsvHeaderConfig.READ_FIRST_LINE, undefined, ';');
     expect(dataset.csvColumnNames).toEqual(['A', 'B', 'C']);
     const iter = await dataset.iterator();
     const result = await iter.collect();
@@ -164,7 +166,7 @@ describe('CSVDataset', () => {
      async () => {
        const source = new FileDataSource(csvBlobWithMixedType, {chunkSize: 10});
        const dataset = await CSVDataset.create(
-           source, undefined, [DType.int32, DType.bool, DType.int32]);
+           source, false, undefined, [DType.int32, DType.bool, DType.int32]);
        expect(dataset.csvColumnNames).toEqual(['0', '1', '2']);
        const iter = await dataset.iterator();
        const result = await iter.collect();
@@ -180,4 +182,35 @@ describe('CSVDataset', () => {
          {'0': 2, '1': 0, '2': 2},
        ]);
      });
+
+  it('reads CSV with selected column in order', async () => {
+    const source = new FileDataSource(csvBlobWithHeaders, {chunkSize: 10});
+    const dataset = await CSVDataset.create(source, true, ['bar', 'foo']);
+
+    expect(dataset.csvColumnNames).toEqual(['bar', 'foo']);
+    const iter = await dataset.iterator();
+    const result = await iter.collect();
+
+    expect(result).toEqual([
+      {'bar': 'cd', 'foo': 'ab'},
+      {'bar': undefined, 'foo': 'ghi'},
+      {'bar': 'mn', 'foo': undefined},
+      {'bar': 7.8, 'foo': 1.4},
+      {'bar': 'tu', 'foo': 'qrs'},
+      {'bar': 'w', 'foo': 'v'},
+      {'bar': 'z', 'foo': 'y'},
+    ]);
+  });
+
+  it('reads CSV with wrong column', async done => {
+    try {
+      const source = new FileDataSource(csvBlobWithHeaders, {chunkSize: 10});
+      await CSVDataset.create(source, true, ['bar', 'foooooooo']);
+      done.fail();
+    } catch (e) {
+      expect(e.message).toEqual(
+          'Provided column names does not match header line.');
+      done();
+    }
+  });
 });

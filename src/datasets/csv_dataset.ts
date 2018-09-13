@@ -44,10 +44,11 @@ export enum CsvHeaderConfig {
  */
 export class CSVDataset extends Dataset<DataElement> {
   base: TextLineDataset;
-  private hasHeaderLine = false;
+  private _hasHeaderLine = false;
   private _csvColumnNames: string[];
   private _dataTypes: DataType[] = null;
   private _delimiter = ',';
+  private _selectColumnIndexes: number[] = null;
 
   /**
    * Create a `CSVDataset`.  Note this CSVDataset cannot be used until
@@ -62,12 +63,16 @@ export class CSVDataset extends Dataset<DataElement> {
     this.base = new TextLineDataset(input);
   }
 
+  private setHasHeaderLine(hasHeaderLine: boolean) {
+    this._hasHeaderLine = hasHeaderLine;
+  }
+
   private setDelimiter(delimiter: string) {
     this._delimiter = delimiter;
   }
 
-  private setDatatypes(_dataTypes: DataType[]) {
-    this._dataTypes = _dataTypes;
+  private setDatatypes(dataTypes: DataType[]) {
+    this._dataTypes = dataTypes;
   }
 
   get csvColumnNames(): string[] {
@@ -75,26 +80,49 @@ export class CSVDataset extends Dataset<DataElement> {
   }
 
   private async setCsvColumnNames(csvColumnNames: CsvHeaderConfig|string[]) {
-    if (csvColumnNames == null || csvColumnNames === CsvHeaderConfig.NUMBERED) {
-      const iter = await this.base.iterator();
-      const firstElement = await iter.next();
-      if (firstElement.done) {
-        throw new Error('No data was found for CSV parsing.');
-      }
-      const firstLine: string = firstElement.value;
-      this._csvColumnNames = Array.from(firstLine.split(this._delimiter).keys())
-                                 .map(x => x.toString());
-    } else if (csvColumnNames === CsvHeaderConfig.READ_FIRST_LINE) {
-      const iter = await this.base.iterator();
-      const firstElement = await iter.next();
-      if (firstElement.done) {
-        throw new Error('No data was found for CSV parsing.');
-      }
-      const firstLine: string = firstElement.value;
-      this._csvColumnNames = firstLine.split(this._delimiter);
-      this.hasHeaderLine = true;
-    } else {
+    if (Array.isArray(csvColumnNames)) {
       this._csvColumnNames = csvColumnNames;
+      if (this._hasHeaderLine) {
+        const iter = await this.base.iterator();
+        const firstElement = await iter.next();
+        if (firstElement.done) {
+          throw new Error('No data was found for CSV parsing.');
+        }
+        const firstLine: string = firstElement.value;
+        const columnNames = firstLine.split(this._delimiter);
+
+        // Generate an array(this._selectColumnIndexes) which is holding the
+        // selected column indexes in order.
+        for (let i = 0; i < csvColumnNames.length; i++) {
+          const index = columnNames.indexOf(csvColumnNames[i]);
+          if (index === -1) {
+            throw new Error(
+                'Provided column names does not match header line.');
+          } else {
+            this._selectColumnIndexes === null ?
+                this._selectColumnIndexes = [index] :
+                this._selectColumnIndexes.push(index);
+          }
+        }
+      } else {
+        throw new Error('Provided column names does not match header line.');
+      }
+    } else {
+      const iter = await this.base.iterator();
+      const firstElement = await iter.next();
+      if (firstElement.done) {
+        throw new Error('No data was found for CSV parsing.');
+      }
+      const firstLine: string = firstElement.value;
+      if (csvColumnNames === CsvHeaderConfig.READ_FIRST_LINE ||
+          (this._hasHeaderLine && csvColumnNames == null)) {
+        this._csvColumnNames = firstLine.split(this._delimiter);
+      } else {
+        this._csvColumnNames =
+            (Array.from(
+                 new Array(firstLine.split(this._delimiter).length).keys()))
+                .map(x => x.toString());
+      }
     }
   }
 
@@ -102,11 +130,17 @@ export class CSVDataset extends Dataset<DataElement> {
    * Create a `CSVDataset`.
    *
    * @param input A `DataSource` providing a chunked, UTF8-encoded byte stream.
-   * @param csvColumnNames The keys to use for the columns, in order.  If this
-   *   argument is provided, it is assumed that the input file does not have a
-   *   header line providing the column names.  If this argument is not provided
-   *   (or is null or undefined), then the column names are read from the first
-   *   line of the input.
+   * @param header (Optional) A boolean value indicating whether the CSV
+   *   files(s) have header line(s) that should be skipped when parsing.
+   *   Defaults to `False`.
+   * @param csvColumnNames The keys to use for the columns, in order. If this
+   *   argument is provided and header is false, it is assumed that the input
+   *   file does not have a header line providing the column names and use the
+   *   elements in this argument as column names. If this argument is provided
+   *   and header is true, only parse columns in this argument in corresponded
+   *   order and column names in this argument must exist in the header line. If
+   *   this argument is not provided (or is null or undefined), then the column
+   *   names are read from the first line of the input.
    * @param dataTypes The types of the columns, in order. If this argument is
    *   provided, it is assumed that the values of input columns match the
    *   provided types. If this argument is not provided, the values will be
@@ -115,10 +149,11 @@ export class CSVDataset extends Dataset<DataElement> {
    *   this argument is not provided, use default delimiter `,`.
    */
   static async create(
-      input: DataSource,
+      input: DataSource, header = false,
       csvColumnNames: CsvHeaderConfig|string[] = CsvHeaderConfig.NUMBERED,
       dataTypes?: DataType[], delimiter?: string) {
     const result = new CSVDataset(input);
+    result.setHasHeaderLine(header);
     if (delimiter !== undefined) {
       result.setDelimiter(delimiter);
     }
@@ -131,7 +166,7 @@ export class CSVDataset extends Dataset<DataElement> {
 
   async iterator(): Promise<LazyIterator<DataElement>> {
     let lines = await this.base.iterator();
-    if (this.hasHeaderLine) {
+    if (this._hasHeaderLine) {
       // We previously read the first line to get the headers.
       // Now that we're providing data, skip it.
       lines = lines.skip(1);
@@ -145,9 +180,10 @@ export class CSVDataset extends Dataset<DataElement> {
     const values = line.split(this._delimiter);
     const result: {[key: string]: ElementArray} = {};
     let datatypeIter = 0;
+
     for (let i = 0; i < this._csvColumnNames.length; i++) {
-      const value = values[i];
-      // TODO(soergel): specify data type using a schema
+      const value =
+          values[this._selectColumnIndexes === null ? i : this._selectColumnIndexes[i]];
       if (value === '') {
         result[this._csvColumnNames[i]] = undefined;
       } else {

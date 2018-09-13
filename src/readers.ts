@@ -31,21 +31,27 @@ import {URLDataSource} from './sources/url_data_source';
  * @param dataTypes (Optional) The types of the columns, in order.
  * @param delimiter (Optional) The string used to parse each line of the input
  *   file. Defaults to `,`.
+ * @param selectColumns (Optional) A sorted list of column indices to select
+ *   from the input data. If specified, only this subset of columns will be
+ *   parsed. Defaults to parsing all columns.
  */
 export function csv(
     source: string|string[], header = false, dataTypes?: DataType[],
-    delimiter = ','): Array<Promise<CSVDataset>> {
+    delimiter = ',', selectColumns?: string[]): Array<Promise<CSVDataset>> {
   const sources = (source instanceof Array) ? source : [source];
   return makeCsvDataset(
-      sources, header, dataTypes === null ? [] : dataTypes, delimiter);
+      sources, header, dataTypes === null ? [] : dataTypes, delimiter,
+      selectColumns);
 }
 
 function makeCsvDataset(
     sources: string[], header: boolean, dataTypes: DataType[],
-    delimiter: string): Array<Promise<CSVDataset>> {
+    delimiter: string, selectColumns?: string[]): Array<Promise<CSVDataset>> {
   return sources.map(async (source) => {
     return CSVDataset.create(
-        new URLDataSource(source),
-        header ? CsvHeaderConfig.READ_FIRST_LINE : CsvHeaderConfig.NUMBERED);
+        new URLDataSource(source), header,
+        selectColumns ? CsvHeaderConfig.READ_FIRST_LINE :
+                        CsvHeaderConfig.NUMBERED,
+        dataTypes, delimiter);
   });
 }
