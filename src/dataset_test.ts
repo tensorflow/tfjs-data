@@ -232,28 +232,38 @@ describeWithFlags('Dataset', tf.test_util.CPU_ENVS, () => {
     ]);
   });
 
-  it('can be repeated indefinitely', async () => {
-    const a = datasetFromElements([{'item': 1}, {'item': 2}, {'item': 3}]);
-    await a.repeat().take(234).collectAll();
+  it('can be repeated indefinitely', async done => {
+    try {
+      const a = datasetFromElements([{'item': 1}, {'item': 2}, {'item': 3}]);
+      await a.repeat().take(234).collectAll();
+      done();
+    } catch (e) {
+      done.fail(e);
+    }
   });
 
-  it('can be repeated with state in a closure', async () => {
-    // This tests a tricky bug having to do with 'this' being set properly.
-    // See
-    // https://github.com/Microsoft/TypeScript/wiki/%27this%27-in-TypeScript
+  it('can be repeated with state in a closure', async done => {
+    try {
+      // This tests a tricky bug having to do with 'this' being set properly.
+      // See
+      // https://github.com/Microsoft/TypeScript/wiki/%27this%27-in-TypeScript
 
-    class CustomDataset extends Dataset<{}> {
-      state = {val: 1};
-      async iterator() {
-        const result = iteratorFromItems([
-          {'item': this.state.val++}, {'item': this.state.val++},
-          {'item': this.state.val++}
-        ]);
-        return result;
+      class CustomDataset extends Dataset<{}> {
+        state = {val: 1};
+        async iterator() {
+          const result = iteratorFromItems([
+            {'item': this.state.val++}, {'item': this.state.val++},
+            {'item': this.state.val++}
+          ]);
+          return result;
+        }
       }
+      const a = new CustomDataset();
+      await a.repeat().take(1234).collectAll();
+      done();
+    } catch (e) {
+      done.fail(e);
     }
-    const a = new CustomDataset();
-    await a.repeat().take(1234).collectAll();
   });
 
   it('can collect all items into memory', async done => {
