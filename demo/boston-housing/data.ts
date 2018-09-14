@@ -53,7 +53,7 @@ export class BostonHousingDataset {
       `${BASE_URL}${TEST_TARGET_FILENAME}`
     ];
     console.log('* Downloading data *');
-    const csvDatasets = csv(fileUrls, true);
+    const csvDatasets = fileUrls.map(url => csv(url, true));
 
     // Sets number of features so it can be used in the model.
     this.numFeatures = (await csvDatasets[0]).csvColumnNames.length;
