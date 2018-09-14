@@ -21,9 +21,11 @@ import {getTensorsInContainer, isTensorInList} from '@tensorflow/tfjs-core/dist/
 import * as seedrandom from 'seedrandom';
 
 import {DataElement, IteratorContainer} from '../types';
+import {deepClone} from '../util/deep_clone';
 import {deepMapAndAwaitAll, DeepMapAsyncResult} from '../util/deep_map';
 import {GrowingRingBuffer} from '../util/growing_ring_buffer';
 import {RingBuffer} from '../util/ring_buffer';
+import {SharedPromiseCache} from '../util/shared_promise_cache';
 
 // Here we implement a simple asynchronous iterator.
 // This lets us avoid using either third-party stream libraries or
@@ -438,7 +440,10 @@ class ArrayIterator<T> extends LazyIterator<T> {
     }
     const result = this.items[this.trav];
     this.trav++;
-    return {value: result, done: false};
+    // If the result contains `Tensor`s, we should return clones-- else when
+    // the `Tensor`s are disposed downstream, this array would become
+    // unusable.
+    return {value: deepClone(result), done: false};
   }
 }
 
@@ -892,6 +897,7 @@ export class ChainedIterator<T> extends LazyIterator<T> {
     // This is unfortunate since we can't parallelize reads. Which means
     // prefetching of chained streams is a no-op.
     // One solution is to prefetch immediately upstream of this.
+
     await lastRead;
     if (this.iterator == null) {
       const iteratorResult = await this.moreIterators.next();
@@ -1122,5 +1128,57 @@ export class ShuffleIterator<T> extends PrefetchIterator<T> {
       }
     }
     return {value: null, done: true};
+  }
+}
+
+export class MemoizingIterator<T> extends LazyIterator<T> {
+  // the index of the last element that was returned.
+  index = -1;
+
+  constructor(
+      protected upstream: LazyIterator<T>,
+      public sharedPromiseCache: SharedPromiseCache<IteratorResult<T>>) {
+    super();
+  }
+
+  summary() {
+    return `${this.upstream.summary()} -> Memoize`;
+  }
+
+  next(): Promise<IteratorResult<T>> {
+    // TODO(soergel): work out cache eviction settings
+    // Note the memoized items are never disposed (for now)!
+    const item = this.upstream.next();
+    this.index++;
+    // TODO(soergel): consider whether to cache in GPU or main memory
+    this.sharedPromiseCache.put(this.index, item);
+    return item;
+  }
+
+  readUpTo(maxIndex: number) {
+    while (this.index < maxIndex) {
+      this.next();
+    }
+  }
+}
+
+export class CacheIterator<T> extends LazyIterator<T> {
+  // the index of the last element that was returned.
+  index = -1;
+
+  constructor(protected sharedUpstream: MemoizingIterator<T>) {
+    super();
+  }
+
+  summary() {
+    return `${this.sharedUpstream.summary()} -> Cache`;
+  }
+
+  async next(): Promise<IteratorResult<T>> {
+    this.index++;
+    this.sharedUpstream.readUpTo(this.index);
+    const item: Promise<IteratorResult<T>> =
+        this.sharedUpstream.sharedPromiseCache.get(this.index);
+    return deepClone(await item);
   }
 }

@@ -12,15 +12,25 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
  * =============================================================================
  */
 
-// TODO(soergel) carefully consider what actually should be exposed here
-export {Dataset, datasetFromIteratorFn, zip} from './dataset';
-export {datasetFromElements} from './dataset';
-export {CSVDataset} from './datasets/csv_dataset';
-export {TextLineDataset} from './datasets/text_line_dataset';
-export {iteratorFromFunction, LazyIterator} from './iterators/lazy_iterator';
-export {FileDataSource} from './sources/file_data_source';
-export {URLDataSource} from './sources/url_data_source';
-export {DataElementObject, DatasetBatch} from './types';
+// tslint:disable:no-any
+
+import * as tf from '@tensorflow/tfjs-core';
+import {deepMap, DeepMapResult, isIterable} from './deep_map';
+
+function cloneIfTensor(input: any): DeepMapResult {
+  if (input instanceof tf.Tensor) {
+    return {value: input.clone(), recurse: false};
+  } else if (isIterable(input)) {
+    return {value: null, recurse: true};
+  } else {
+    return {value: input, recurse: false};
+  }
+}
+
+export function deepClone(input: any) {
+  return deepMap(input, cloneIfTensor);
+}

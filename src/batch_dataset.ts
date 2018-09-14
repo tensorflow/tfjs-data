@@ -50,7 +50,7 @@ export class BatchDataset {
   async iterator(): Promise<LazyIterator<DatasetBatch>> {
     const batchesAsArrays =
         (await this.base.iterator()).batch(this.batchSize, this.smallLastBatch);
-    return batchesAsArrays.map(makeDatasetBatch);
+    return batchesAsArrays.map(x => makeDatasetBatch(x as TabularRecord[]));
   }
 }
 

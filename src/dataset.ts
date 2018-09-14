@@ -20,12 +20,12 @@ import * as tf from '@tensorflow/tfjs-core';
 import * as seedrandom from 'seedrandom';
 
 import {BatchDataset} from './batch_dataset';
-
-import {iteratorFromFunction, iteratorFromZipped, LazyIterator, ZipMismatchMode} from './iterators/lazy_iterator';
+import {CacheIterator, iteratorFromFunction, iteratorFromZipped, LazyIterator, MemoizingIterator, ZipMismatchMode} from './iterators/lazy_iterator';
 import {iteratorFromConcatenated} from './iterators/lazy_iterator';
 import {iteratorFromItems} from './iterators/lazy_iterator';
 import {DataElement, DatasetContainer} from './types';
 import {deepMapAndAwaitAll, isIterable} from './util/deep_map';
+import {createSharedPromiseCache, SharedCacheConfig} from './util/shared_promise_cache';
 
 // TODO(soergel): consider vectorized operations within the pipeline.
 
@@ -239,8 +239,8 @@ export abstract class Dataset<T extends DataElement> {
    * @returns A Promise for an array of elements, which will resolve
    *   when a new stream has been obtained and fully consumed.
    */
-  async collectAll() {
-    return (await this.iterator()).collect();
+  async collectAll(maxItems?: number) {
+    return (await this.iterator()).collect(maxItems);
   }
 
   /**
@@ -262,6 +262,60 @@ export abstract class Dataset<T extends DataElement> {
   Dataset.group_by_window()
   Dataset.padded_batch()
   */
+
+  /**
+   * Load the entire `Dataset` into memory right away, and provide a new
+   * `Dataset` that reads from this cache.  If the underlying `Dataset` includes
+   * `Tensor`s, then these will be retained on the GPU.
+   *
+   * Obviously this will succeed only for small `Dataset`s that fit in memory.
+   * Useful for testing.
+   */
+  async cacheEager(maxItems?: number): Promise<Dataset<T>> {
+    // TODO(soergel): protect against memory explosion?
+    return datasetFromElements(await this.collectAll(maxItems));
+  }
+
+  /**
+   * Lazily cache a dataset as it streams through.
+   *
+   * Elements may be retained in GPU memory, in main memory, or on disk,
+   * according to the provided configuration.
+   *
+   * @param config A `SharedCacheConfig` object describing how much data should
+   *   be stored in the GPU, in main memory, and on disk.
+   */
+  async cache(config: SharedCacheConfig = {}): Promise<Dataset<T>> {
+    return new CacheDataset(await this.iterator(), config);
+  }
+
+  /**
+   * Force a dataset to be read serially: for each provided iterator, each
+   * next() call will await the prior one, so that they cannot execute
+   * concurrently.
+   */
+  async serial(): Promise<Dataset<T>> {
+    const base = this;
+    return datasetFromIteratorFn(async () => (await base.iterator()).serial());
+  }
+}
+
+class CacheDataset<T extends DataElement> extends Dataset<T> {
+  private readonly memoizingIterator: MemoizingIterator<T>;
+
+  constructor(
+      readonly upstreamIterator: LazyIterator<T>,
+      readonly config: SharedCacheConfig = {}) {
+    super();
+    const sharedPromiseCache =
+        createSharedPromiseCache<IteratorResult<T>>(config);
+    this.memoizingIterator =
+        new MemoizingIterator(upstreamIterator, sharedPromiseCache);
+  }
+
+  async iterator(): Promise<LazyIterator<T>> {
+    return new CacheIterator(this.memoizingIterator);
+  }
 }
 
 /**
