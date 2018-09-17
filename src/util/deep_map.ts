@@ -16,6 +16,8 @@
  * =============================================================================
  */
 
+import * as tf from '@tensorflow/tfjs-core';
+
 // tslint:disable:no-any
 
 /**
@@ -239,5 +241,17 @@ export async function deepMapAndAwaitAll(
 
 // tslint:disable-next-line:no-any
 export function isIterable(obj: any): boolean {
-  return obj != null && (Array.isArray(obj) || typeof obj === 'object');
+  return obj != null &&
+      (Array.isArray(obj) ||
+       (typeof obj === 'object' && !(obj instanceof tf.Tensor)));
+}
+
+// tslint:disable-next-line:no-any
+export function isSubIterable(obj: any): boolean {
+  for (const k in obj) {
+    if (isIterable(obj[k])) {
+      return true;
+    }
+  }
+  return false;
 }
