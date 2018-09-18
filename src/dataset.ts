@@ -338,6 +338,13 @@ export function zip<O extends DataElement>(datasets: DatasetContainer):
   });
 }
 
+/**
+ * A zip function for use with deepZip, passed via the columnMajorBatch call.
+ *
+ * Accepts an array of identically-structured nested elements and either batches
+ * them (if they are primitives, numeric arrays, or Tensors) or requests
+ * recursion (if not).
+ */
 // tslint:disable-next-line:no-any
 function deepBatchConcat(x: any[]): DeepMapResult {
   if (x === null) {
@@ -381,6 +388,15 @@ function batchConcat(arrays: Array<number|number[]|tf.Tensor>): tf.Tensor {
   return result;
 }
 
+/**
+ * Extracts the shape and values from the argument, whether array or Tensor.
+ *
+ * If the argument is a Tensor, this performs a 'dataSync()' to obtain the
+ * values as a typed Array.
+ *
+ * @returns a tuple where the first element is a number[] describing the shape
+ * and the second is a number[] or a TypedArray containing the values.
+ */
 function shapeAndValues(array: number|number[]|tf.Tensor):
     [number[], number[]|Float32Array|Int32Array|Uint8Array] {
   if (array instanceof tf.Tensor) {

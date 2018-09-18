@@ -239,6 +239,11 @@ export async function deepMapAndAwaitAll(
   return result;
 }
 
+/**
+ * Determine whether the argument is iterable.
+ *
+ * @returns true if the argument is an array or any non-Tensor object.
+ */
 // tslint:disable-next-line:no-any
 export function isIterable(obj: any): boolean {
   return obj != null &&
@@ -246,6 +251,13 @@ export function isIterable(obj: any): boolean {
        (typeof obj === 'object' && !(obj instanceof tf.Tensor)));
 }
 
+/**
+ * Determine whether any child of the argument is iterable.
+ *
+ * Assumes that the argument is itself iterable.
+ *
+ * @returns true if any child of the argument is iterable; false otherwise.
+ */
 // tslint:disable-next-line:no-any
 export function isSubIterable(obj: any): boolean {
   for (const k in obj) {

@@ -21,17 +21,6 @@ import {TensorContainer, TensorContainerArray, TensorContainerObject} from '@ten
 import {Dataset} from '.';
 import {LazyIterator} from './iterators/lazy_iterator';
 
-// TODO(soergel): clean up the |string union type throughout when Tensor
-// supports string.
-
-/**
- * The value associated with a given key for a single element.
- *
- * Such a value may not have a batch dimension.  A value may be a scalar or an
- * n-dimensional array.
- */
-// export type ElementArray = number|number[]|tf.Tensor|string;
-
 /**
  * JSON-like type representing a nested structure of primitives or Tensors.
  */
