@@ -15,7 +15,7 @@
  *
  * =============================================================================
  */
-
+import fetch, {Headers as PolyfillHeaders, Request as PolyfillRequest} from 'node-fetch';
 import {FileChunkIterator, FileChunkIteratorOptions} from './file_chunk_iterator';
 
 /**
@@ -27,10 +27,22 @@ import {FileChunkIterator, FileChunkIteratorOptions} from './file_chunk_iterator
  */
 export async function urlChunkIterator(
     url: RequestInfo, fileOptions: FileChunkIteratorOptions = {}) {
-  const response = await fetch(url);
+  let newUrl: string|PolyfillRequest;
+  if (typeof url !== 'string') {
+    // Construct PolyfillRequest with headers.
+    newUrl = new PolyfillRequest(url.toString());
+    const headers = new PolyfillHeaders();
+    (url as Request).headers.forEach((value: string, key: string) => {
+      headers.set(key, value);
+    });
+    newUrl.headers = headers;
+  } else {
+    newUrl = url as string;
+  }
+  const response = await fetch(newUrl);
   if (response.ok) {
-    const blob = await response.blob();
-    return new FileChunkIterator(blob, fileOptions);
+    const arrayBuffer = await response.buffer();
+    return new FileChunkIterator(arrayBuffer, fileOptions);
   } else {
     throw new Error(response.statusText);
   }

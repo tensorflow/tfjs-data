@@ -31,9 +31,9 @@ y,z`;
 const csvDataWithHeaders = `foo,bar,baz
 ` + csvData;
 
-const csvBlob = new Blob([csvData]);
+const csvBuffer = Buffer.from(csvData);
 
-const csvBlobWithHeaders = new Blob([csvDataWithHeaders]);
+const csvBufferWithHeaders = Buffer.from(csvDataWithHeaders);
 
 const csvDataExtra = `A,B,C
 1,2,3
@@ -44,12 +44,12 @@ const csvDataExtra = `A,B,C
 6,2,3
 7,2,3`;
 
-const csvBlobWithHeadersExtra = new Blob([csvDataExtra]);
+const csvBufferWithHeadersExtra = Buffer.from(csvDataExtra);
 
 describe('CSVDataset', () => {
   it('produces a stream of dicts containing UTF8-decoded csv data',
      async () => {
-       const source = new FileDataSource(csvBlob, {chunkSize: 10});
+       const source = new FileDataSource(csvBuffer, {chunkSize: 10});
        const dataset = await CSVDataset.create(source, ['foo', 'bar', 'baz']);
 
        expect(dataset.csvColumnNames).toEqual(['foo', 'bar', 'baz']);
@@ -69,7 +69,7 @@ describe('CSVDataset', () => {
      });
 
   it('reads CSV column headers when requested', async () => {
-    const source = new FileDataSource(csvBlobWithHeaders, {chunkSize: 10});
+    const source = new FileDataSource(csvBufferWithHeaders, {chunkSize: 10});
     const dataset =
         await CSVDataset.create(source, CsvHeaderConfig.READ_FIRST_LINE);
 
@@ -89,7 +89,7 @@ describe('CSVDataset', () => {
   });
 
   it('numbers CSV columns by default', async () => {
-    const source = new FileDataSource(csvBlob, {chunkSize: 10});
+    const source = new FileDataSource(csvBuffer, {chunkSize: 10});
     const dataset = await CSVDataset.create(source);
     expect(dataset.csvColumnNames).toEqual(['0', '1', '2']);
     const iter = await dataset.iterator();
@@ -107,7 +107,8 @@ describe('CSVDataset', () => {
   });
 
   it('emits rows in order despite async requests', async () => {
-    const source = new FileDataSource(csvBlobWithHeadersExtra, {chunkSize: 10});
+    const source =
+        new FileDataSource(csvBufferWithHeadersExtra, {chunkSize: 10});
     const ds = await CSVDataset.create(source, CsvHeaderConfig.READ_FIRST_LINE);
     expect(ds.csvColumnNames).toEqual(['A', 'B', 'C']);
     const csvIterator = await ds.iterator();

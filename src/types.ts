@@ -86,3 +86,7 @@ export type IteratorContainer = Container<LazyIterator<DataElement>>;
 export type DatasetBatch = {
   [key: string]: BatchArray
 };
+/**
+ * File types for both browser and node.
+ */
+export type FileElement = ArrayBuffer|Uint8Array;

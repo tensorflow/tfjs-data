@@ -25,6 +25,9 @@ import {deepMapAndAwaitAll, DeepMapAsyncResult} from '../util/deep_map';
 import {GrowingRingBuffer} from '../util/growing_ring_buffer';
 import {RingBuffer} from '../util/ring_buffer';
 
+// tslint:disable-next-line:no-require-imports
+const now = require('performance-now');
+
 // Here we implement a simple asynchronous iterator.
 // This lets us avoid using either third-party stream libraries or
 // recent TypeScript language support requiring polyfills.
@@ -1085,7 +1088,7 @@ export class ShuffleIterator<T> extends PrefetchIterator<T> {
       protected upstream: LazyIterator<T>, protected windowSize: number,
       seed?: string) {
     super(upstream, windowSize);
-    this.random = seedrandom.alea(seed || performance.now().toString());
+    this.random = seedrandom.alea(seed || now().toString());
     this.lastRead = Promise.resolve({value: null, done: false});
   }
 

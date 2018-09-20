@@ -23,12 +23,12 @@ const runes = `ᚠᛇᚻ᛫ᛒᛦᚦ᛫ᚠᚱᚩᚠᚢᚱ᛫ᚠᛁᚱᚪ᛫ᚷ�
 ᛋᚳᛖᚪᛚ᛫ᚦᛖᚪᚻ᛫ᛗᚪᚾᚾᚪ᛫ᚷᛖᚻᚹᛦᛚᚳ᛫ᛗᛁᚳᛚᚢᚾ᛫ᚻᛦᛏ᛫ᛞᚫᛚᚪᚾ
 ᚷᛁᚠ᛫ᚻᛖ᛫ᚹᛁᛚᛖ᛫ᚠᚩᚱ᛫ᛞᚱᛁᚻᛏᚾᛖ᛫ᛞᚩᛗᛖᛋ᛫ᚻᛚᛇᛏᚪᚾ᛬`;
 
-const testBlob = new Blob([runes]);
+const testBuffer = Buffer.from(runes);
 
 describe('TextLineDataset', () => {
   it('Produces a stream of strings containing UTF8-decoded text lines',
      async () => {
-       const source = new FileDataSource(testBlob, {chunkSize: 10});
+       const source = new FileDataSource(testBuffer, {chunkSize: 10});
        const dataset = new TextLineDataset(source);
        const iter = await dataset.iterator();
        const result = await iter.collect();

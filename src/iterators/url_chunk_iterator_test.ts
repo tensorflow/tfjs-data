@@ -16,14 +16,22 @@
  * =============================================================================
  */
 
-import * as fetchMock from 'fetch-mock';
+import * as nodeFetch from 'node-fetch';
+import * as sinon from 'sinon';
 
 import {urlChunkIterator} from './url_chunk_iterator';
 
 const testString = 'abcdefghijklmnopqrstuvwxyz';
 
 const url = 'mock_url';
-fetchMock.get('*', testString);
+const fakeResponse = {
+  'ok': true,
+  'buffer': () => {
+    return Buffer.from(testString);
+  }
+};
+const fakeFetch = sinon.fake.returns(fakeResponse);
+sinon.replace(nodeFetch, 'default', fakeFetch);
 
 describe('URLChunkIterator', () => {
   it('Reads the entire file and then closes the stream', async () => {
@@ -52,5 +60,3 @@ describe('URLChunkIterator', () => {
     expect(result[2].length).toEqual(6);
   });
 });
-
-fetchMock.reset();

@@ -22,13 +22,14 @@ const runes = `ᚠᛇᚻ᛫ᛒᛦᚦ᛫ᚠᚱᚩᚠᚢᚱ᛫ᚠᛁᚱᚪ᛫ᚷ�
 ᛋᚳᛖᚪᛚ᛫ᚦᛖᚪᚻ᛫ᛗᚪᚾᚾᚪ᛫ᚷᛖᚻᚹᛦᛚᚳ᛫ᛗᛁᚳᛚᚢᚾ᛫ᚻᛦᛏ᛫ᛞᚫᛚᚪᚾ
 ᚷᛁᚠ᛫ᚻᛖ᛫ᚹᛁᛚᛖ᛫ᚠᚩᚱ᛫ᛞᚱᛁᚻᛏᚾᛖ᛫ᛞᚩᛗᛖᛋ᛫ᚻᛚᛇᛏᚪᚾ᛬`;
 
-const testBlob = new Blob([runes]);
+const testBuffer = Buffer.from(runes);
 
 describe('ByteChunkIterator.decodeUTF8()', () => {
   it('Correctly reassembles split characters', async () => {
-    const byteChunkIterator = new FileChunkIterator(testBlob, {chunkSize: 50});
+    const byteChunkIterator =
+        new FileChunkIterator(testBuffer, {chunkSize: 50});
     const utf8Iterator = byteChunkIterator.decodeUTF8();
-    expect(testBlob.size).toEqual(323);
+    expect(testBuffer.length).toEqual(323);
 
     const result = await utf8Iterator.collect();
     // The test string is 109 characters long; its UTF8 encoding is 323

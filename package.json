@@ -46,6 +46,8 @@
     "@tensorflow/tfjs-core": "0.12.18"
   },
   "dependencies": {
+    "@types/node-fetch": "^2.1.2",
+    "performance-now": "2.1.0",
     "seedrandom": "~2.4.3",
     "utf8": "~2.1.2"
   }
