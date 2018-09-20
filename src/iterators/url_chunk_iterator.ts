@@ -41,8 +41,8 @@ export async function urlChunkIterator(
   }
   const response = await fetch(newUrl);
   if (response.ok) {
-    const arrayBuffer = await response.buffer();
-    return new FileChunkIterator(arrayBuffer, fileOptions);
+    const unitArray = await response.buffer();
+    return new FileChunkIterator(unitArray, fileOptions);
   } else {
     throw new Error(response.statusText);
   }

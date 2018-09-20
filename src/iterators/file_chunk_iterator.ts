@@ -17,13 +17,12 @@
  */
 
 // inspired by https://github.com/maxogden/filereader-stream
-import {FileElement} from '../types';
 
 import {ByteChunkIterator} from './byte_chunk_iterator';
 
 export interface FileChunkIteratorOptions {
   /**
-   * The byte offset at which to begin reading the ArrayBuffer or Uint8Array.
+   * The byte offset at which to begin reading the Uint8Array.
    * Default 0.
    */
   offset?: number;
@@ -32,8 +31,8 @@ export interface FileChunkIteratorOptions {
 }
 
 /**
- * Provide a stream of chunks from a ArrayBuffer or Uint8Array.
- * @param file The source ArrayBuffer or Uint8Array.
+ * Provide a stream of chunks from an Uint8Array.
+ * @param file The source Uint8Array.
  * @param options Optional settings controlling file reading.
  * @returns a lazy Iterator of Uint8Arrays containing sequential chunks of the
  *   input file.
@@ -43,7 +42,7 @@ export class FileChunkIterator extends ByteChunkIterator {
   chunkSize: number;
 
   constructor(
-      protected file: FileElement,
+      protected file: Uint8Array,
       protected options: FileChunkIteratorOptions = {}) {
     super();
     this.offset = options.offset || 0;

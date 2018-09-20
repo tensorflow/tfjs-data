@@ -22,7 +22,7 @@ const range = (start: number, end: number) => {
   return Array.from({length: (end - start)}, (v, k) => k + start);
 };
 
-const testBuffer = new Uint8Array(range(0, 55)).buffer;
+const testBuffer = new Uint8Array(range(0, 55));
 
 describe('FileReaderIterator', () => {
   it('Reads the entire file and then closes the stream', async () => {
