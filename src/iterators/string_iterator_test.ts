@@ -16,7 +16,7 @@
  * =============================================================================
  */
 
-import {FileChunkIterator} from './file_chunk_iterator';
+import {BrowserFileChunkIterator} from './browser_file_chunk_iterator';
 
 const lorem = `Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do
 eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim
@@ -25,11 +25,12 @@ consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum
 dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident,
 sunt in culpa qui officia deserunt mollit anim id est laborum.`;
 
-const testBuffer = Buffer.from(lorem);
+const testBlob = new Blob([lorem]);
 
 describe('StringIterator.split()', () => {
   it('Correctly splits lines', async () => {
-    const byteIterator = new FileChunkIterator(testBuffer, {chunkSize: 50});
+    const byteIterator =
+        new BrowserFileChunkIterator(testBlob, {chunkSize: 50});
     const utf8Iterator = byteIterator.decodeUTF8();
     const lineIterator = utf8Iterator.split('\n');
     const expected = lorem.split('\n');
@@ -44,8 +45,8 @@ describe('StringIterator.split()', () => {
 
   it('Correctly splits strings even when separators fall on chunk boundaries',
      async () => {
-       const byteIterator = new FileChunkIterator(
-           Buffer.from('ab def hi      pq'), {chunkSize: 3});
+       const byteIterator = new BrowserFileChunkIterator(
+           new Blob(['ab def hi      pq']), {chunkSize: 3});
        // Note the initial chunking will be
        //   ['ab ', 'def', ' hi', '   ', '   ', 'pq],
        // so here we are testing for correct behavior when

@@ -16,7 +16,7 @@
  * =============================================================================
  */
 
-import {FileDataSource} from '../sources/file_data_source';
+import {BrowserFileDataSource} from '../sources/browser_file_data_source';
 
 import {CSVDataset, CsvHeaderConfig} from './csv_dataset';
 
@@ -49,7 +49,7 @@ const csvBufferWithHeadersExtra = Buffer.from(csvDataExtra);
 describe('CSVDataset', () => {
   it('produces a stream of dicts containing UTF8-decoded csv data',
      async () => {
-       const source = new FileDataSource(csvBuffer, {chunkSize: 10});
+       const source = new BrowserFileDataSource(csvBuffer, {chunkSize: 10});
        const dataset = await CSVDataset.create(source, ['foo', 'bar', 'baz']);
 
        expect(dataset.csvColumnNames).toEqual(['foo', 'bar', 'baz']);
@@ -69,7 +69,8 @@ describe('CSVDataset', () => {
      });
 
   it('reads CSV column headers when requested', async () => {
-    const source = new FileDataSource(csvBufferWithHeaders, {chunkSize: 10});
+    const source =
+        new BrowserFileDataSource(csvBufferWithHeaders, {chunkSize: 10});
     const dataset =
         await CSVDataset.create(source, CsvHeaderConfig.READ_FIRST_LINE);
 
@@ -89,7 +90,7 @@ describe('CSVDataset', () => {
   });
 
   it('numbers CSV columns by default', async () => {
-    const source = new FileDataSource(csvBuffer, {chunkSize: 10});
+    const source = new BrowserFileDataSource(csvBuffer, {chunkSize: 10});
     const dataset = await CSVDataset.create(source);
     expect(dataset.csvColumnNames).toEqual(['0', '1', '2']);
     const iter = await dataset.iterator();
@@ -108,7 +109,7 @@ describe('CSVDataset', () => {
 
   it('emits rows in order despite async requests', async () => {
     const source =
-        new FileDataSource(csvBufferWithHeadersExtra, {chunkSize: 10});
+        new BrowserFileDataSource(csvBufferWithHeadersExtra, {chunkSize: 10});
     const ds = await CSVDataset.create(source, CsvHeaderConfig.READ_FIRST_LINE);
     expect(ds.csvColumnNames).toEqual(['A', 'B', 'C']);
     const csvIterator = await ds.iterator();

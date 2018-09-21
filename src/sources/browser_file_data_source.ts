@@ -17,29 +17,28 @@
  */
 
 import {DataSource} from '../datasource';
+import {BrowserFileChunkIterator} from '../iterators/browser_file_chunk_iterator';
 import {ByteChunkIterator} from '../iterators/byte_chunk_iterator';
-import {FileChunkIterator} from '../iterators/file_chunk_iterator';
-import {FileChunkIteratorOptions} from '../iterators/file_chunk_iterator';
+import {ChunkIteratorOptions} from '../types';
 
 /**
- * Represents an Uint8Array readable as a stream of binary data
- * chunks.
+ * Represents a file or blob readable as a stream of binary data chunks.
  */
-export class FileDataSource extends DataSource {
+export class BrowserFileDataSource extends DataSource {
   /**
    * Create a `FileDataSource`.
    *
-   * @param input An `Uint8Array` object to read.
-   * @param options Options passed to the underlying `FileChunkIterator`s,
+   * @param input A `File` or `Blob` object to read.
+   * @param options Options passed to the underlying `Uint8ArrayChunkIterator`s,
    *   such as {chunksize: 1024}.
    */
   constructor(
-      protected readonly input: Uint8Array,
-      protected readonly options: FileChunkIteratorOptions = {}) {
+      protected readonly input: File|Blob,
+      protected readonly options: ChunkIteratorOptions = {}) {
     super();
   }
 
   async iterator(): Promise<ByteChunkIterator> {
-    return new FileChunkIterator(this.input, this.options);
+    return new BrowserFileChunkIterator(this.input, this.options);
   }
 }

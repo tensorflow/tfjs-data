@@ -16,52 +16,41 @@
  * =============================================================================
  */
 
-// inspired by https://github.com/maxogden/filereader-stream
+import {ChunkIteratorOptions} from '../types';
 
 import {ByteChunkIterator} from './byte_chunk_iterator';
 
-export interface FileChunkIteratorOptions {
-  /**
-   * The byte offset at which to begin reading the Uint8Array.
-   * Default 0.
-   */
-  offset?: number;
-  /** The number of bytes to read at a time. Default 1MB. */
-  chunkSize?: number;
-}
-
 /**
  * Provide a stream of chunks from an Uint8Array.
- * @param file The source Uint8Array.
- * @param options Optional settings controlling file reading.
+ * @param uint8Array The source Uint8Array.
+ * @param options Optional settings controlling Uint8Array reading.
  * @returns a lazy Iterator of Uint8Arrays containing sequential chunks of the
- *   input file.
+ *   input Uint8Array.
  */
-export class FileChunkIterator extends ByteChunkIterator {
+export class Uint8ArrayChunkIterator extends ByteChunkIterator {
   offset: number;
   chunkSize: number;
-
   constructor(
-      protected file: Uint8Array,
-      protected options: FileChunkIteratorOptions = {}) {
+      protected uint8Array: Uint8Array,
+      protected options: ChunkIteratorOptions = {}) {
     super();
     this.offset = options.offset || 0;
-    // default 1MB chunk has tolerable perf on large files
+    // default 1MB chunk has tolerable perf on large inputs
     this.chunkSize = options.chunkSize || 1024 * 1024;
   }
 
   summary() {
-    return `FileChunks ${this.file}`;
+    return `Uint8ArrayChunks ${this.uint8Array}`;
   }
-
   async next(): Promise<IteratorResult<Uint8Array>> {
-    if (this.offset >= this.file.byteLength) {
+    if (this.offset >= this.uint8Array.byteLength) {
       return {value: null, done: true};
     }
     const chunk = new Promise<Uint8Array>((resolve, reject) => {
       const end = this.offset + this.chunkSize;
-      // Note if end > this.file.byteLength, we just get a small last chunk.
-      resolve(new Uint8Array(this.file.slice(this.offset, end)));
+      // Note if end > this.uint8Array.byteLength, we just get a small last
+      // chunk.
+      resolve(new Uint8Array(this.uint8Array.slice(this.offset, end)));
       this.offset = end;
     });
     return {value: (await chunk), done: false};

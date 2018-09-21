@@ -15,8 +15,14 @@
  *
  * =============================================================================
  */
-import fetch, {Headers as PolyfillHeaders, Request as PolyfillRequest} from 'node-fetch';
-import {FileChunkIterator, FileChunkIteratorOptions} from './file_chunk_iterator';
+
+import {ENV} from '@tensorflow/tfjs-core';
+import {default as nodeFetch, Headers as PolyfillHeaders, Request as PolyfillRequest} from 'node-fetch';
+
+import {ChunkIteratorOptions} from '../types';
+
+import {BrowserFileChunkIterator} from './browser_file_chunk_iterator';
+import {Uint8ArrayChunkIterator} from './uint8Array_chunk_iterator';
 
 /**
  * Provide a stream of chunks from a URL.
@@ -26,24 +32,35 @@ import {FileChunkIterator, FileChunkIteratorOptions} from './file_chunk_iterator
  * yet reliably provide a reader stream for the response body.
  */
 export async function urlChunkIterator(
-    url: RequestInfo, fileOptions: FileChunkIteratorOptions = {}) {
-  let newUrl: string|PolyfillRequest;
-  if (typeof url !== 'string') {
-    // Construct PolyfillRequest with headers.
-    newUrl = new PolyfillRequest(url.toString());
-    const headers = new PolyfillHeaders();
-    (url as Request).headers.forEach((value: string, key: string) => {
-      headers.set(key, value);
-    });
-    newUrl.headers = headers;
+    url: RequestInfo, uint8ArrayOptions: ChunkIteratorOptions = {}) {
+  let response;
+  if (ENV.get('IS_BROWSER')) {
+    response = await fetch(url);
+    if (response.ok) {
+      const unitArray = await response.blob();
+      return new BrowserFileChunkIterator(unitArray, uint8ArrayOptions);
+    } else {
+      throw new Error(response.statusText);
+    }
   } else {
-    newUrl = url as string;
-  }
-  const response = await fetch(newUrl);
-  if (response.ok) {
-    const unitArray = await response.buffer();
-    return new FileChunkIterator(unitArray, fileOptions);
-  } else {
-    throw new Error(response.statusText);
+    let newUrl: string|PolyfillRequest;
+    if (typeof url !== 'string') {
+      // Construct PolyfillRequest with headers.
+      newUrl = new PolyfillRequest(url.toString());
+      const headers = new PolyfillHeaders();
+      (url as Request).headers.forEach((value: string, key: string) => {
+        headers.set(key, value);
+      });
+      newUrl.headers = headers;
+    } else {
+      newUrl = url as string;
+    }
+    response = await nodeFetch(newUrl);
+    if (response.ok) {
+      const unitArray = await response.buffer();
+      return new Uint8ArrayChunkIterator(unitArray, uint8ArrayOptions);
+    } else {
+      throw new Error(response.statusText);
+    }
   }
 }

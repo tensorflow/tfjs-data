@@ -16,19 +16,20 @@
  * =============================================================================
  */
 
-import {FileDataSource} from '../sources/file_data_source';
+import {BrowserFileDataSource} from '../sources/browser_file_data_source';
+
 import {TextLineDataset} from './text_line_dataset';
 
 const runes = `ᚠᛇᚻ᛫ᛒᛦᚦ᛫ᚠᚱᚩᚠᚢᚱ᛫ᚠᛁᚱᚪ᛫ᚷᛖᚻᚹᛦᛚᚳᚢᛗ
 ᛋᚳᛖᚪᛚ᛫ᚦᛖᚪᚻ᛫ᛗᚪᚾᚾᚪ᛫ᚷᛖᚻᚹᛦᛚᚳ᛫ᛗᛁᚳᛚᚢᚾ᛫ᚻᛦᛏ᛫ᛞᚫᛚᚪᚾ
 ᚷᛁᚠ᛫ᚻᛖ᛫ᚹᛁᛚᛖ᛫ᚠᚩᚱ᛫ᛞᚱᛁᚻᛏᚾᛖ᛫ᛞᚩᛗᛖᛋ᛫ᚻᛚᛇᛏᚪᚾ᛬`;
 
-const testBuffer = Buffer.from(runes);
+const testBlob = new Blob([runes]);
 
 describe('TextLineDataset', () => {
   it('Produces a stream of strings containing UTF8-decoded text lines',
      async () => {
-       const source = new FileDataSource(testBuffer, {chunkSize: 10});
+       const source = new BrowserFileDataSource(testBlob, {chunkSize: 10});
        const dataset = new TextLineDataset(source);
        const iter = await dataset.iterator();
        const result = await iter.collect();

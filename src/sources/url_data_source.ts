@@ -18,8 +18,8 @@
 
 import {DataSource} from '../datasource';
 import {ByteChunkIterator} from '../iterators/byte_chunk_iterator';
-import {FileChunkIteratorOptions} from '../iterators/file_chunk_iterator';
 import {urlChunkIterator} from '../iterators/url_chunk_iterator';
+import {ChunkIteratorOptions} from '../types';
 
 /*
  * Represents a URL readable as a stream of binary data chunks.
@@ -29,12 +29,12 @@ export class URLDataSource extends DataSource {
    * Create a `URLDataSource`.
    *
    * @param url A source URL string, or a `Request` object.
-   * @param options Options passed to the underlying `FileChunkIterator`s,
+   * @param options Options passed to the underlying `Uint8ArrayChunkIterator`s,
    *   such as {chunksize: 1024}.
    */
   constructor(
       protected readonly url: RequestInfo,
-      protected readonly fileOptions: FileChunkIteratorOptions = {}) {
+      protected readonly uint8ArrayOptions: ChunkIteratorOptions = {}) {
     super();
   }
 
@@ -43,6 +43,6 @@ export class URLDataSource extends DataSource {
   // to treat the downloaded file as a buffer anyway, we may as well retain it--
   // but that raises GC issues.  Also we may want a persistent disk cache.
   async iterator(): Promise<ByteChunkIterator> {
-    return urlChunkIterator(this.url, this.fileOptions);
+    return urlChunkIterator(this.url, this.uint8ArrayOptions);
   }
 }

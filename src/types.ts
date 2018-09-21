@@ -86,3 +86,17 @@ export type IteratorContainer = Container<LazyIterator<DataElement>>;
 export type DatasetBatch = {
   [key: string]: BatchArray
 };
+
+/**
+ * Chunk Iterator optional configs for fetched/local data in both browser and
+ * node.
+ */
+export interface ChunkIteratorOptions {
+  /**
+   * The byte offset at which to begin reading the FileElement.
+   * Default 0.
+   */
+  offset?: number;
+  /** The number of bytes to read at a time. Default 1MB. */
+  chunkSize?: number;
+}

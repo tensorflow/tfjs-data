@@ -16,17 +16,18 @@
  * =============================================================================
  */
 
-import {FileChunkIterator} from './file_chunk_iterator';
+import {BrowserFileChunkIterator} from './browser_file_chunk_iterator';
 
 const range = (start: number, end: number) => {
   return Array.from({length: (end - start)}, (v, k) => k + start);
 };
 
-const testBuffer = new Uint8Array(range(0, 55));
+const testBlob = new Blob([new Uint8Array(range(0, 55))]);
 
-describe('FileReaderIterator', () => {
+describe('Uint8ArrayReaderIterator', () => {
   it('Reads the entire file and then closes the stream', async () => {
-    const readIterator = new FileChunkIterator(testBuffer, {chunkSize: 10});
+    const readIterator =
+        new BrowserFileChunkIterator(testBlob, {chunkSize: 10});
     const result = await readIterator.collect();
     expect(result.length).toEqual(6);
     const totalBytes = result.map(x => x.length).reduce((a, b) => a + b);
@@ -34,7 +35,8 @@ describe('FileReaderIterator', () => {
   });
 
   it('Reads chunks in order', async () => {
-    const readIterator = new FileChunkIterator(testBuffer, {chunkSize: 10});
+    const readIterator =
+        new BrowserFileChunkIterator(testBlob, {chunkSize: 10});
     const result = await readIterator.collect();
     expect(result[0][0]).toEqual(0);
     expect(result[1][0]).toEqual(10);
@@ -45,7 +47,8 @@ describe('FileReaderIterator', () => {
   });
 
   it('Reads chunks of expected sizes', async () => {
-    const readIterator = new FileChunkIterator(testBuffer, {chunkSize: 10});
+    const readIterator =
+        new BrowserFileChunkIterator(testBlob, {chunkSize: 10});
     const result = await readIterator.collect();
     expect(result[0].length).toEqual(10);
     expect(result[1].length).toEqual(10);
