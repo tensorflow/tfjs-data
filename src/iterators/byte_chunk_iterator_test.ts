@@ -19,7 +19,6 @@
 import {ENV} from '@tensorflow/tfjs-core';
 
 import {BrowserFileChunkIterator} from './browser_file_chunk_iterator';
-import {Uint8ArrayChunkIterator} from './uint8Array_chunk_iterator';
 
 const runes = `ᚠᛇᚻ᛫ᛒᛦᚦ᛫ᚠᚱᚩᚠᚢᚱ᛫ᚠᛁᚱᚪ᛫ᚷᛖᚻᚹᛦᛚᚳᚢᛗ
 ᛋᚳᛖᚪᛚ᛫ᚦᛖᚪᚻ᛫ᛗᚪᚾᚾᚪ᛫ᚷᛖᚻᚹᛦᛚᚳ᛫ᛗᛁᚳᛚᚢᚾ᛫ᚻᛦᛏ᛫ᛞᚫᛚᚪᚾ
@@ -30,18 +29,12 @@ const runes = `ᚠᛇᚻ᛫ᛒᛦᚦ᛫ᚠᚱᚩᚠᚢᚱ᛫ᚠᛁᚱᚪ᛫ᚷ�
 
 const testData = ENV.get('IS_BROWSER') ? new Blob([runes]) : Buffer.from(runes);
 
-describe('ByteChunkIterator.decodeUTF8()', () => {
+fdescribe('ByteChunkIterator.decodeUTF8()', () => {
   it('Correctly reassembles split characters', async () => {
     let byteChunkIterator;
-    if (ENV.get('IS_BROWSER')) {
-      byteChunkIterator =
-          new BrowserFileChunkIterator(testData as Blob, {chunkSize: 50});
-      expect((testData as Blob).size).toEqual(323);
-    } else {
-      byteChunkIterator =
-          new Uint8ArrayChunkIterator(testData as Uint8Array, {chunkSize: 50});
-      expect((testData as Uint8Array).length).toEqual(323);
-    }
+    byteChunkIterator =
+      new BrowserFileChunkIterator(testData as Blob, {chunkSize: 50});
+    expect((testData as Blob).size).toEqual(323);
     const utf8Iterator = byteChunkIterator.decodeUTF8();
 
     const result = await utf8Iterator.collect();

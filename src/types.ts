@@ -31,14 +31,14 @@ import {LazyIterator} from './iterators/lazy_iterator';
  * Such a value may not have a batch dimension.  A value may be a scalar or an
  * n-dimensional array.
  */
-export type ElementArray = number|number[]|tf.Tensor|string;
+export type ElementArray = number | number[] | tf.Tensor | string;
 
 /**
  * The value associated with a given key for a batch of elements.
  *
  * Such a value must always have a batch dimension, even if it is of length 1.
  */
-export type BatchArray = tf.Tensor|string[];
+export type BatchArray = tf.Tensor | string[];
 
 /**
  * A map from string keys (aka column names) to values for a single element.
@@ -58,12 +58,12 @@ export type DataElementObject = TensorContainerObject;
 
 export type DataElementArray = TensorContainerArray;
 
-export type PrimitiveOrT<T> = void|string|number|boolean|T;
+export type PrimitiveOrT<T> = void | string | number | boolean | T;
 
 // Maybe this should be called 'NestedContainer'-- that's just a bit unwieldy.
-export type Container<T> = ContainerObject<T>|ContainerArray<T>;
+export type Container<T> = ContainerObject<T> | ContainerArray<T>;
 
-export type ContainerOrT<T> = Container<T>|T;
+export type ContainerOrT<T> = Container<T> | T;
 
 export interface ContainerObject<T> {
   [x: string]: ContainerOrT<T>;
@@ -99,4 +99,6 @@ export interface ChunkIteratorOptions {
   offset?: number;
   /** The number of bytes to read at a time. Default 1MB. */
   chunkSize?: number;
-}
+};
+
+export type FileElement = File | Blob | Uint8Array;

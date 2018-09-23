@@ -19,7 +19,7 @@
 import {DataSource} from '../datasource';
 import {BrowserFileChunkIterator} from '../iterators/browser_file_chunk_iterator';
 import {ByteChunkIterator} from '../iterators/byte_chunk_iterator';
-import {ChunkIteratorOptions} from '../types';
+import {ChunkIteratorOptions, FileElement} from '../types';
 
 /**
  * Represents a file or blob readable as a stream of binary data chunks.
@@ -33,8 +33,8 @@ export class BrowserFileDataSource extends DataSource {
    *   such as {chunksize: 1024}.
    */
   constructor(
-      protected readonly input: File|Blob,
-      protected readonly options: ChunkIteratorOptions = {}) {
+    protected readonly input: FileElement,
+    protected readonly options: ChunkIteratorOptions = {}) {
     super();
   }
 
