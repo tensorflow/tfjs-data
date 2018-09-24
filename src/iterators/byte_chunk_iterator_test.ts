@@ -17,25 +17,21 @@
  */
 
 import {ENV} from '@tensorflow/tfjs-core';
-
-import {BrowserFileChunkIterator} from './browser_file_chunk_iterator';
+import {FileChunkIterator} from './file_chunk_iterator';
 
 const runes = `ᚠᛇᚻ᛫ᛒᛦᚦ᛫ᚠᚱᚩᚠᚢᚱ᛫ᚠᛁᚱᚪ᛫ᚷᛖᚻᚹᛦᛚᚳᚢᛗ
 ᛋᚳᛖᚪᛚ᛫ᚦᛖᚪᚻ᛫ᛗᚪᚾᚾᚪ᛫ᚷᛖᚻᚹᛦᛚᚳ᛫ᛗᛁᚳᛚᚢᚾ᛫ᚻᛦᛏ᛫ᛞᚫᛚᚪᚾ
 ᚷᛁᚠ᛫ᚻᛖ᛫ᚹᛁᛚᛖ᛫ᚠᚩᚱ᛫ᛞᚱᛁᚻᛏᚾᛖ᛫ᛞᚩᛗᛖᛋ᛫ᚻᛚᛇᛏᚪᚾ᛬`;
 
-// const testBlob = new Blob([runes]);
-// const testBuffer = Buffer.from(runes);
-
 const testData = ENV.get('IS_BROWSER') ? new Blob([runes]) : Buffer.from(runes);
 
-fdescribe('ByteChunkIterator.decodeUTF8()', () => {
+describe('ByteChunkIterator.decodeUTF8()', () => {
   it('Correctly reassembles split characters', async () => {
-    let byteChunkIterator;
-    byteChunkIterator =
-      new BrowserFileChunkIterator(testData as Blob, {chunkSize: 50});
-    expect((testData as Blob).size).toEqual(323);
-    const utf8Iterator = byteChunkIterator.decodeUTF8();
+    const fileChunkIterator = new FileChunkIterator(testData, {chunkSize: 50});
+    expect((ENV.get('IS_BROWSER') ? (testData as Blob).size :
+                                    (testData as Buffer).byteLength))
+        .toEqual(323);
+    const utf8Iterator = fileChunkIterator.decodeUTF8();
 
     const result = await utf8Iterator.collect();
     // The test string is 109 characters long; its UTF8 encoding is 323

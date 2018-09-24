@@ -19,10 +19,7 @@
 import {ENV} from '@tensorflow/tfjs-core';
 import {default as nodeFetch, Headers as PolyfillHeaders, Request as PolyfillRequest} from 'node-fetch';
 
-import {ChunkIteratorOptions} from '../types';
-
-import {BrowserFileChunkIterator} from './browser_file_chunk_iterator';
-import {Uint8ArrayChunkIterator} from './uint8Array_chunk_iterator';
+import {FileChunkIterator, FileChunkIteratorOptions} from './file_chunk_iterator';
 
 /**
  * Provide a stream of chunks from a URL.
@@ -32,13 +29,13 @@ import {Uint8ArrayChunkIterator} from './uint8Array_chunk_iterator';
  * yet reliably provide a reader stream for the response body.
  */
 export async function urlChunkIterator(
-    url: RequestInfo, uint8ArrayOptions: ChunkIteratorOptions = {}) {
+    url: RequestInfo, options: FileChunkIteratorOptions = {}) {
   let response;
   if (ENV.get('IS_BROWSER')) {
     response = await fetch(url);
     if (response.ok) {
-      const unitArray = await response.blob();
-      return new BrowserFileChunkIterator(unitArray, uint8ArrayOptions);
+      const blob = await response.blob();
+      return new FileChunkIterator(blob, options);
     } else {
       throw new Error(response.statusText);
     }
@@ -58,7 +55,9 @@ export async function urlChunkIterator(
     response = await nodeFetch(newUrl);
     if (response.ok) {
       const unitArray = await response.buffer();
-      return new Uint8ArrayChunkIterator(unitArray, uint8ArrayOptions);
+
+      console.log(unitArray.length + ':::' + unitArray);
+      return new FileChunkIterator(unitArray, options);
     } else {
       throw new Error(response.statusText);
     }

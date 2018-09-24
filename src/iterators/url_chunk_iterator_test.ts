@@ -17,17 +17,35 @@
  */
 
 import * as fetchMock from 'fetch-mock';
-// import * as nodeFetch from 'node-fetch';
+// import fetch from 'node-fetch';
+// global.fetch = require('node-fetch');
 
 import {urlChunkIterator} from './url_chunk_iterator';
 
 const testString = 'abcdefghijklmnopqrstuvwxyz';
 
+
 const url = 'mock_url';
+// const url = 'http://httpbin.org/get';
 fetchMock.get('*', testString);
+// fetchMock.get('*', {ok: false, buffer: Buffer.from(testString)});
+
+// fetchMock.mock('*', {
+//   ok: true,
+//   blob: () => {
+//     return new Blob([testString]);
+//   },
+//   buffer: Buffer.from(testString)
+// });
 
 describe('URLChunkIterator', () => {
-  it('Reads the entire file and then closes the stream', async () => {
+  fit('Reads the entire file and then closes the stream', async () => {
+    // fetchMock.get('*', {ok: false, buffer: Buffer.from(testString)});
+    // const res = await fetch(url);
+    // console.log(await res.ok);
+    // fetchMock.reset();
+
+
     const readIterator = await urlChunkIterator(url, {chunkSize: 10});
     const result = await readIterator.collect();
     expect(result.length).toEqual(3);
@@ -53,3 +71,5 @@ describe('URLChunkIterator', () => {
     expect(result[2].length).toEqual(6);
   });
 });
+
+fetchMock.reset();

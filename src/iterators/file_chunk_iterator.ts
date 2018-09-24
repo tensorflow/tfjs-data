@@ -16,23 +16,31 @@
  * =============================================================================
  */
 
-import {ChunkIteratorOptions, FileElement} from '../types';
+import {FileElement} from '../types';
 
 import {ByteChunkIterator} from './byte_chunk_iterator';
+
+export interface FileChunkIteratorOptions {
+  /** The byte offset at which to begin reading the File or Blob. Default 0. */
+  offset?: number;
+  /** The number of bytes to read at a time. Default 1MB. */
+  chunkSize?: number;
+}
 
 /**
  * Provide a stream of chunks from an FileElement.
  * @param file The source file.
  * @param options Optional settings controlling array reading.
  * @returns a lazy Iterator of Uint8Arrays containing sequential chunks of the
- *   input uint8Array.
+ *   input File, Blob or Uint8Array.
  */
-export class BrowserFileChunkIterator extends ByteChunkIterator {
+export class FileChunkIterator extends ByteChunkIterator {
   offset: number;
   chunkSize: number;
 
   constructor(
-    protected file: FileElement, protected options: ChunkIteratorOptions = {}) {
+      protected file: FileElement,
+      protected options: FileChunkIteratorOptions = {}) {
     super();
     this.offset = options.offset || 0;
     // default 1MB chunk has tolerable perf on large files
@@ -44,7 +52,9 @@ export class BrowserFileChunkIterator extends ByteChunkIterator {
   }
 
   async next(): Promise<IteratorResult<Uint8Array>> {
-    if (this.offset >= ((this.file instanceof Uint8Array) ? this.file.byteLength : this.file.size)) {
+    if (this.offset >= ((this.file instanceof Uint8Array) ?
+                            this.file.byteLength :
+                            this.file.size)) {
       return {value: null, done: true};
     }
     const chunk = new Promise<Uint8Array>((resolve, reject) => {
