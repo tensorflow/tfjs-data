@@ -16,6 +16,7 @@
  * =============================================================================
  */
 
+// inspired by https://github.com/maxogden/filereader-stream
 import {FileElement} from '../types';
 
 import {ByteChunkIterator} from './byte_chunk_iterator';
@@ -28,7 +29,7 @@ export interface FileChunkIteratorOptions {
 }
 
 /**
- * Provide a stream of chunks from an FileElement.
+ * Provide a stream of chunks from a File, Blob, or Uint8Array.
  * @param file The source File, Blob or Uint8Array.
  * @param options Optional settings controlling file reading.
  * @returns a lazy Iterator of Uint8Arrays containing sequential chunks of the

@@ -42,7 +42,9 @@ export async function urlChunkIterator(
     // TODO(kangyizhang): Provide argument for users to use http.request with
     // headers in node.
     if (typeof url !== 'string') {
-      throw new Error('URL only support string in node env right now.');
+      throw new Error(
+          'URL must be a string. Request objects are not supported ' +
+          'in the node.js environment yet.');
     }
     response = await nodeFetch(url);
     if (response.ok) {
