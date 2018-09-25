@@ -67,7 +67,7 @@ export class FileChunkIterator extends ByteChunkIterator {
         // TODO(soergel): is this a performance issue?
         const fileReader = new FileReader();
         fileReader.onload = (event) => {
-          let data = fileReader.result;
+          let data: string|ArrayBuffer|Uint8Array = fileReader.result;
           // Not sure we can trust the return type of
           // FileReader.readAsArrayBuffer See e.g.
           // https://github.com/node-file-api/FileReader/issues/2

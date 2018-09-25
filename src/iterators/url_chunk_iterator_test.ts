@@ -17,35 +17,23 @@
  */
 
 import * as fetchMock from 'fetch-mock';
-// import fetch from 'node-fetch';
-// global.fetch = require('node-fetch');
+import * as nock from 'nock';
 
 import {urlChunkIterator} from './url_chunk_iterator';
 
 const testString = 'abcdefghijklmnopqrstuvwxyz';
 
+// node-fetch requires absolute url syntax even though the response is mocked.
+const url = 'http://google.com/';
 
-const url = 'mock_url';
-// const url = 'http://httpbin.org/get';
+// fetch-mock is for browser env, and nock is for node env.
 fetchMock.get('*', testString);
-// fetchMock.get('*', {ok: false, buffer: Buffer.from(testString)});
 
-// fetchMock.mock('*', {
-//   ok: true,
-//   blob: () => {
-//     return new Blob([testString]);
-//   },
-//   buffer: Buffer.from(testString)
-// });
+// Call .times() so that nock could repeat the response for all tests.
+nock(url).get('/').times(3).reply(200, testString);
 
 describe('URLChunkIterator', () => {
-  fit('Reads the entire file and then closes the stream', async () => {
-    // fetchMock.get('*', {ok: false, buffer: Buffer.from(testString)});
-    // const res = await fetch(url);
-    // console.log(await res.ok);
-    // fetchMock.reset();
-
-
+  it('Reads the entire file and then closes the stream', async () => {
     const readIterator = await urlChunkIterator(url, {chunkSize: 10});
     const result = await readIterator.collect();
     expect(result.length).toEqual(3);

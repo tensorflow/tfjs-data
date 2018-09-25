@@ -40,23 +40,14 @@ export async function urlChunkIterator(
       throw new Error(response.statusText);
     }
   } else {
-    let newUrl: string|PolyfillRequest;
+    // TODO(kangyizhang): Provide argument for users to use http.request with
+    // headers in node.
     if (typeof url !== 'string') {
-      // Construct PolyfillRequest with headers.
-      newUrl = new PolyfillRequest(url.toString());
-      const headers = new PolyfillHeaders();
-      (url as Request).headers.forEach((value: string, key: string) => {
-        headers.set(key, value);
-      });
-      newUrl.headers = headers;
-    } else {
-      newUrl = url as string;
+      throw new Error('URL only support string in node env right now.');
     }
-    response = await nodeFetch(newUrl);
+    response = await nodeFetch(url);
     if (response.ok) {
       const unitArray = await response.buffer();
-
-      console.log(unitArray.length + ':::' + unitArray);
       return new FileChunkIterator(unitArray, options);
     } else {
       throw new Error(response.statusText);
