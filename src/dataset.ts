@@ -383,9 +383,7 @@ function batchConcat(arrays: Array<number|number[]|tf.Tensor>): tf.Tensor {
     resultVals.set(aVals, offset);
     offset += aVals.length;
   }
-  const result = tf.Tensor.make(batchShape, {values: resultVals});
-  tf.dispose(arrays);
-  return result;
+  return tf.Tensor.make(batchShape, {values: resultVals});
 }
 
 /**
