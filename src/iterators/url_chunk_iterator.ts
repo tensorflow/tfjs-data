@@ -17,8 +17,7 @@
  */
 
 import {ENV} from '@tensorflow/tfjs-core';
-import {default as nodeFetch, Headers as PolyfillHeaders, Request as PolyfillRequest} from 'node-fetch';
-
+import {default as nodeFetch} from 'node-fetch';
 import {FileChunkIterator, FileChunkIteratorOptions} from './file_chunk_iterator';
 
 /**

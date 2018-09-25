@@ -27,11 +27,11 @@ const testData = ENV.get('IS_BROWSER') ? new Blob([runes]) : Buffer.from(runes);
 
 describe('ByteChunkIterator.decodeUTF8()', () => {
   it('Correctly reassembles split characters', async () => {
-    const fileChunkIterator = new FileChunkIterator(testData, {chunkSize: 50});
+    const byteChunkIterator = new FileChunkIterator(testData, {chunkSize: 50});
     expect((ENV.get('IS_BROWSER') ? (testData as Blob).size :
                                     (testData as Buffer).byteLength))
         .toEqual(323);
-    const utf8Iterator = fileChunkIterator.decodeUTF8();
+    const utf8Iterator = byteChunkIterator.decodeUTF8();
 
     const result = await utf8Iterator.collect();
     // The test string is 109 characters long; its UTF8 encoding is 323

@@ -18,7 +18,6 @@
 
 import {ENV} from '@tensorflow/tfjs-core';
 import {FileDataSource} from '../sources/file_data_source';
-
 import {TextLineDataset} from './text_line_dataset';
 
 const runes = `ᚠᛇᚻ᛫ᛒᛦᚦ᛫ᚠᚱᚩᚠᚢᚱ᛫ᚠᛁᚱᚪ᛫ᚷᛖᚻᚹᛦᛚᚳᚢᛗ

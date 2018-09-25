@@ -26,12 +26,11 @@ consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum
 dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident,
 sunt in culpa qui officia deserunt mollit anim id est laborum.`;
 
-const testChunk =
-    ENV.get('IS_BROWSER') ? new Blob([lorem]) : Buffer.from(lorem);
+const testData = ENV.get('IS_BROWSER') ? new Blob([lorem]) : Buffer.from(lorem);
 
 describe('StringIterator.split()', () => {
   it('Correctly splits lines', async () => {
-    const byteIterator = new FileChunkIterator(testChunk, {chunkSize: 50});
+    const byteIterator = new FileChunkIterator(testData, {chunkSize: 50});
     const utf8Iterator = byteIterator.decodeUTF8();
     const lineIterator = utf8Iterator.split('\n');
     const expected = lorem.split('\n');

@@ -29,8 +29,8 @@ export interface FileChunkIteratorOptions {
 
 /**
  * Provide a stream of chunks from an FileElement.
- * @param file The source file.
- * @param options Optional settings controlling array reading.
+ * @param file The source File, Blob or Uint8Array.
+ * @param options Optional settings controlling file reading.
  * @returns a lazy Iterator of Uint8Arrays containing sequential chunks of the
  *   input File, Blob or Uint8Array.
  */
