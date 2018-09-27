@@ -131,23 +131,22 @@ describeWithFlags('Dataset', tf.test_util.CPU_ENVS, () => {
     expect(result).toEqual([[1, 3], [2, 4]]);
   });
 
-  it('zipping a native string throws an error', async done => {
+  it('zipping a native string throws an error', async () => {
     try {
       // tslint:disable-next-line:no-any no-construct
       await zip('test' as any);
-      done.fail();
+      throw new Error('The line above should have thrown an error');
     } catch (e) {
       expect(e.message).toEqual(
           'The argument to zip() must be an object or array.');
-      done();
     }
   });
 
-  it('zipping a string object throws a meaningful error', async done => {
+  it('zipping a string object throws a meaningful error', async () => {
     try {
       // tslint:disable-next-line:no-any no-construct
       await zip(new String('test') as any).iterator();
-      done.fail();
+      throw new Error('The line above should have thrown an error');
     } catch (e) {
       // This error is not specific to the error case arising from
       //   typeof(new String('test')) === 'object'
@@ -157,7 +156,6 @@ describeWithFlags('Dataset', tf.test_util.CPU_ENVS, () => {
       expect(e.message).toEqual(
           'Leaves of the structure passed to zip() must be Datasets, ' +
           'not primitives.');
-      done();
     }
   });
 
@@ -175,7 +173,7 @@ describeWithFlags('Dataset', tf.test_util.CPU_ENVS, () => {
     ]);
   });
 
-  it('zipping a structure with cycles throws an error', async done => {
+  it('zipping a structure with cycles throws an error', async () => {
     try {
       // tslint:disable-next-line:no-any
       const a = datasetFromElements([1, 2, 3]);
@@ -184,15 +182,14 @@ describeWithFlags('Dataset', tf.test_util.CPU_ENVS, () => {
       const abc: DatasetContainer = [a, b, c];
       c.push(abc);
       await zip({a, abc}).iterator();
-      done.fail();
+      throw new Error('The line above should have thrown an error');
     } catch (e) {
       expect(e.message).toEqual('Circular references are not supported.');
-      done();
     }
   });
 
   it('zip propagates errors thrown when iterating constituent datasets',
-     async done => {
+     async () => {
        try {
          let count = 0;
          const a =
@@ -204,12 +201,11 @@ describeWithFlags('Dataset', tf.test_util.CPU_ENVS, () => {
                                    }));
          const b = datasetFromElements([3, 4, 5, 6]);
          // tslint:disable-next-line:no-any
-         await zip([a, b]).collectAll();
-         done.fail();
+         await (await zip([a, b]).iterator()).collect(1000, 0);
+         throw new Error('The line above should have thrown an error');
        } catch (e) {
          expect(e.message).toEqual(
              'Error thrown while iterating through a dataset: propagate me!');
-         done();
        }
      });
 
@@ -232,144 +228,99 @@ describeWithFlags('Dataset', tf.test_util.CPU_ENVS, () => {
     ]);
   });
 
-  it('can be repeated indefinitely', async done => {
-    try {
-      const a = datasetFromElements([{'item': 1}, {'item': 2}, {'item': 3}]);
-      await a.repeat().take(234).collectAll();
-      done();
-    } catch (e) {
-      done.fail(e);
-    }
+  it('can be repeated indefinitely', async () => {
+    const a = datasetFromElements([{'item': 1}, {'item': 2}, {'item': 3}]);
+    await a.repeat().take(234).collectAll();
   });
 
-  it('can be repeated with state in a closure', async done => {
-    try {
-      // This tests a tricky bug having to do with 'this' being set properly.
-      // See
-      // https://github.com/Microsoft/TypeScript/wiki/%27this%27-in-TypeScript
+  it('can be repeated with state in a closure', async () => {
+    // This tests a tricky bug having to do with 'this' being set properly.
+    // See
+    // https://github.com/Microsoft/TypeScript/wiki/%27this%27-in-TypeScript
 
-      class CustomDataset extends Dataset<{}> {
-        state = {val: 1};
-        async iterator() {
-          const result = iteratorFromItems([
-            {'item': this.state.val++}, {'item': this.state.val++},
-            {'item': this.state.val++}
-          ]);
-          return result;
-        }
+    class CustomDataset extends Dataset<{}> {
+      state = {val: 1};
+      async iterator() {
+        const result = iteratorFromItems([
+          {'item': this.state.val++}, {'item': this.state.val++},
+          {'item': this.state.val++}
+        ]);
+        return result;
       }
-      const a = new CustomDataset();
-      await a.repeat().take(1234).collectAll();
-      done();
-    } catch (e) {
-      done.fail(e);
     }
+    const a = new CustomDataset();
+    await a.repeat().take(1234).collectAll();
   });
 
-  it('can collect all items into memory', async done => {
-    try {
-      const ds = new TestDataset();
-      const items = await ds.collectAll();
-      expect(items.length).toEqual(100);
-      // The test dataset has 100 elements, each containing 2 Tensors.
-      expect(tf.memory().numTensors).toEqual(200);
-      done();
-    } catch (e) {
-      done.fail(e);
-    }
+  it('can collect all items into memory', async () => {
+    const ds = new TestDataset();
+    const items = await ds.collectAll();
+    expect(items.length).toEqual(100);
+    // The test dataset has 100 elements, each containing 2 Tensors.
+    expect(tf.memory().numTensors).toEqual(200);
   });
 
-  it('skip does not leak Tensors', async done => {
-    try {
-      const ds = new TestDataset();
-      expect(tf.memory().numTensors).toEqual(0);
-      const result = await ds.skip(15).collectAll();
-      // The test dataset had 100 elements; we skipped 15; 85 remain.
-      expect(result.length).toEqual(85);
-      // Each element of the test dataset contains 2 Tensors;
-      // 85 elements remain, so 2 * 85 = 170 Tensors remain.
-      expect(tf.memory().numTensors).toEqual(170);
-      done();
-    } catch (e) {
-      done.fail(e);
-    }
+  it('skip does not leak Tensors', async () => {
+    const ds = new TestDataset();
+    expect(tf.memory().numTensors).toEqual(0);
+    const result = await ds.skip(15).collectAll();
+    // The test dataset had 100 elements; we skipped 15; 85 remain.
+    expect(result.length).toEqual(85);
+    // Each element of the test dataset contains 2 Tensors;
+    // 85 elements remain, so 2 * 85 = 170 Tensors remain.
+    expect(tf.memory().numTensors).toEqual(170);
   });
 
-  it('filter does not leak Tensors', async done => {
-    try {
-      const ds = new TestDataset();
-      expect(tf.memory().numTensors).toEqual(0);
-      await ds.filter(x => ((x['number'] as number) % 2 === 0)).collectAll();
-      // Each element of the test dataset contains 2 Tensors.
-      // There were 100 elements, but we filtered out half of them.
-      // Thus 50 * 2 = 100 Tensors remain.
-      expect(tf.memory().numTensors).toEqual(100);
-      done();
-    } catch (e) {
-      done.fail(e);
-    }
+  it('filter does not leak Tensors', async () => {
+    const ds = new TestDataset();
+    expect(tf.memory().numTensors).toEqual(0);
+    await ds.filter(x => ((x['number'] as number) % 2 === 0)).collectAll();
+    // Each element of the test dataset contains 2 Tensors.
+    // There were 100 elements, but we filtered out half of them.
+    // Thus 50 * 2 = 100 Tensors remain.
+    expect(tf.memory().numTensors).toEqual(100);
   });
 
-  it('map does not leak Tensors when none are returned', async done => {
-    try {
-      const ds = new TestDataset();
-      expect(tf.memory().numTensors).toEqual(0);
-      await ds.map(x => ({'constant': 1})).collectAll();
-      // The map operation consumed all of the tensors and emitted none.
-      expect(tf.memory().numTensors).toEqual(0);
-      done();
-    } catch (e) {
-      done.fail(e);
-    }
+  it('map does not leak Tensors when none are returned', async () => {
+    const ds = new TestDataset();
+    expect(tf.memory().numTensors).toEqual(0);
+    await ds.map(x => ({'constant': 1})).collectAll();
+    // The map operation consumed all of the tensors and emitted none.
+    expect(tf.memory().numTensors).toEqual(0);
   });
 
   it('map does not lose or leak Tensors when some inputs are passed through',
-     async done => {
-       try {
-         const ds = new TestDataset();
-         expect(tf.memory().numTensors).toEqual(0);
-         await ds.map(x => ({'Tensor2': x['Tensor2']})).collectAll();
-         // Each element of the test dataset contains 2 Tensors.
-         // Our map operation retained one of the Tensors and discarded the
-         // other. Thus the mapped data contains 100 elements with 1 Tensor
-         // each.
-         expect(tf.memory().numTensors).toEqual(100);
-         done();
-       } catch (e) {
-         done.fail(e);
-       }
+     async () => {
+       const ds = new TestDataset();
+       expect(tf.memory().numTensors).toEqual(0);
+       await ds.map(x => ({'Tensor2': x['Tensor2']})).collectAll();
+       // Each element of the test dataset contains 2 Tensors.
+       // Our map operation retained one of the Tensors and discarded the
+       // other. Thus the mapped data contains 100 elements with 1 Tensor
+       // each.
+       expect(tf.memory().numTensors).toEqual(100);
      });
 
-  it('map does not leak Tensors when inputs are replaced', async done => {
-    try {
-      const ds = new TestDataset();
-      expect(tf.memory().numTensors).toEqual(0);
-      await ds.map(x => ({'a': tf.tensor1d([1, 2, 3])})).collectAll();
-      // Each element of the test dataset contains 2 Tensors.
-      // Our map operation discarded both Tensors and created one new one.
-      // Thus the mapped data contains 100 elements with 1 Tensor each.
-      expect(tf.memory().numTensors).toEqual(100);
-      done();
-    } catch (e) {
-      done.fail(e);
-    }
+  it('map does not leak Tensors when inputs are replaced', async () => {
+    const ds = new TestDataset();
+    expect(tf.memory().numTensors).toEqual(0);
+    await ds.map(x => ({'a': tf.tensor1d([1, 2, 3])})).collectAll();
+    // Each element of the test dataset contains 2 Tensors.
+    // Our map operation discarded both Tensors and created one new one.
+    // Thus the mapped data contains 100 elements with 1 Tensor each.
+    expect(tf.memory().numTensors).toEqual(100);
   });
 
-  it('forEach does not leak Tensors', async done => {
-    try {
-      const ds = new TestDataset();
-      let count = 0;
-      await ds.forEach(element => {
-        count++;
-        return {};
-      });
-      // forEach traversed the entire dataset of 100 elements.
-      expect(count).toEqual(100);
-      // forEach consumed all of the input Tensors.
-      expect(tf.memory().numTensors).toEqual(0);
-      done();
-    } catch (e) {
-      done.fail(e);
-    }
+  it('forEach does not leak Tensors', async () => {
+    const ds = new TestDataset();
+    let count = 0;
+    await ds.forEach(element => {
+      count++;
+      return {};
+    });
+    // forEach traversed the entire dataset of 100 elements.
+    expect(count).toEqual(100);
+    // forEach consumed all of the input Tensors.
+    expect(tf.memory().numTensors).toEqual(0);
   });
 });
