@@ -306,6 +306,15 @@ export abstract class LazyIterator<T> {
   /**
    * Groups elements into batches, represented as arrays of elements.
    *
+   * We can think of the elements of this iterator as 'rows' (even if they are
+   * nested structures).  By the same token, consecutive values for a given
+   * key within the elements form a 'column'.  This matches the usual sense of
+   * 'row' and 'column' when processing tabular data (e.g., parsing a CSV).
+   *
+   * Thus, "Row-major" means that the resulting batch is simply a collection of
+   * rows: `[row1, row2, row3, ...]`.  This is contrast to the column-major
+   * form, which is needed for vectorized computation.
+   *
    * @param batchSize The number of elements desired per batch.
    * @param smallLastBatch Whether to emit the final batch when it has fewer
    *   than batchSize elements. Default true.
@@ -318,6 +327,17 @@ export abstract class LazyIterator<T> {
 
   /**
    * Groups elements into batches, represented in column-major form.
+   *
+   * We can think of the elements of this iterator as 'rows' (even if they are
+   * nested structures).  By the same token, consecutive values for a given
+   * key within the elements form a 'column'.  This matches the usual sense of
+   * 'row' and 'column' when processing tabular data (e.g., parsing a CSV).
+   *
+   * Thus, "column-major" means that the resulting batch is a (potentially
+   * nested) structure representing the columns.  Each column entry, then,
+   * contains a collection of the values found in that column for a range of
+   * input elements.  This representation allows for vectorized computation, in
+   * contrast to the row-major form.
    *
    * The inputs should all have the same nested structure (i.e., of arrays and
    * dicts).  The result is a single object with the same nested structure,
@@ -342,8 +362,11 @@ export abstract class LazyIterator<T> {
       // tslint:disable-next-line:no-any
       zipFn: (xs: any[]) => DeepMapResult = zipToList):
       LazyIterator<DataElement> {
-    return this.rowMajorBatch(batchSize, smallLastBatch)
-        .map(x => deepZip(x, zipFn));
+    // First collect the desired number of input elements as a row-major batch.
+    const rowBatches = this.rowMajorBatch(batchSize, smallLastBatch);
+    // Now 'rotate' or 'pivot' the data, collecting all values from each column
+    // in the batch (i.e., for each key within the elements) into an array.
+    return rowBatches.map(x => deepZip(x, zipFn));
   }
 
   /**
