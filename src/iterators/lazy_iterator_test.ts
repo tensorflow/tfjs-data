@@ -420,7 +420,8 @@ describe('LazyIterator', () => {
     } catch (error) {
       expect(error.message)
           .toBe(
-              'Zipped streams should have the same length. Mismatched at element 2.');
+              'Zipped streams should have the same length. ' +
+              'Mismatched at element 2.');
     }
   });
 
