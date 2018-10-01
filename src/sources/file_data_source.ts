@@ -28,7 +28,7 @@ export class FileDataSource extends DataSource {
   /**
    * Create a `FileDataSource`.
    *
-   * @param input A `File` or `Blob` object to read.
+   * @param input A `File`, `Blob` or `Uint8Array` object to read.
    * @param options Options passed to the underlying `FileChunkIterator`s,
    *   such as {chunksize: 1024}.
    */

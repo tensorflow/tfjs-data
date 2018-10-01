@@ -57,4 +57,12 @@ describe('FileChunkIterator', () => {
     expect(result[4].length).toEqual(10);
     expect(result[5].length).toEqual(5);
   });
+
+  it('Provides mistyped data throws error', () => {
+    expect(() => {
+      new FileChunkIterator(null);
+    })
+        .toThrowError(
+            'FileChunkIterator only supports File, Blob and Uint8Array right now.');
+  });
 });
