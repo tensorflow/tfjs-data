@@ -17,11 +17,8 @@
  */
 
 // inspired by https://github.com/maxogden/filereader-stream
-<<<<<<< HEAD
-=======
 import {assert} from '@tensorflow/tfjs-core/dist/util';
 
->>>>>>> 254c91b225aa79cc048d1100355fd1ac028e5936
 import {FileElement} from '../types';
 
 import {ByteChunkIterator} from './byte_chunk_iterator';
