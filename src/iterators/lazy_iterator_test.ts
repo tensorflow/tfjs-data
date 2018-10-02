@@ -411,11 +411,11 @@ describe('LazyIterator', () => {
   });
 
   it('zip requires streams of the same length by default', async done => {
-    const a = new TestIntegerIterator(10);
-    const b = new TestIntegerIterator(3);
-    const c = new TestIntegerIterator(2);
-    const readStream = iteratorFromZipped([a, b, c]);
     try {
+      const a = new TestIntegerIterator(10);
+      const b = new TestIntegerIterator(3);
+      const c = new TestIntegerIterator(2);
+      const readStream = iteratorFromZipped([a, b, c]);
       await readStream.collect(1000, 0);
       done.fail();
     } catch (error) {
