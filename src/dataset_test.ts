@@ -150,22 +150,23 @@ describeWithFlags('Dataset', tf.test_util.CPU_ENVS, () => {
     expect(result).toEqual([[1, 3], [2, 4]]);
   });
 
-  it('zipping a native string throws an error', async () => {
+  it('zipping a native string throws an error', async done => {
     try {
       // tslint:disable-next-line:no-any no-construct
       await zip('test' as any);
-      throw new Error('The line above should have thrown an error');
+      done.fail();
     } catch (e) {
       expect(e.message).toEqual(
           'The argument to zip() must be an object or array.');
+      done();
     }
   });
 
-  it('zipping a string object throws a meaningful error', async () => {
+  it('zipping a string object throws a meaningful error', async done => {
     try {
       // tslint:disable-next-line:no-any no-construct
       await zip(new String('test') as any).iterator();
-      throw new Error('The line above should have thrown an error');
+      done.fail();
     } catch (e) {
       // This error is not specific to the error case arising from
       //   typeof(new String('test')) === 'object'
@@ -175,6 +176,7 @@ describeWithFlags('Dataset', tf.test_util.CPU_ENVS, () => {
       expect(e.message).toEqual(
           'Leaves of the structure passed to zip() must be Datasets, ' +
           'not primitives.');
+      done();
     }
   });
 
@@ -192,7 +194,7 @@ describeWithFlags('Dataset', tf.test_util.CPU_ENVS, () => {
     ]);
   });
 
-  it('zipping a structure with cycles throws an error', async () => {
+  it('zipping a structure with cycles throws an error', async done => {
     try {
       // tslint:disable-next-line:no-any
       const a = datasetFromElements([1, 2, 3]);
@@ -201,14 +203,15 @@ describeWithFlags('Dataset', tf.test_util.CPU_ENVS, () => {
       const abc: DatasetContainer = [a, b, c];
       c.push(abc);
       await zip({a, abc}).iterator();
-      throw new Error('The line above should have thrown an error');
+      done.fail();
     } catch (e) {
       expect(e.message).toEqual('Circular references are not supported.');
+      done();
     }
   });
 
   it('zip propagates errors thrown when iterating constituent datasets',
-     async () => {
+     async done => {
        try {
          let count = 0;
          const a =
@@ -221,10 +224,11 @@ describeWithFlags('Dataset', tf.test_util.CPU_ENVS, () => {
          const b = datasetFromElements([3, 4, 5, 6]);
          // tslint:disable-next-line:no-any
          await (await zip([a, b]).iterator()).collect(1000, 0);
-         throw new Error('The line above should have thrown an error');
+         done.fail();
        } catch (e) {
          expect(e.message).toEqual(
              'Error thrown while iterating through a dataset: propagate me!');
+         done();
        }
      });
 
