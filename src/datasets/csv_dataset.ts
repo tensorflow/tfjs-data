@@ -22,7 +22,7 @@ import {DType} from '@tensorflow/tfjs-core/dist/types';
 import {Dataset} from '../dataset';
 import {DataSource} from '../datasource';
 import {LazyIterator} from '../iterators/lazy_iterator';
-import {DataElement, ElementArray} from '../types';
+import {DataElement} from '../types';
 
 import {TextLineDataset} from './text_line_dataset';
 
@@ -178,9 +178,8 @@ export class CSVDataset extends Dataset<DataElement> {
 
   makeDataElement(line: string): DataElement {
     // TODO(soergel): proper CSV parsing with escaping, quotes, etc.
-    // TODO(soergel): alternate separators, e.g. for TSV
     const values = line.split(this._delimiter);
-    const result: {[key: string]: ElementArray} = {};
+    const result: {[key: string]: DataElement} = {};
     let datatypeIter = 0;
 
     for (let i = 0; i < this._csvColumnNames.length; i++) {
