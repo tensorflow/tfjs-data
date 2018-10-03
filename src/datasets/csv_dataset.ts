@@ -16,13 +16,12 @@
  * =============================================================================
  */
 
-import {DataType} from '@tensorflow/tfjs-core';
 import {DType} from '@tensorflow/tfjs-core/dist/types';
 
 import {Dataset} from '../dataset';
 import {DataSource} from '../datasource';
 import {LazyIterator} from '../iterators/lazy_iterator';
-import {DataElement} from '../types';
+import {ColumnConfig, DataElement} from '../types';
 
 import {TextLineDataset} from './text_line_dataset';
 
@@ -37,8 +36,9 @@ export enum CsvHeaderConfig {
  *
  * The produced `DataElement`s each contain one key-value pair for
  * every column of the table.  When a field is empty in the incoming data, the
- * resulting value is `undefined`.  Values that can be parsed as numbers are
- * emitted as type `number`; otherwise they are left as `string`.
+ * resulting value is `undefined`, or throw error if it is required.  Values
+ * that can be parsed as numbers are emitted as type `number`; otherwise they
+ * are left as `string`.
  *
  * The results are not batched.
  */
@@ -46,9 +46,9 @@ export class CSVDataset extends Dataset<DataElement> {
   base: TextLineDataset;
   private _hasHeaderLine = false;
   private _csvColumnNames: string[] = null;
-  private _dataTypes: DataType[] = null;
+  private _columnConfigs: {[key: string]: ColumnConfig} = null;
+  private _configuredColumnsOnly = false;
   private _delimiter: string = null;
-  private _selectColumnIndexes: number[] = null;
 
   /**
    * Create a `CSVDataset`.  Note this CSVDataset cannot be used until
@@ -71,19 +71,26 @@ export class CSVDataset extends Dataset<DataElement> {
     this._delimiter = delimiter;
   }
 
-  private setDatatypes(dataTypes: DataType[]) {
-    this._dataTypes = dataTypes;
+  private setColumnConfigs(columnConfigs: {[key: string]: ColumnConfig}) {
+    this._columnConfigs = columnConfigs;
+  }
+
+  private setConfiguredColumnsOnly(configuredColumnsOnly: boolean) {
+    this._configuredColumnsOnly = configuredColumnsOnly;
   }
 
   get csvColumnNames(): string[] {
-    return this._csvColumnNames;
+    return this._configuredColumnsOnly ? Object.keys(this._columnConfigs) :
+                                         this._csvColumnNames;
   }
 
   /* 1) If csvColumnNames is provided as string[], use this string[] as output
-   * keys in corresponded order, and each key must exist in header line if
+   * keys in corresponded order, and they must match header line if
    * hasHeaderLine is true.
-   * 2) Otherwise parse header line as result keys if hasHeaderLine, or use
-   * numbers.
+   * 2) If csvColumnNames is not provided, parse header line as result keys if
+   * hasHeaderLine, otherwise use integer as column names.
+   * 3) If columnConfigs is provided, all the keys in columnConfigs must exist
+   * in parsed column names.
    */
   private async setCsvColumnNames(csvColumnNames: CsvHeaderConfig|string[]) {
     if (Array.isArray(csvColumnNames)) {
@@ -97,17 +104,12 @@ export class CSVDataset extends Dataset<DataElement> {
         const firstLine: string = firstElement.value;
         const columnNames = firstLine.split(this._delimiter);
 
-        // Generate an array(this._selectColumnIndexes) which holds the
-        // selected column indexes in order.
+        // Checks if columnNames from header line match provided column names
         for (let i = 0; i < csvColumnNames.length; i++) {
           const index = columnNames.indexOf(csvColumnNames[i]);
           if (index === -1) {
             throw new Error(
                 'Provided column names does not match header line.');
-          } else {
-            this._selectColumnIndexes === null ?
-                this._selectColumnIndexes = [index] :
-                this._selectColumnIndexes.push(index);
           }
         }
       }
@@ -128,39 +130,53 @@ export class CSVDataset extends Dataset<DataElement> {
                 .map(x => x.toString());
       }
     }
+    // Check if keys in columnConfigs match column names
+    if (this._columnConfigs) {
+      for (const key of Object.keys(this._columnConfigs)) {
+        const index = this._csvColumnNames.indexOf(key);
+        if (index === -1) {
+          throw new Error('Column config does not match column names.');
+        }
+      }
+    }
   }
 
   /**
    * Create a `CSVDataset`.
    *
    * @param input A `DataSource` providing a chunked, UTF8-encoded byte stream.
-   * @param header (Optional) A boolean value indicating whether the CSV
-   *   files(s) have header line(s) that should be skipped when parsing.
-   *   Defaults to `False`.
-   * @param csvColumnNames The keys to use for the columns, in order. If this
-   *   argument is provided and header is false, it is assumed that the input
-   *   file does not have a header line providing the column names and use the
-   *   elements in this argument as column names. If this argument is provided
-   *   and header is true, only parse columns in this argument in corresponded
-   *   order and column names in this argument must exist in the header line. If
-   *   this argument is not provided (or is null or undefined), then the column
-   *   names are read from the first line of the input.
-   * @param dataTypes The types of the columns, in order. If this argument is
-   *   provided, it is assumed that the values of input columns match the
-   *   provided types. If this argument is not provided, the values will be
-   *   converted to number, or string if NaN.
+   * @param header (Optional) A boolean value that indicates whether the first
+   *     row of provided CSV file is a header line with column names, and should
+   *     not be included in the data. Defaults to `False`.
+   * @param csvColumnNames (Optional) The keys to use for the columns, in order.
+   *     If this argument is provided and header is false, it is assumed that
+   *     the input file does not have a header line providing the column names
+   *     and use the elements in this argument as column names. If this argument
+   *     is provided and header is true, the provided column names must match
+   *     parsed names in header line. If this argument is not provided, parse
+   *     header line for column names, or use integers if there is no header
+   *     line.
+   * @param columnConfigs (Optional) A dictionary whose key is column names,
+   *     value is an object stating if this column is required, column's data
+   *     type, and default value. If provided, keys must correspond to names
+   *     provided in column_names or inferred from the file header lines
+   * @param configuredColumnsOnly (Optional) A boolean value specifies if only
+   *     parsing and returning columns which exist in columnConfigs.
    * @param delimiter The string used to parse each line of the input file. If
-   *   this argument is not provided, use default delimiter `,`.
+   *     this argument is not provided, use default delimiter `,`.
    */
   static async create(
       input: DataSource, header = false,
       csvColumnNames: CsvHeaderConfig|string[] = CsvHeaderConfig.NUMBERED,
-      dataTypes?: DataType[], delimiter = ',') {
+      columnConfigs?: {[key: string]: ColumnConfig},
+      configuredColumnsOnly = false, delimiter = ',') {
     const result = new CSVDataset(input);
     result.setHasHeaderLine(header);
+    result.setConfiguredColumnsOnly(configuredColumnsOnly);
     result.setDelimiter(delimiter);
-    if (dataTypes !== undefined && dataTypes.length !== 0) {
-      result.setDatatypes(dataTypes);
+    if (columnConfigs !== undefined &&
+        Object.keys(columnConfigs).length !== 0) {
+      result.setColumnConfigs(columnConfigs);
     }
     await result.setCsvColumnNames(csvColumnNames);
     return result;
@@ -180,41 +196,50 @@ export class CSVDataset extends Dataset<DataElement> {
     // TODO(soergel): proper CSV parsing with escaping, quotes, etc.
     const values = line.split(this._delimiter);
     const result: {[key: string]: DataElement} = {};
-    let datatypeIter = 0;
 
     for (let i = 0; i < this._csvColumnNames.length; i++) {
-      const value =
-          values[this._selectColumnIndexes === null ? i : this._selectColumnIndexes[i]];
-      if (value === '') {
-        result[this._csvColumnNames[i]] = undefined;
+      const key = this._csvColumnNames[i];
+      const config = this._columnConfigs ? this._columnConfigs[key] : null;
+      if (this._configuredColumnsOnly && !config) {
+        // This column is not selected.
+        continue;
       } else {
-        const valueAsNum = Number(value);
-        if (isNaN(valueAsNum)) {
-          if (this._dataTypes !== null &&
-              this._dataTypes[datatypeIter] === DType.bool) {
-            result[this._csvColumnNames[i]] = this.getBoolean(value);
+        const value = values[i];
+        if (value === '') {
+          // Fills default value if provided, otherwise return undefined.
+          if (config && config.default !== undefined) {
+            result[key] = config.default;
+          } else if (config && config.required) {
+            throw new Error('Required column is empty!');
           } else {
-            // Set value as string
-            result[this._csvColumnNames[i]] = value;
+            result[key] = undefined;
           }
-          datatypeIter++;
-        } else if (this._dataTypes === null) {
-          result[this._csvColumnNames[i]] = valueAsNum;
         } else {
-          switch (this._dataTypes[datatypeIter]) {
-            case DType.float32:
-              result[this._csvColumnNames[i]] = valueAsNum;
-              break;
-            case DType.int32:
-              result[this._csvColumnNames[i]] = Math.floor(valueAsNum);
-              break;
-            case DType.bool:
-              result[this._csvColumnNames[i]] = this.getBoolean(value);
-              break;
-            default:
-              result[this._csvColumnNames[i]] = valueAsNum;
+          const valueAsNum = Number(value);
+          if (isNaN(valueAsNum)) {
+            if (config && config.dtype === DType.bool) {
+              result[key] = this.getBoolean(value);
+            } else {
+              // Set value as string
+              result[key] = value as string;
+            }
+          } else if (!config || !config.dtype) {
+            result[this._csvColumnNames[i]] = valueAsNum;
+          } else {
+            switch (config.dtype) {
+              case DType.float32:
+                result[this._csvColumnNames[i]] = valueAsNum;
+                break;
+              case DType.int32:
+                result[this._csvColumnNames[i]] = Math.floor(valueAsNum);
+                break;
+              case DType.bool:
+                result[this._csvColumnNames[i]] = this.getBoolean(value);
+                break;
+              default:
+                result[this._csvColumnNames[i]] = valueAsNum;
+            }
           }
-          datatypeIter++;
         }
       }
     }

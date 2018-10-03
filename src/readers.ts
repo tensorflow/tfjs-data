@@ -16,31 +16,38 @@
  * =============================================================================
  */
 
-import {DataType} from '@tensorflow/tfjs-core';
-
 import {CSVDataset, CsvHeaderConfig} from './datasets/csv_dataset';
 import {URLDataSource} from './sources/url_data_source';
+import {ColumnConfig} from './types';
 
 /**
  * Create a `CSVDataset` by reading and decoding CSV file(s) from provided URLs.
  *
- * @param source One or more URLs to read CSV file(s).
- * @param header (Optional) A boolean value indicating whether the CSV files(s)
- *   have header line(s) that should be skipped when parsing. Defaults to
- *   `False`.
- * @param dataTypes (Optional) The types of the columns, in order.
+ * @param source URL to fetch CSV file.
+ * @param header (Optional) A boolean value that indicates whether the first row
+ *     of provided CSV file is a header line with column names, and should not
+ *     be included in the data. Defaults to `False`.
+ * @param columnNames (Optional) A sorted list of strings that corresponds to
+ *     the CSV column names, in order. If this is not provided, infers the
+ *     column names from the first row of the records if there is header line,
+ *     otherwise use integer.
+ * @param columnConfigs (Optional) A dictionary whose key is column names, value
+ *     is an object stating if this column is required, column's data type, and
+ *     default value. If provided, keys must correspond to names provided in
+ *     column_names or inferred from the file header lines
+ * @param configuredColumnsOnly (Optional) A boolean value specifies if only
+ *     parsing and returning columns which exist in columnConfigs.
  * @param delimiter (Optional) The string used to parse each line of the input
- *   file. Defaults to `,`.
- * @param selectColumns (Optional) A sorted list of column indices to select
- *   from the input data. If specified, only this subset of columns will be
- *   parsed. Defaults to parsing all columns.
+ *     file. Defaults to `,`.
  */
 export function csv(
-    source: string, header = false, dataTypes?: DataType[], delimiter = ',',
-    selectColumns?: string[]): Promise<CSVDataset> {
+    source: string, header = false, columnNames?: string[],
+    columnConfigs?: {[key: string]: ColumnConfig},
+    configuredColumnsOnly = false, delimiter = ','): Promise<CSVDataset> {
   return CSVDataset.create(
       new URLDataSource(source), header,
-      selectColumns ? CsvHeaderConfig.READ_FIRST_LINE :
-                      CsvHeaderConfig.NUMBERED,
-      dataTypes, delimiter);
+      columnNames ?
+          columnNames :
+          (header ? CsvHeaderConfig.READ_FIRST_LINE : CsvHeaderConfig.NUMBERED),
+      columnConfigs, configuredColumnsOnly, delimiter);
 }
