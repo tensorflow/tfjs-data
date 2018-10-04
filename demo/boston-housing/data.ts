@@ -16,7 +16,7 @@
  */
 
 import {Dataset, zip} from '../../src/dataset';
-import {csv} from '../../src/readers';
+import * as tfd from '../../src/readers';
 import {DataElement} from '../../src/types';
 
 // Boston Housing data constants:
@@ -53,7 +53,7 @@ export class BostonHousingDataset {
       `${BASE_URL}${TEST_TARGET_FILENAME}`
     ];
     console.log('* Downloading data *');
-    const csvDatasets = fileUrls.map(url => csv(url, true));
+    const csvDatasets = fileUrls.map(url => tfd.csv(url, true));
 
     // Sets number of features so it can be used in the model.
     this.numFeatures = (await csvDatasets[0]).csvColumnNames.length;

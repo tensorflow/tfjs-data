@@ -44,11 +44,7 @@ export enum CsvHeaderConfig {
  */
 export class CSVDataset extends Dataset<DataElement> {
   base: TextLineDataset;
-  private _hasHeaderLine = false;
   private _csvColumnNames: string[] = null;
-  private _columnConfigs: {[key: string]: ColumnConfig} = null;
-  private _configuredColumnsOnly = false;
-  private _delimiter: string = null;
 
   /**
    * Create a `CSVDataset`.  Note this CSVDataset cannot be used until
@@ -58,30 +54,17 @@ export class CSVDataset extends Dataset<DataElement> {
    *
    * @param input A `DataSource` providing a chunked, UTF8-encoded byte stream.
    */
-  private constructor(protected readonly input: DataSource) {
+  private constructor(
+      protected readonly input: DataSource, readonly hasHeaderLine: boolean,
+      readonly columnConfigs: {[key: string]: ColumnConfig},
+      readonly configuredColumnsOnly: boolean, readonly delimiter: string) {
     super();
     this.base = new TextLineDataset(input);
   }
 
-  private setHasHeaderLine(hasHeaderLine: boolean) {
-    this._hasHeaderLine = hasHeaderLine;
-  }
-
-  private setDelimiter(delimiter: string) {
-    this._delimiter = delimiter;
-  }
-
-  private setColumnConfigs(columnConfigs: {[key: string]: ColumnConfig}) {
-    this._columnConfigs = columnConfigs;
-  }
-
-  private setConfiguredColumnsOnly(configuredColumnsOnly: boolean) {
-    this._configuredColumnsOnly = configuredColumnsOnly;
-  }
-
   get csvColumnNames(): string[] {
-    return this._configuredColumnsOnly ? Object.keys(this._columnConfigs) :
-                                         this._csvColumnNames;
+    return this.configuredColumnsOnly ? Object.keys(this.columnConfigs) :
+                                        this._csvColumnNames;
   }
 
   /* 1) If csvColumnNames is provided as string[], use this string[] as output
@@ -95,14 +78,8 @@ export class CSVDataset extends Dataset<DataElement> {
   private async setCsvColumnNames(csvColumnNames: CsvHeaderConfig|string[]) {
     if (Array.isArray(csvColumnNames)) {
       this._csvColumnNames = csvColumnNames;
-      if (this._hasHeaderLine) {
-        const iter = await this.base.iterator();
-        const firstElement = await iter.next();
-        if (firstElement.done) {
-          throw new Error('No data was found for CSV parsing.');
-        }
-        const firstLine: string = firstElement.value;
-        const columnNames = firstLine.split(this._delimiter);
+      if (this.hasHeaderLine) {
+        const columnNames = await this.readFirstLine();
 
         // Checks if columnNames from header line match provided column names
         for (let i = 0; i < csvColumnNames.length; i++) {
@@ -114,31 +91,35 @@ export class CSVDataset extends Dataset<DataElement> {
         }
       }
     } else {
-      const iter = await this.base.iterator();
-      const firstElement = await iter.next();
-      if (firstElement.done) {
-        throw new Error('No data was found for CSV parsing.');
-      }
-      const firstLine: string = firstElement.value;
-      if (this._hasHeaderLine ||
+      const columnNames = await this.readFirstLine();
+      if (this.hasHeaderLine ||
           csvColumnNames === CsvHeaderConfig.READ_FIRST_LINE) {
-        this._csvColumnNames = firstLine.split(this._delimiter);
+        this._csvColumnNames = columnNames;
       } else {
         this._csvColumnNames =
-            (Array.from(
-                 new Array(firstLine.split(this._delimiter).length).keys()))
+            (Array.from(new Array(columnNames.length).keys()))
                 .map(x => x.toString());
       }
     }
     // Check if keys in columnConfigs match column names
-    if (this._columnConfigs) {
-      for (const key of Object.keys(this._columnConfigs)) {
+    if (this.columnConfigs) {
+      for (const key of Object.keys(this.columnConfigs)) {
         const index = this._csvColumnNames.indexOf(key);
         if (index === -1) {
           throw new Error('Column config does not match column names.');
         }
       }
     }
+  }
+
+  private async readFirstLine() {
+    const iter = await this.base.iterator();
+    const firstElement = await iter.next();
+    if (firstElement.done) {
+      throw new Error('No data was found for CSV parsing.');
+    }
+    const firstLine: string = firstElement.value;
+    return firstLine.split(this.delimiter);
   }
 
   /**
@@ -170,21 +151,15 @@ export class CSVDataset extends Dataset<DataElement> {
       csvColumnNames: CsvHeaderConfig|string[] = CsvHeaderConfig.NUMBERED,
       columnConfigs?: {[key: string]: ColumnConfig},
       configuredColumnsOnly = false, delimiter = ',') {
-    const result = new CSVDataset(input);
-    result.setHasHeaderLine(header);
-    result.setConfiguredColumnsOnly(configuredColumnsOnly);
-    result.setDelimiter(delimiter);
-    if (columnConfigs !== undefined &&
-        Object.keys(columnConfigs).length !== 0) {
-      result.setColumnConfigs(columnConfigs);
-    }
+    const result = new CSVDataset(
+        input, header, columnConfigs, configuredColumnsOnly, delimiter);
     await result.setCsvColumnNames(csvColumnNames);
     return result;
   }
 
   async iterator(): Promise<LazyIterator<DataElement>> {
     let lines = await this.base.iterator();
-    if (this._hasHeaderLine) {
+    if (this.hasHeaderLine) {
       // We previously read the first line to get the headers.
       // Now that we're providing data, skip it.
       lines = lines.skip(1);
@@ -194,13 +169,14 @@ export class CSVDataset extends Dataset<DataElement> {
 
   makeDataElement(line: string): DataElement {
     // TODO(soergel): proper CSV parsing with escaping, quotes, etc.
-    const values = line.split(this._delimiter);
-    const result: {[key: string]: DataElement} = {};
+    const values = line.split(this.delimiter);
+    const features: {[key: string]: DataElement} = {};
+    const labels: {[key: string]: DataElement} = {};
 
     for (let i = 0; i < this._csvColumnNames.length; i++) {
       const key = this._csvColumnNames[i];
-      const config = this._columnConfigs ? this._columnConfigs[key] : null;
-      if (this._configuredColumnsOnly && !config) {
+      const config = this.columnConfigs ? this.columnConfigs[key] : null;
+      if (this.configuredColumnsOnly && !config) {
         // This column is not selected.
         continue;
       } else {
@@ -208,42 +184,63 @@ export class CSVDataset extends Dataset<DataElement> {
         if (value === '') {
           // Fills default value if provided, otherwise return undefined.
           if (config && config.default !== undefined) {
-            result[key] = config.default;
-          } else if (config && config.required) {
-            throw new Error('Required column is empty!');
+            config.isLabel ? labels[key] = config.default :
+                             features[key] = config.default;
+          } else if (config && (config.required || config.isLabel)) {
+            throw new Error(
+                `Required column ${key} is empty in this line: ${line}`);
           } else {
-            result[key] = undefined;
+            features[key] = undefined;
           }
         } else {
+          // A value is present, so parse it based on type
           const valueAsNum = Number(value);
           if (isNaN(valueAsNum)) {
+            // If the value is a string and this column is declared as boolean
+            // in config, parse it as boolean, otherwise return string.
             if (config && config.dtype === DType.bool) {
-              result[key] = this.getBoolean(value);
+              config.isLabel ? labels[key] = this.getBoolean(value) :
+                               features[key] = this.getBoolean(value);
             } else {
               // Set value as string
-              result[key] = value as string;
+              config && config.isLabel ? labels[key] = value as string :
+                                         features[key] = value as string;
             }
           } else if (!config || !config.dtype) {
-            result[this._csvColumnNames[i]] = valueAsNum;
+            // If this value is a number and no config is provided, return it as
+            // number.
+            config && config.isLabel ? labels[key] = valueAsNum :
+                                       features[key] = valueAsNum;
           } else {
+            // If this value is a number and data type is provided, parse it
+            // according to provided data type.
+            let numValue;
             switch (config.dtype) {
               case DType.float32:
-                result[this._csvColumnNames[i]] = valueAsNum;
+                numValue = valueAsNum;
                 break;
               case DType.int32:
-                result[this._csvColumnNames[i]] = Math.floor(valueAsNum);
+                numValue = Math.floor(valueAsNum);
                 break;
               case DType.bool:
-                result[this._csvColumnNames[i]] = this.getBoolean(value);
+                numValue = this.getBoolean(value);
                 break;
               default:
-                result[this._csvColumnNames[i]] = valueAsNum;
+                numValue = valueAsNum;
             }
+            config.isLabel ? labels[key] = numValue : features[key] = numValue;
           }
         }
       }
     }
-    return result;
+    // If label is not empty, return result with separate feature and label,
+    // otherwise return features only.
+    if (Object.keys(labels).length === 0) {
+      return features;
+
+    } else {
+      return {'features': features, 'labels': labels};
+    }
   }
 
   private getBoolean(value: string): number {

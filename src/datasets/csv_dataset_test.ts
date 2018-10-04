@@ -179,7 +179,8 @@ describe('CSVDataset', () => {
       await iter.collect();
       done.fail();
     } catch (error) {
-      expect(error.message).toBe('Required column is empty!');
+      expect(error.message)
+          .toBe('Required column foo is empty in this line: ,mn,op');
       done();
     }
   });
@@ -208,7 +209,7 @@ describe('CSVDataset', () => {
   it('provide delimiter through parameter', async () => {
     const source = new FileDataSource(csvBlobWithSemicolon, {chunkSize: 10});
     const dataset = await CSVDataset.create(
-        source, true, CsvHeaderConfig.READ_FIRST_LINE, undefined, false, ';');
+        source, true, CsvHeaderConfig.READ_FIRST_LINE, null, false, ';');
     expect(dataset.csvColumnNames).toEqual(['A', 'B', 'C']);
     const iter = await dataset.iterator();
     const result = await iter.collect();
@@ -223,7 +224,7 @@ describe('CSVDataset', () => {
   it('provide datatype through parameter to parse different types',
      async () => {
        const source = new FileDataSource(csvBlobWithMixedType, {chunkSize: 10});
-       const dataset = await CSVDataset.create(source, true, undefined, {
+       const dataset = await CSVDataset.create(source, true, null, {
          'A': {dtype: DType.int32},
          'B': {dtype: DType.bool},
          'C': {dtype: DType.int32},
@@ -271,5 +272,40 @@ describe('CSVDataset', () => {
           'Provided column names does not match header line.');
       done();
     }
+  });
+
+  it('reads CSV with missing label value', async done => {
+    try {
+      const source = new FileDataSource(csvDataWithHeaders, {chunkSize: 10});
+      const dataset =
+          await CSVDataset.create(source, true, null, {'baz': {isLabel: true}});
+      expect(dataset.csvColumnNames).toEqual(['foo', 'bar', 'baz']);
+      const iter = await dataset.iterator();
+      await iter.collect();
+      done.fail();
+    } catch (e) {
+      expect(e.message).toEqual(
+          'Required column baz is empty in this line: qrs,tu,');
+      done();
+    }
+  });
+
+  it('reads CSV with label column', async () => {
+    const source = new FileDataSource(csvDataWithHeadersExtra, {chunkSize: 10});
+    const dataset =
+        await CSVDataset.create(source, true, null, {'C': {isLabel: true}});
+    expect(dataset.csvColumnNames).toEqual(['A', 'B', 'C']);
+    const iter = await dataset.iterator();
+    const result = await iter.collect();
+
+    expect(result).toEqual([
+      {'features': {'A': 1, 'B': 2}, 'labels': {'C': 3}},
+      {'features': {'A': 2, 'B': 2}, 'labels': {'C': 3}},
+      {'features': {'A': 3, 'B': 2}, 'labels': {'C': 3}},
+      {'features': {'A': 4, 'B': 2}, 'labels': {'C': 3}},
+      {'features': {'A': 5, 'B': 2}, 'labels': {'C': 3}},
+      {'features': {'A': 6, 'B': 2}, 'labels': {'C': 3}},
+      {'features': {'A': 7, 'B': 2}, 'labels': {'C': 3}}
+    ]);
   });
 });

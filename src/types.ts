@@ -62,4 +62,5 @@ export interface ColumnConfig {
   required?: boolean;
   dtype?: DType;
   default?: DataElement;
+  isLabel?: boolean;
 }

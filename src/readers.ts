@@ -27,7 +27,7 @@ import {ColumnConfig} from './types';
  * @param header (Optional) A boolean value that indicates whether the first row
  *     of provided CSV file is a header line with column names, and should not
  *     be included in the data. Defaults to `False`.
- * @param columnNames (Optional) A sorted list of strings that corresponds to
+ * @param columnNames (Optional) A list of strings that corresponds to
  *     the CSV column names, in order. If this is not provided, infers the
  *     column names from the first row of the records if there is header line,
  *     otherwise use integer.
