@@ -281,7 +281,7 @@ describe('CSVDataset', () => {
           await CSVDataset.create(source, true, null, {'baz': {isLabel: true}});
       expect(dataset.csvColumnNames).toEqual(['foo', 'bar', 'baz']);
       const iter = await dataset.iterator();
-      await iter.collect();
+      await iter.collect(1000, 0);
       done.fail();
     } catch (e) {
       expect(e.message).toEqual(

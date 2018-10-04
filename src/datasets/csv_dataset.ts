@@ -139,8 +139,9 @@ export class CSVDataset extends Dataset<DataElement> {
    *     line.
    * @param columnConfigs (Optional) A dictionary whose key is column names,
    *     value is an object stating if this column is required, column's data
-   *     type, and default value. If provided, keys must correspond to names
-   *     provided in column_names or inferred from the file header lines
+   *     type, default value, and if is label. If provided, keys must correspond
+   *     to names provided in column_names or inferred from the file header
+   *     lines.
    * @param configuredColumnsOnly (Optional) A boolean value specifies if only
    *     parsing and returning columns which exist in columnConfigs.
    * @param delimiter The string used to parse each line of the input file. If
