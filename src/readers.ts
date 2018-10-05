@@ -16,7 +16,7 @@
  * =============================================================================
  */
 
-import {CSVDataset, CsvHeaderConfig} from './datasets/csv_dataset';
+import {CSVDataset} from './datasets/csv_dataset';
 import {URLDataSource} from './sources/url_data_source';
 import {ColumnConfig} from './types';
 
@@ -42,13 +42,10 @@ import {ColumnConfig} from './types';
  *     file. Defaults to `,`.
  */
 export function csv(
-  source: string, header = false, columnNames?: string[],
-  columnConfigs?: {[key: string]: ColumnConfig},
-  configuredColumnsOnly = false, delimiter = ','): Promise<CSVDataset> {
+    source: string, header = false, columnNames?: string[],
+    columnConfigs?: {[key: string]: ColumnConfig},
+    configuredColumnsOnly = false, delimiter = ','): Promise<CSVDataset> {
   return CSVDataset.create(
-    new URLDataSource(source), header,
-    columnNames ?
-      columnNames :
-      (header ? CsvHeaderConfig.READ_FIRST_LINE : CsvHeaderConfig.NUMBERED),
-    columnConfigs, configuredColumnsOnly, delimiter);
+      new URLDataSource(source), header, columnNames, columnConfigs,
+      configuredColumnsOnly, delimiter);
 }

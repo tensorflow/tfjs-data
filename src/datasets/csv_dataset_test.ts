@@ -21,7 +21,7 @@ import {DType} from '@tensorflow/tfjs-core/dist/types';
 
 import {FileDataSource} from '../sources/file_data_source';
 
-import {CSVDataset, CsvHeaderConfig} from './csv_dataset';
+import {CSVDataset} from './csv_dataset';
 
 const csvString = `ab,cd,ef
 ghi,,jkl
@@ -103,8 +103,7 @@ describe('CSVDataset', () => {
 
   it('reads CSV column headers when requested', async () => {
     const source = new FileDataSource(csvDataWithHeaders, {chunkSize: 10});
-    const dataset =
-        await CSVDataset.create(source, true, CsvHeaderConfig.READ_FIRST_LINE);
+    const dataset = await CSVDataset.create(source, true);
 
     expect(dataset.csvColumnNames).toEqual(['foo', 'bar', 'baz']);
     const iter = await dataset.iterator();
@@ -133,28 +132,22 @@ describe('CSVDataset', () => {
     }
   });
 
-  it('numbers CSV columns by default', async () => {
-    const source = new FileDataSource(csvData, {chunkSize: 10});
-    const dataset = await CSVDataset.create(source);
-    expect(dataset.csvColumnNames).toEqual(['0', '1', '2']);
-    const iter = await dataset.iterator();
-    const result = await iter.collect();
-
-    expect(result).toEqual([
-      {'0': 'ab', '1': 'cd', '2': 'ef'},
-      {'0': 'ghi', '1': undefined, '2': 'jkl'},
-      {'0': undefined, '1': 'mn', '2': 'op'},
-      {'0': 1.4, '1': 7.8, '2': 12},
-      {'0': 'qrs', '1': 'tu', '2': undefined},
-      {'0': 'v', '1': 'w', '2': 'x'},
-      {'0': 'y', '1': 'z', '2': undefined},
-    ]);
-  });
+  it('throw error when no header line and no column names provided',
+     async done => {
+       try {
+         const source = new FileDataSource(csvData, {chunkSize: 10});
+         await CSVDataset.create(source);
+         done.fail();
+       } catch (error) {
+         expect(error.message)
+             .toBe('Column names must be provided if there is no header line.');
+         done();
+       }
+     });
 
   it('emits rows in order despite async requests', async () => {
     const source = new FileDataSource(csvDataWithHeadersExtra, {chunkSize: 10});
-    const ds =
-        await CSVDataset.create(source, true, CsvHeaderConfig.READ_FIRST_LINE);
+    const ds = await CSVDataset.create(source, true);
     expect(ds.csvColumnNames).toEqual(['A', 'B', 'C']);
     const csvIterator = await ds.iterator();
     const promises = [
@@ -208,8 +201,8 @@ describe('CSVDataset', () => {
 
   it('provide delimiter through parameter', async () => {
     const source = new FileDataSource(csvBlobWithSemicolon, {chunkSize: 10});
-    const dataset = await CSVDataset.create(
-        source, true, CsvHeaderConfig.READ_FIRST_LINE, null, false, ';');
+    const dataset =
+        await CSVDataset.create(source, true, null, null, false, ';');
     expect(dataset.csvColumnNames).toEqual(['A', 'B', 'C']);
     const iter = await dataset.iterator();
     const result = await iter.collect();
@@ -299,13 +292,10 @@ describe('CSVDataset', () => {
     const result = await iter.collect();
 
     expect(result).toEqual([
-      {'features': {'A': 1, 'B': 2}, 'labels': {'C': 3}},
-      {'features': {'A': 2, 'B': 2}, 'labels': {'C': 3}},
-      {'features': {'A': 3, 'B': 2}, 'labels': {'C': 3}},
-      {'features': {'A': 4, 'B': 2}, 'labels': {'C': 3}},
-      {'features': {'A': 5, 'B': 2}, 'labels': {'C': 3}},
-      {'features': {'A': 6, 'B': 2}, 'labels': {'C': 3}},
-      {'features': {'A': 7, 'B': 2}, 'labels': {'C': 3}}
+      [{'A': 1, 'B': 2}, {'C': 3}], [{'A': 2, 'B': 2}, {'C': 3}],
+      [{'A': 3, 'B': 2}, {'C': 3}], [{'A': 4, 'B': 2}, {'C': 3}],
+      [{'A': 5, 'B': 2}, {'C': 3}], [{'A': 6, 'B': 2}, {'C': 3}],
+      [{'A': 7, 'B': 2}, {'C': 3}]
     ]);
   });
 });
