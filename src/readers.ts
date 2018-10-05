@@ -30,7 +30,7 @@ import {ColumnConfig} from './types';
  * @param columnNames (Optional) A list of strings that corresponds to
  *     the CSV column names, in order. If this is not provided, infers the
  *     column names from the first row of the records if there is header line,
- *     otherwise use integer.
+ *     otherwise throw an error.
  * @param columnConfigs (Optional) A dictionary whose key is column names, value
  *     is an object stating if this column is required, column's data type,
  *     default value, and if this column is label. If provided, keys must
@@ -42,13 +42,13 @@ import {ColumnConfig} from './types';
  *     file. Defaults to `,`.
  */
 export function csv(
-    source: string, header = false, columnNames?: string[],
-    columnConfigs?: {[key: string]: ColumnConfig},
-    configuredColumnsOnly = false, delimiter = ','): Promise<CSVDataset> {
+  source: string, header = false, columnNames?: string[],
+  columnConfigs?: {[key: string]: ColumnConfig},
+  configuredColumnsOnly = false, delimiter = ','): Promise<CSVDataset> {
   return CSVDataset.create(
-      new URLDataSource(source), header,
-      columnNames ?
-          columnNames :
-          (header ? CsvHeaderConfig.READ_FIRST_LINE : CsvHeaderConfig.NUMBERED),
-      columnConfigs, configuredColumnsOnly, delimiter);
+    new URLDataSource(source), header,
+    columnNames ?
+      columnNames :
+      (header ? CsvHeaderConfig.READ_FIRST_LINE : CsvHeaderConfig.NUMBERED),
+    columnConfigs, configuredColumnsOnly, delimiter);
 }
