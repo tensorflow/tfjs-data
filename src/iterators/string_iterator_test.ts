@@ -16,6 +16,7 @@
  * =============================================================================
  */
 
+import {ENV} from '@tensorflow/tfjs-core';
 import {FileChunkIterator} from './file_chunk_iterator';
 
 const lorem = `Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do
@@ -25,31 +26,29 @@ consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum
 dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident,
 sunt in culpa qui officia deserunt mollit anim id est laborum.`;
 
-const testBlob = new Blob([lorem]);
+const testData = ENV.get('IS_BROWSER') ? new Blob([lorem]) : Buffer.from(lorem);
 
 describe('StringIterator.split()', () => {
-  it('Correctly splits lines', done => {
-    const byteIterator = new FileChunkIterator(testBlob, {chunkSize: 50});
+  it('Correctly splits lines', async () => {
+    const byteIterator = new FileChunkIterator(testData, {chunkSize: 50});
     const utf8Iterator = byteIterator.decodeUTF8();
     const lineIterator = utf8Iterator.split('\n');
     const expected = lorem.split('\n');
 
-    lineIterator.collect()
-        .then(result => {
-          expect(result.length).toEqual(6);
-          const totalCharacters =
-              result.map(x => x.length).reduce((a, b) => a + b);
-          expect(totalCharacters).toEqual(440);
-          expect(result).toEqual(expected);
-          expect(result.join('\n')).toEqual(lorem);
-        })
-        .then(done)
-        .catch(done.fail);
+    const result = await lineIterator.collect();
+    expect(result.length).toEqual(6);
+    const totalCharacters = result.map(x => x.length).reduce((a, b) => a + b);
+    expect(totalCharacters).toEqual(440);
+    expect(result).toEqual(expected);
+    expect(result.join('\n')).toEqual(lorem);
   });
+
   it('Correctly splits strings even when separators fall on chunk boundaries',
-     done => {
+     async () => {
        const byteIterator = new FileChunkIterator(
-           new Blob(['ab def hi      pq']), {chunkSize: 3});
+           ENV.get('IS_BROWSER') ? new Blob(['ab def hi      pq']) :
+                                   Buffer.from('ab def hi      pq'),
+           {chunkSize: 3});
        // Note the initial chunking will be
        //   ['ab ', 'def', ' hi', '   ', '   ', 'pq],
        // so here we are testing for correct behavior when
@@ -60,16 +59,12 @@ describe('StringIterator.split()', () => {
        const lineIterator = utf8Iterator.split(' ');
        const expected = ['ab', 'def', 'hi', '', '', '', '', '', 'pq'];
 
-       lineIterator.collect()
-           .then(result => {
-             expect(result.length).toEqual(9);
-             const totalCharacters =
-                 result.map(x => x.length).reduce((a, b) => a + b);
-             expect(totalCharacters).toEqual(9);
-             expect(result).toEqual(expected);
-             expect(result.join(' ')).toEqual('ab def hi      pq');
-           })
-           .then(done)
-           .catch(done.fail);
+       const result = await lineIterator.collect();
+       expect(result.length).toEqual(9);
+       const totalCharacters =
+           result.map(x => x.length).reduce((a, b) => a + b);
+       expect(totalCharacters).toEqual(9);
+       expect(result).toEqual(expected);
+       expect(result.join(' ')).toEqual('ab def hi      pq');
      });
 });
