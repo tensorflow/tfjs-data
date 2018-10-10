@@ -40,3 +40,8 @@ const trainDataset = await zip([csvFeatureDataset, csvTargetDataset]).shuffle(10
 
 await model.fitDataset(trainDataset, modelFitDatasetConfig);
 ```
+
+## For mor information
+
+- [TensorFlow.js API documentation](https://js.tensorflow.org/api/index.html)
+- [TensorFlow.js Tutorials](https://js.tensorflow.org/tutorials/)
