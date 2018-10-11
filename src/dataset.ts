@@ -39,6 +39,8 @@ import {deepMapAndAwaitAll, DeepMapResult, isIterable, isSubIterable} from './ut
  * must come last in the pipeline because there are (so far) no batch-enabled
  * transformations.
  */
+
+/** @doc {heading: 'Data', subheading: 'Classes'} */
 export abstract class Dataset<T extends DataElement> {
   /*
    * Provide a new stream of elements.  Note this will also start new streams

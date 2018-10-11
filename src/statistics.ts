@@ -44,6 +44,11 @@ export type TabularRecord = {
 // length histogram, etc.
 // Collecting only numeric min and max is just the bare minimum for now.
 
+
+
+/** An interface representing numeric statistics of a column. */
+
+/** @doc {heading: 'Data', subheading: 'Statistics'} */
 export interface NumericColumnStatistics {
   min: number;
   max: number;
@@ -53,6 +58,12 @@ export interface NumericColumnStatistics {
   length: number;
 }
 
+/**
+ * An interface representing column level NumericColumnStatistics for a
+ * Dataset.
+ */
+
+/** @doc {heading: 'Data', subheading: 'Statistics'} */
 export interface DatasetStatistics {
   [key: string]: NumericColumnStatistics;
 }
@@ -64,6 +75,8 @@ export interface DatasetStatistics {
  * @param max the upper bound of the inputs, which should be mapped to 1,
  * @return A function that maps an input ElementArray to a scaled ElementArray.
  */
+
+/** @doc {heading: 'Data', subheading: 'Statistics'} */
 export function scaleTo01(min: number, max: number): (value: ElementArray) =>
     ElementArray {
   const range = max - min;
@@ -85,6 +98,22 @@ export function scaleTo01(min: number, max: number): (value: ElementArray) =>
   };
 }
 
+
+
+/**
+ * Provides a function that calculates column level statistics, i.e. min, max,
+ * variance, stddev.
+ *
+ * @param dataset The Dataset object whose statistics will be calculated.
+ * @param sampleSize (Optional) If set, statistics will only be calculated
+ *     against the a subset of the whole data.
+ * @param shuffleWindowSize (Optional) If set, shuffle provided dataset before
+ *     calculating statistics.
+ * @return A DatasetStatistics object that contains NumericColumnStatistics of
+ *     each column.
+ */
+
+/** @doc {heading: 'Data', subheading: 'Statistics'} */
 export async function computeDatasetStatistics(
     dataset: Dataset<TabularRecord>, sampleSize?: number,
     shuffleWindowSize?: number): Promise<DatasetStatistics> {

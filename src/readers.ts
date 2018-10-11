@@ -41,6 +41,8 @@ import {ColumnConfig} from './types';
  * @param delimiter (Optional) The string used to parse each line of the input
  *     file. Defaults to `,`.
  */
+
+/** @doc {heading: 'Data', subheading: 'Reading'} */
 export function csv(
     source: string, header = false, columnNames?: string[],
     columnConfigs?: {[key: string]: ColumnConfig},

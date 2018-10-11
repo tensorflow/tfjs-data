@@ -25,6 +25,8 @@ import {LazyIterator} from '../iterators/lazy_iterator';
  *
  * The results are not batched.
  */
+
+/** @doc {heading: 'Data', subheading: 'Classes'} */
 export class TextLineDataset extends Dataset<string> {
   /**
    * Create a `TextLineDataset`.

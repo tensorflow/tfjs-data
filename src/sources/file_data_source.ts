@@ -22,8 +22,11 @@ import {FileChunkIterator, FileChunkIteratorOptions} from '../iterators/file_chu
 import {FileElement} from '../types';
 
 /**
- * Represents a file or blob readable as a stream of binary data chunks.
+ * Represents a file, blob, or Uint8Array readable as a stream of binary data
+ * chunks.
  */
+
+/** @doc {heading: 'Data', subheading: 'Source'} */
 export class FileDataSource extends DataSource {
   /**
    * Create a `FileDataSource`.
