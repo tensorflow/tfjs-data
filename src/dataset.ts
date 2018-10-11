@@ -39,7 +39,6 @@ import {deepMapAndAwaitAll, DeepMapResult, isIterable, isSubIterable} from './ut
  * must come last in the pipeline because there are (so far) no batch-enabled
  * transformations.
  */
-
 /** @doc {heading: 'Data', subheading: 'Classes'} */
 export abstract class Dataset<T extends DataElement> {
   /*
@@ -60,6 +59,12 @@ export abstract class Dataset<T extends DataElement> {
 
   /**
    * Filters this dataset according to `predicate`.
+   *
+   * ```js
+   * const a = datasetFromElements([{'item': 1}, {'item': 2}, {'item': 3}]);
+   *
+   * const b = datasetFromElements([4, 5, 6]);
+   * ```
    *
    * @param predicate A function mapping a dataset element to a boolean or a
    * `Promise` for one.
@@ -288,6 +293,7 @@ export function datasetFromIteratorFn<T extends DataElement>(
 /**
  * Create a `Dataset` from an array of elements.
  */
+/** @doc {heading: 'Data', subheading: 'Dataset Operations'} */
 export function datasetFromElements<T extends DataElement>(items: T[]):
     Dataset<T> {
   return datasetFromIteratorFn(async () => iteratorFromItems(items));
@@ -309,15 +315,20 @@ export function datasetFromElements<T extends DataElement>(items: T[]):
  * elements, the result is a dataset that produces elements that are arrays
  * of two dicts:
  *
+ * ```js
  * const ds1 : Dataset = ...;  // produces elements like {a: ...}
  * const ds1 : Dataset = ...;  // produces elements like {b: ...}
  * const ds3 = zip([ds1, ds2]);  // produces elements like [{a: ...}, {b: ...}]
+ * ```
  *
  * If the goal is to merge the dicts in order to produce elements like
  * {a: ..., b: ...}, this requires a second step such as:
  *
+ * ```js
  * const ds4 = ds3.map(x=>{a: x[0].a, b: x[1].b});
+ * ```
  */
+/** @doc {heading: 'Data', subheading: 'Dataset Operations'} */
 export function zip<O extends DataElement>(datasets: DatasetContainer):
     Dataset<O> {
   // manually type-check the argument for JS users

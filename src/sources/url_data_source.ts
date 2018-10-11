@@ -24,7 +24,6 @@ import {urlChunkIterator} from '../iterators/url_chunk_iterator';
 /*
  * Represents a URL readable as a stream of binary data chunks.
  */
-
 /** @doc {heading: 'Data', subheading: 'Source'} */
 export class URLDataSource extends DataSource {
   /**

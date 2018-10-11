@@ -60,7 +60,6 @@ export type FileElement = File|Blob|Uint8Array;
  * A dictionary containing column level configurations when reading and decoding
  * CSV file(s) csv source.
  */
-
 /** @doc {heading: 'Data', subheading: 'Types'} */
 export interface ColumnConfig {
   required?: boolean;

@@ -23,6 +23,15 @@ import {ColumnConfig} from './types';
 /**
  * Create a `CSVDataset` by reading and decoding CSV file(s) from provided URLs.
  *
+ * ```js
+ * const csvFeatureDataset = await tf.data.csv(csv_feature_url, true);
+ * const csvTargetDataset = await tf.data.csv(csv_target_url, true);
+ *
+ * const trainDataset = await tf.zip(
+ *     [csvFeatureDataset, csvTargetDataset]).shuffle(100);
+ * await model.fitDataset(trainDataset, modelFitDatasetConfig);
+ * ```
+ *
  * @param source URL to fetch CSV file.
  * @param header (Optional) A boolean value that indicates whether the first row
  *     of provided CSV file is a header line with column names, and should not
@@ -41,7 +50,6 @@ import {ColumnConfig} from './types';
  * @param delimiter (Optional) The string used to parse each line of the input
  *     file. Defaults to `,`.
  */
-
 /** @doc {heading: 'Data', subheading: 'Reading'} */
 export function csv(
     source: string, header = false, columnNames?: string[],
