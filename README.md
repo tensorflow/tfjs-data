@@ -36,7 +36,7 @@ const csvTargetDataset = await tf.data.csv(csv_target_url, /* header */ true);
 
 const numFeatures = csvFeatureDataset.csvColumnNames.length;
 
-const trainDataset = await zip([csvFeatureDataset, csvTargetDataset]).shuffle(100);
+const trainDataset = await tf.zip([csvFeatureDataset, csvTargetDataset]).shuffle(100);
 
 await model.fitDataset(trainDataset, modelFitDatasetConfig);
 ...
