@@ -16,12 +16,13 @@
  */
 
 // TODO(soergel) carefully consider what actually should be exposed here
-export {Dataset} from './dataset';
-export {datasetFromElements} from './dataset';
+import * as data from './readers';
+
+export {Dataset, datasetFromElements, zip} from './dataset';
 export {CSVDataset} from './datasets/csv_dataset';
 export {TextLineDataset} from './datasets/text_line_dataset';
-export {csv} from './readers';
 export {FileDataSource} from './sources/file_data_source';
 export {URLDataSource} from './sources/url_data_source';
-export * from './types';
+export {ColumnConfig} from './types';
 export * from './statistics';
+export {data};

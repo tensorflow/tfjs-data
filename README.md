@@ -27,18 +27,19 @@ There are two ways to import TensorFlow.js Data
 Reading a CSV file
 
 ```js
-import * as tfd from '@tensorflow/tfjs-data';
+import * as tf from '@tensorflow/tfjs-data';
 
 ...
 
-const csvFeatureDataset = await tfd.csv(csv_feature_url, /* header */ true);
-const csvTargetDataset = await tfd.csv(csv_target_url, /* header */ true);
+const csvFeatureDataset = await tf.data.csv(csv_feature_url, /* header */ true);
+const csvTargetDataset = await tf.data.csv(csv_target_url, /* header */ true);
 
-const numFeatures = csvDataset.csvColumnNames.length;
+const numFeatures = csvFeatureDataset.csvColumnNames.length;
 
 const trainDataset = await zip([csvFeatureDataset, csvTargetDataset]).shuffle(100);
 
 await model.fitDataset(trainDataset, modelFitDatasetConfig);
+...
 ```
 
 ## For mor information
