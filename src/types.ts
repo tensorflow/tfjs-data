@@ -19,7 +19,7 @@
 import {TensorContainer, TensorContainerArray, TensorContainerObject} from '@tensorflow/tfjs-core/dist/tensor_types';
 import {DType} from '@tensorflow/tfjs-core/dist/types';
 
-import {Dataset} from '.';
+import {Dataset} from './dataset';
 import {LazyIterator} from './iterators/lazy_iterator';
 
 /**
@@ -30,8 +30,6 @@ export type DataElement = TensorContainer;
 export type DataElementObject = TensorContainerObject;
 
 export type DataElementArray = TensorContainerArray;
-
-export type PrimitiveOrT<T> = void|string|number|boolean|T;
 
 // Maybe this should be called 'NestedContainer'-- that's just a bit unwieldy.
 export type Container<T> = ContainerObject<T>|ContainerArray<T>;
@@ -58,6 +56,12 @@ export type IteratorContainer = Container<LazyIterator<DataElement>>;
  */
 export type FileElement = File|Blob|Uint8Array;
 
+/**
+ * A dictionary containing column level configurations when reading and decoding
+ * CSV file(s) csv source.
+ */
+
+/** @doc {heading: 'Data', subheading: 'Types'} */
 export interface ColumnConfig {
   required?: boolean;
   dtype?: DType;
