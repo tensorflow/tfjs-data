@@ -19,7 +19,7 @@
 import {TensorContainer, TensorContainerArray, TensorContainerObject} from '@tensorflow/tfjs-core/dist/tensor_types';
 import {DType} from '@tensorflow/tfjs-core/dist/types';
 
-import {Dataset} from '.';
+import {Dataset} from './dataset';
 import {LazyIterator} from './iterators/lazy_iterator';
 
 /**
