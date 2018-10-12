@@ -103,7 +103,7 @@ export function scaleTo01(min: number, max: number): (value: ElementArray) =>
  *
  * @param dataset The Dataset object whose statistics will be calculated.
  * @param sampleSize (Optional) If set, statistics will only be calculated
- *     against the a subset of the whole data.
+ *     against a subset of the whole data.
  * @param shuffleWindowSize (Optional) If set, shuffle provided dataset before
  *     calculating statistics.
  * @return A DatasetStatistics object that contains NumericColumnStatistics of
