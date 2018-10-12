@@ -60,12 +60,6 @@ export abstract class Dataset<T extends DataElement> {
   /**
    * Filters this dataset according to `predicate`.
    *
-   * ```js
-   * const a = datasetFromElements([{'item': 1}, {'item': 2}, {'item': 3}]);
-   *
-   * const b = datasetFromElements([4, 5, 6]);
-   * ```
-   *
    * @param predicate A function mapping a dataset element to a boolean or a
    * `Promise` for one.
    *
@@ -292,6 +286,12 @@ export function datasetFromIteratorFn<T extends DataElement>(
 
 /**
  * Create a `Dataset` from an array of elements.
+ *
+ * ```js
+ * const a = datasetFromElements([{'item': 1}, {'item': 2}, {'item': 3}]);
+ *
+ * const b = datasetFromElements([4, 5, 6]);
+ * ```
  */
 /** @doc {heading: 'Data', subheading: 'Dataset Operations'} */
 export function datasetFromElements<T extends DataElement>(items: T[]):
