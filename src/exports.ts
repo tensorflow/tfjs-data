@@ -15,11 +15,11 @@
  * =============================================================================
  */
 
-export {Dataset, datasetFromElements, zip} from './dataset';
+export {Dataset, zip} from './dataset';
+export {datasetFromElements as array} from './dataset';
 export {CSVDataset} from './datasets/csv_dataset';
-export {TextLineDataset} from './datasets/text_line_dataset';
 export {FileDataSource} from './sources/file_data_source';
 export {URLDataSource} from './sources/url_data_source';
 export {ColumnConfig} from './types';
-export * from './statistics';
+
 export * from './readers';

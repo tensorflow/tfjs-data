@@ -24,11 +24,11 @@ import {ColumnConfig} from './types';
  * Create a `CSVDataset` by reading and decoding CSV file(s) from provided URLs.
  *
  * ```js
- * const csvFeatureDataset = await tf.data.csv(csv_feature_url, true);
- * const csvTargetDataset = await tf.data.csv(csv_target_url, true);
+ * const csvInputsDataset = await tf.data.csv(csvInputsUrl, true);
+ * const csvTargetDataset = await tf.data.csv(csvTargetUrl, true);
  *
  * const trainDataset = await tf.zip(
- *     [csvFeatureDataset, csvTargetDataset]).shuffle(100);
+ *     [csvInputsDataset, csvTargetDataset]).shuffle(100);
  * await model.fitDataset(trainDataset, modelFitDatasetConfig);
  * ```
  *
@@ -43,14 +43,14 @@ import {ColumnConfig} from './types';
  * @param columnConfigs (Optional) A dictionary whose key is column names, value
  *     is an object stating if this column is required, column's data type,
  *     default value, and if this column is label. If provided, keys must
- *     correspond to names provided in column_names or inferred from the file
+ *     correspond to names provided in columnNames or inferred from the file
  *     header lines.
  * @param configuredColumnsOnly (Optional) A boolean value specifies if only
  *     parsing and returning columns which exist in columnConfigs.
  * @param delimiter (Optional) The string used to parse each line of the input
  *     file. Defaults to `,`.
  */
-/** @doc {heading: 'Data', subheading: 'Reading'} */
+/** @doc {heading: 'Data', subheading: 'Creation'} */
 export function csv(
     source: string, header = false, columnNames?: string[],
     columnConfigs?: {[key: string]: ColumnConfig},

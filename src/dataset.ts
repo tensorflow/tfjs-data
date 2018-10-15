@@ -328,7 +328,7 @@ export function datasetFromElements<T extends DataElement>(items: T[]):
  * const ds4 = ds3.map(x=>{a: x[0].a, b: x[1].b});
  * ```
  */
-/** @doc {heading: 'Data', subheading: 'Dataset Operations'} */
+/** @doc {heading: 'Data', subheading: 'Operations'} */
 export function zip<O extends DataElement>(datasets: DatasetContainer):
     Dataset<O> {
   // manually type-check the argument for JS users
