@@ -90,8 +90,6 @@ export function scaleTo01(min: number, max: number): (value: ElementArray) =>
   };
 }
 
-
-
 /**
  * Provides a function that calculates column level statistics, i.e. min, max,
  * variance, stddev.
