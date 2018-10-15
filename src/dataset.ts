@@ -292,8 +292,9 @@ export function datasetFromIteratorFn<T extends DataElement>(
  *
  * const b = datasetFromElements([4, 5, 6]);
  * ```
+ * @param items An array of elements that will be parsed as items in a dataset.
  */
-/** @doc {heading: 'Data', subheading: 'Operations'} */
+/** @doc {heading: 'Data', subheading: 'Creation'} */
 export function datasetFromElements<T extends DataElement>(items: T[]):
     Dataset<T> {
   return datasetFromIteratorFn(async () => iteratorFromItems(items));
