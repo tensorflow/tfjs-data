@@ -44,8 +44,6 @@ export type TabularRecord = {
 // length histogram, etc.
 // Collecting only numeric min and max is just the bare minimum for now.
 
-
-
 /** An interface representing numeric statistics of a column. */
 export interface NumericColumnStatistics {
   min: number;
@@ -91,8 +89,6 @@ export function scaleTo01(min: number, max: number): (value: ElementArray) =>
     }
   };
 }
-
-
 
 /**
  * Provides a function that calculates column level statistics, i.e. min, max,
