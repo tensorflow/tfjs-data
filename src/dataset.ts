@@ -293,7 +293,7 @@ export function datasetFromIteratorFn<T extends DataElement>(
  * const b = datasetFromElements([4, 5, 6]);
  * ```
  */
-/** @doc {heading: 'Data', subheading: 'Dataset Operations'} */
+/** @doc {heading: 'Data', subheading: 'Operations'} */
 export function datasetFromElements<T extends DataElement>(items: T[]):
     Dataset<T> {
   return datasetFromIteratorFn(async () => iteratorFromItems(items));
