@@ -44,8 +44,6 @@ export type TabularRecord = {
 // length histogram, etc.
 // Collecting only numeric min and max is just the bare minimum for now.
 
-
-
 /** An interface representing numeric statistics of a column. */
 export interface NumericColumnStatistics {
   min: number;
