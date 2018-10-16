@@ -27,8 +27,14 @@ import {ColumnConfig} from './types';
  * const csvInputsDataset = await tf.data.csv(csvInputsUrl, true);
  * const csvTargetDataset = await tf.data.csv(csvTargetUrl, true);
  *
- * const trainDataset = await tf.zip(
+ * const trainDataset = await tf.data.zip(
  *     [csvInputsDataset, csvTargetDataset]).shuffle(100);
+ *
+ * const model = tf.sequential();
+ * model.add(tf.layers.dense({units: 32, inputShape: [50]}));
+ * model.add(tf.layers.dense({units: 4}));
+ * model.compile({optimizer: 'sgd', loss: 'meanSquaredError'});
+ *
  * await model.fitDataset(trainDataset, modelFitDatasetConfig);
  * ```
  *
