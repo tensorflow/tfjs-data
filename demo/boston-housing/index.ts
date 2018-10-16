@@ -18,7 +18,7 @@
 import * as tf from '@tensorflow/tfjs';
 import {Tensor, Tensor2D} from '@tensorflow/tfjs-core';
 
-import {Dataset} from '../../src/dataset';
+import {csv} from '../../src/readers';
 import {computeDatasetStatistics, DatasetStatistics} from '../../src/statistics';
 
 import {BostonHousingDataset} from './data';
@@ -180,13 +180,61 @@ export const computeBaseline = () => {
 };
 
 document.addEventListener('DOMContentLoaded', async () => {
-  bostonData = await BostonHousingDataset.create();
-  ui.updateStatus('Data loaded, converting to tensors');
-  await loadDataAndNormalize();
-  ui.updateStatus(
-      'Data is now available as tensors.\n' +
-      'Click a train button to begin.');
-  ui.updateBaselineStatus('Estimating baseline loss');
-  computeBaseline();
-  await ui.setup();
+  const csvDataset = await csv(
+      'https://storage.googleapis.com/tfjs-examples/multivariate-linear-regression/data/merged-train-data.csv',
+      true, null, {medv: {isLabel: true}});
+
+  const flattenedDataset =
+      csvDataset
+          .map((row: [{[key: string]: number}]) => {
+            return {a: Object.values(row[0]), b: Object.values(row[1])};
+          })
+          .batch(10);
+
+  // const flattenedDataset =
+  //     csvDataset
+  //         .map((row: [{[key: string]: number}]) => {
+  //           return [
+  //             tf.tensor(Object.values(row[0])),
+  //             tf.tensor(Object.values(row[1]))
+  //           ];
+  //         })
+  //         .batch(10);
+
+  const iter = await flattenedDataset.iterator();
+  const data = (await iter.next());
+  // console.log(data);
+  data.value.a.print();
+  data.value.b.print();
+  // data[0].print();
+  // data[1].print();
+  // console.log(data);
+
+
+  const model = tf.sequential();
+  model.add(tf.layers.dense(
+      {inputShape: [csvDataset.csvColumnNames.length - 1], units: 1}));
+  model.compile({optimizer: tf.train.sgd(0.000001), loss: 'meanSquaredError'});
+
+  await model.fitDataset(flattenedDataset, {
+    epochs: 10,
+    batchesPerEpoch: 10,
+    callbacks: {
+      onEpochEnd: async (epoch, logs) => {
+        console.log(epoch, logs.loss);
+      }
+    }
+  });
+
+
+
+  // bostonData = await BostonHousingDataset.create();
+  // ui.updateStatus('Data loaded, converting to tensors');
+  // await loadDataAndNormalize();
+  // ui.updateStatus(
+  //     'Data is now available as tensors.\n' +
+  //     'Click a train button to begin.');
+  // ui.updateBaselineStatus('Estimating baseline loss');
+  // computeBaseline();
+  // await ui.setup();
 }, false);
