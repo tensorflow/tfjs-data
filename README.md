@@ -30,32 +30,28 @@ Reading a CSV file
 import * as tf from '@tensorflow/tfjs-data';
 
 ...
-const csvInputsUrl = 'https://storage.googleapis.com/tfjs-examples/multivariate-linear-regression/data/train-data.csv'
-const csvTargetUrl = 'https://storage.googleapis.com/tfjs-examples/multivariate-linear-regression/data/train-target.csv'
+const csvUrl = 'https://storage.googleapis.com/tfjs-examples/multivariate-linear-regression/data/merged-train-data.csv';
 
-const csvInputsDataset = await tf.data.csv(csvInputsUrl, /* header */ true);
-const csvTargetDataset = await tf.data.csv(csvTargetUrl, /* header */ true);
+const csvDataset = tf.data.csv(
+  csvUrl, {hasHeader: true, columnConfigs: {medv: {isLabel: true}}});
 
-const numOfFeatures = csvInputsDataset.csvColumnNames.length;
+const numOfFeatures = (await csvDataset.getHeaders()).length - 1;
 
-const flattenedInputsDataset =
-  csvInputsDataset.map((row: {[key: string]: number}) => {
-        return tf.tensor([Object.keys(row).sort().map(key => row[key])]);
-      });
-const flattenedTargetDataset =
-  csvTargetDataset.map((row: {[key: string]: number}) => {
-        return tf.tensor([Object.keys(row).sort().map(key => row[key])]);
-      });
-
-const trainDataset = tf.data.zip(
-  [flattenedInputsDataset, flattenedTargetDataset]).shuffle(100);
+const flattenedDataset =
+    csvDataset
+        .map((row: [{[key: string]: number}]) => {
+          return [
+            tf.tensor(Object.values(row[0])), tf.tensor(Object.values(row[1]))
+          ];
+        })
+        .batch(10);
 
 const model = tf.sequential();
 model.add(tf.layers.dense(
       {inputShape: [numOfFeatures], units: 1}));
 model.compile({optimizer: tf.train.sgd(0.000001), loss: 'meanSquaredError'});
 
-await model.fitDataset(trainDataset, {epochs: 10, batchesPerEpoch: 1});
+await model.fitDataset(flattenedDataset, {epochs: 10, batchesPerEpoch: 10});
 ...
 ```
 

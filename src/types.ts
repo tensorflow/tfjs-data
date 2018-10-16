@@ -58,13 +58,50 @@ export type FileElement = File|Blob|Uint8Array;
 
 /**
  * A dictionary containing column level configurations when reading and decoding
- * CSV file(s) csv source.
+ * CSV file(s) from csv source.
  */
-
 /** @doc {heading: 'Data', subheading: 'Types'} */
 export interface ColumnConfig {
   required?: boolean;
   dtype?: DType;
   default?: DataElement;
   isLabel?: boolean;
+}
+
+/**
+ * Interface for configuring dataset when reading and decoding from CSV file(s).
+ */
+/** @doc {heading: 'Data', subheading: 'Types'} */
+export interface CSVConfig {
+  /**
+   * A boolean value that indicates whether the first row of provided CSV file
+   * is a header line with column names, and should not be included in the data.
+   */
+  hasHeader?: boolean;
+
+  /**
+   * A list of strings that corresponds to the CSV column names, in order. If
+   * this is not provided, infers the column names from the first row of the
+   * records if there is header line, otherwise throw an error.
+   */
+  headers?: string[];
+
+  /**
+   * A dictionary whose key is column names, value is an object stating if this
+   * column is required, column's data type, default value, and if this column
+   * is label. If provided, keys must correspond to names provided in
+   * column_names or inferred from the file header lines.
+   */
+  columnConfigs?: {[key: string]: ColumnConfig};
+
+  /**
+   * A boolean value specifies if only parsing and returning columns which exist
+   * in columnConfigs.
+   */
+  configuredColumnsOnly?: boolean;
+
+  /**
+   * The string used to parse each line of the input file.
+   */
+  delimiter?: string;
 }

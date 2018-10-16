@@ -18,7 +18,7 @@
 import * as tf from '@tensorflow/tfjs';
 import {Tensor, Tensor2D} from '@tensorflow/tfjs-core';
 
-import {Dataset} from '../../src/dataset';
+import {csv} from '../../src/readers';
 import {computeDatasetStatistics, DatasetStatistics} from '../../src/statistics';
 
 import {BostonHousingDataset} from './data';
