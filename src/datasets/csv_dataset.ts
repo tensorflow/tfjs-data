@@ -46,23 +46,28 @@ export class CSVDataset extends Dataset<DataElement> {
    * Create a `CSVDataset`.
    *
    * @param input A `DataSource` providing a chunked, UTF8-encoded byte stream.
-   * @param hasHeader (Optional) A boolean value that indicates whether the
+   * @param hasHeader A boolean value that indicates whether the
    *     first row of provided CSV file is a header line with column names, and
    *     should not be included in the data.
-   * @param conlumnConfigs (Optional) A dictionary whose key is column names,
+   * @param headers A list of strings that corresponds to the CSV
+   *     column names, in order. If this is not provided, infers the column
+   *     names from the first row of the records if there is header line,
+   *     otherwise throw an error.
+   * @param conlumnConfigs A dictionary whose key is column names,
    *     value is an object stating if this column is required, column's data
    *     type, default value, and if is label. If provided, keys must correspond
    *     to names provided in column_names or inferred from the file header
    *     lines.
-   * @param configuredColumnsOnly (Optional) A boolean value specifies if only
+   * @param configuredColumnsOnly A boolean value specifies if only
    *     parsing and returning columns which exist in columnConfigs.
    * @param delimiter The string used to parse each line of the input file.
    */
   constructor(
       protected readonly input: DataSource, readonly hasHeader: boolean,
-      readonly conlumnConfigs: {[key: string]: ColumnConfig},
+      headers: string[], readonly conlumnConfigs: {[key: string]: ColumnConfig},
       readonly configuredColumnsOnly: boolean, readonly delimiter: string) {
     super();
+    this._headers = headers;
     this.base = new TextLineDataset(input);
   }
 
@@ -74,22 +79,22 @@ export class CSVDataset extends Dataset<DataElement> {
                                         this._headers;
   }
 
-  /* 1) If csvColumnNames is provided as string[], use this string[] as output
+  /* 1) If _headers is provided as string[], use this string[] as output
    * keys in corresponded order, and they must match header line if
-   * hasHeaderLine is true.
-   * 2) If csvColumnNames is not provided, parse header line as result keys if
-   * hasHeaderLine, otherwise throw an error.
+   * hasHeader is true.
+   * 2) If _headers is not provided, parse header line as headers if
+   * hasHeader === true, otherwise throw an error.
    * 3) If columnConfigs is provided, all the keys in columnConfigs must exist
-   * in parsed column names.
+   * in parsed headers.
    */
   private async setHeaders() {
     const columnNamesFromFile = await this.maybeReadHeaderLine();
     if (!this._headers && !columnNamesFromFile) {
-      // Throw an error if column names is not provided and no header line.
+      // Throw an error if _headers is not provided and no header line.
       throw new Error(
           'Column names must be provided if there is no header line.');
     } else if (this._headers && columnNamesFromFile) {
-      // Check provided column names match header line.
+      // Check provided _headers match header line.
       assert(
           columnNamesFromFile.length === this._headers.length,
           'Provided column names does not match header line.');
@@ -99,8 +104,10 @@ export class CSVDataset extends Dataset<DataElement> {
             'Provided column names does not match header line.');
       }
     }
-    this._headers = columnNamesFromFile ? columnNamesFromFile : this._headers;
-    // Check if keys in columnConfigs match column names.
+    if (columnNamesFromFile) {
+      this._headers = columnNamesFromFile;
+    }
+    // Check if keys in columnConfigs match _headers.
     if (this.conlumnConfigs) {
       for (const key of Object.keys(this.conlumnConfigs)) {
         const index = this._headers.indexOf(key);
@@ -130,39 +137,38 @@ export class CSVDataset extends Dataset<DataElement> {
    * Create a `CSVDataset`.
    *
    * @param input A `DataSource` providing a chunked, UTF8-encoded byte stream.
-   * @param header (Optional) A boolean value that indicates whether the first
+   * @param csvConfig (Optional) A CSVConfig object that contains configurations
+   *     of reading and decoding from CSV file(s).
+   *
+   *     hasHeader: (Optional) A boolean value that indicates whether the first
    *     row of provided CSV file is a header line with column names, and should
    *     not be included in the data. Defaults to `False`.
-   * @param csvColumnNames (Optional) The keys to use for the columns, in order.
-   *     If this argument is provided and header is false, it is assumed that
-   *     the input file does not have a header line providing the column names
-   *     and use the elements in this argument as column names. If this argument
-   *     is provided and header is true, the provided column names must match
-   *     parsed names in header line. If this argument is not provided, parse
-   *     header line for column names if header is true, otherwise throw an
-   *     error.
-   * @param columnConfigs (Optional) A dictionary whose key is column names,
-   *     value is an object stating if this column is required, column's data
-   *     type, default value, and if is label. If provided, keys must correspond
-   *     to names provided in column_names or inferred from the file header
-   *     lines.
-   * @param configuredColumnsOnly (Optional) A boolean value specifies if only
+   *
+   *     headers: (Optional) A list of strings that corresponds to
+   *     the CSV column names, in order. If this is not provided, infers the
+   *     column names from the first row of the records if there is header line,
+   *     otherwise throw an error.
+   *
+   *     columnConfigs: (Optional) A dictionary whose key is column names, value
+   *     is an object stating if this column is required, column's data type,
+   *     default value, and if this column is label. If provided, keys must
+   *     correspond to names provided in column_names or inferred from the file
+   *     header lines.
+   *
+   *     configuredColumnsOnly (Optional) A boolean value specifies if only
    *     parsing and returning columns which exist in columnConfigs.
-   * @param delimiter The string used to parse each line of the input file. If
-   *     this argument is not provided, use default delimiter `,`.
+   *
+   *     delimiter (Optional) The string used to parse each line of the input
+   *     file. Defaults to `,`.
    */
   static create(input: DataSource, csvConfig?: CSVConfig) {
     if (!csvConfig) {
       csvConfig = {};
     }
-    const result = new CSVDataset(
-        input, csvConfig.hasHeader === false ? false : true,
+    return new CSVDataset(
+        input, csvConfig.hasHeader === false ? false : true, csvConfig.headers,
         csvConfig.columnConfigs, csvConfig.configuredColumnsOnly,
         csvConfig.delimiter ? csvConfig.delimiter : ',');
-    if (csvConfig.headers) {
-      result._headers = csvConfig.headers;
-    }
-    return result;
   }
 
   async iterator(): Promise<LazyIterator<DataElement>> {
