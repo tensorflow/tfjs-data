@@ -27,7 +27,7 @@ There are two ways to import TensorFlow.js Data
 Reading a CSV file
 
 ```js
-import * as tf from '@tensorflow/tfjs-data';
+import * as tf from '@tensorflow/tfjs';
 
 ...
 const csvUrl = 'https://storage.googleapis.com/tfjs-examples/multivariate-linear-regression/data/merged-train-data.csv';
