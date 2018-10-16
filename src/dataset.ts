@@ -288,15 +288,14 @@ export function datasetFromIteratorFn<T extends DataElement>(
  * Create a `Dataset` from an array of elements.
  *
  * ```js
- * const a = datasetFromElements([{'item': 1}, {'item': 2}, {'item': 3}]);
+ * const a = tf.data.array([{'item': 1}, {'item': 2}, {'item': 3}]);
  *
- * const b = datasetFromElements([4, 5, 6]);
+ * const b = tf.data.array([4, 5, 6]);
  * ```
  * @param items An array of elements that will be parsed as items in a dataset.
  */
 /** @doc {heading: 'Data', subheading: 'Creation'} */
-export function datasetFromElements<T extends DataElement>(items: T[]):
-    Dataset<T> {
+export function array<T extends DataElement>(items: T[]): Dataset<T> {
   return datasetFromIteratorFn(async () => iteratorFromItems(items));
 }
 

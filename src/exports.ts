@@ -15,7 +15,7 @@
  * =============================================================================
  */
 
-export {Dataset, datasetFromElements as array, zip} from './dataset';
+export {array, Dataset, zip} from './dataset';
 export {CSVDataset} from './datasets/csv_dataset';
 export {FileDataSource} from './sources/file_data_source';
 export {URLDataSource} from './sources/url_data_source';

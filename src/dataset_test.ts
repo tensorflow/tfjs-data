@@ -20,7 +20,7 @@ import * as tf from '@tensorflow/tfjs-core';
 import {describeWithFlags} from '@tensorflow/tfjs-core/dist/jasmine_util';
 import {TensorContainerObject} from '@tensorflow/tfjs-core/dist/tensor_types';
 
-import {Dataset, datasetFromElements, datasetFromIteratorFn, zip} from './dataset';
+import {array, Dataset, datasetFromIteratorFn, zip} from './dataset';
 import {iteratorFromFunction, iteratorFromItems, LazyIterator} from './iterators/lazy_iterator';
 import {DataElementObject, DatasetContainer} from './types';
 
@@ -81,8 +81,8 @@ function complexifyExample(simple: any): {} {
 
 describeWithFlags('Dataset', tf.test_util.CPU_ENVS, () => {
   it('can be concatenated', async () => {
-    const a = datasetFromElements([{'item': 1}, {'item': 2}, {'item': 3}]);
-    const b = datasetFromElements([{'item': 4}, {'item': 5}, {'item': 6}]);
+    const a = array([{'item': 1}, {'item': 2}, {'item': 3}]);
+    const b = array([{'item': 4}, {'item': 5}, {'item': 6}]);
     const result = await a.concatenate(b).collectAll();
     expect(result).toEqual([
       {'item': 1}, {'item': 2}, {'item': 3}, {'item': 4}, {'item': 5},
@@ -92,9 +92,9 @@ describeWithFlags('Dataset', tf.test_util.CPU_ENVS, () => {
 
   it('can be created by concatenating multiple underlying datasets via reduce',
      async () => {
-       const a = datasetFromElements([{'item': 1}, {'item': 2}]);
-       const b = datasetFromElements([{'item': 3}, {'item': 4}]);
-       const c = datasetFromElements([{'item': 5}, {'item': 6}]);
+       const a = array([{'item': 1}, {'item': 2}]);
+       const b = array([{'item': 3}, {'item': 4}]);
+       const c = array([{'item': 5}, {'item': 6}]);
        const concatenated = [a, b, c].reduce((a, b) => a.concatenate(b));
        const result = await concatenated.collectAll();
        expect(result).toEqual([
@@ -105,24 +105,24 @@ describeWithFlags('Dataset', tf.test_util.CPU_ENVS, () => {
 
   it('can be created by zipping an array of datasets with primitive elements',
      async () => {
-       const a = datasetFromElements([1, 2, 3]);
-       const b = datasetFromElements([4, 5, 6]);
+       const a = array([1, 2, 3]);
+       const b = array([4, 5, 6]);
        const result = await zip([a, b]).collectAll();
        expect(result).toEqual([[1, 4], [2, 5], [3, 6]]);
      });
 
   it('can be created by zipping an array of datasets with object elements',
      async () => {
-       const a = datasetFromElements([{a: 1}, {a: 2}, {a: 3}]);
-       const b = datasetFromElements([{b: 4}, {b: 5}, {b: 6}]);
+       const a = array([{a: 1}, {a: 2}, {a: 3}]);
+       const b = array([{b: 4}, {b: 5}, {b: 6}]);
        const result = await zip([a, b]).collectAll();
        expect(result).toEqual(
            [[{a: 1}, {b: 4}], [{a: 2}, {b: 5}], [{a: 3}, {b: 6}]]);
      });
 
   it('can be created by zipping a dict of datasets', async () => {
-    const a = datasetFromElements([{a: 1}, {a: 2}, {a: 3}]);
-    const b = datasetFromElements([{b: 4}, {b: 5}, {b: 6}]);
+    const a = array([{a: 1}, {a: 2}, {a: 3}]);
+    const b = array([{b: 4}, {b: 5}, {b: 6}]);
     const result = await zip({c: a, d: b}).collectAll();
     expect(result).toEqual([
       {c: {a: 1}, d: {b: 4}}, {c: {a: 2}, d: {b: 5}}, {c: {a: 3}, d: {b: 6}}
@@ -130,10 +130,10 @@ describeWithFlags('Dataset', tf.test_util.CPU_ENVS, () => {
   });
 
   it('can be created by zipping a nested structure of datasets', async () => {
-    const a = datasetFromElements([1, 2, 3]);
-    const b = datasetFromElements([4, 5, 6]);
-    const c = datasetFromElements([7, 8, 9]);
-    const d = datasetFromElements([10, 11, 12]);
+    const a = array([1, 2, 3]);
+    const b = array([4, 5, 6]);
+    const c = array([7, 8, 9]);
+    const d = array([10, 11, 12]);
     const result = await zip({a, bcd: [b, {c, d}]}).collectAll();
 
     expect(result).toEqual([
@@ -144,8 +144,8 @@ describeWithFlags('Dataset', tf.test_util.CPU_ENVS, () => {
   });
 
   it('can be created by zipping datasets of different sizes', async () => {
-    const a = datasetFromElements([1, 2]);
-    const b = datasetFromElements([3, 4, 5, 6]);
+    const a = array([1, 2]);
+    const b = array([3, 4, 5, 6]);
     const result = await zip([a, b]).collectAll();
     expect(result).toEqual([[1, 3], [2, 4]]);
   });
@@ -181,10 +181,10 @@ describeWithFlags('Dataset', tf.test_util.CPU_ENVS, () => {
   });
 
   it('zipping a structure with repeated elements works', async () => {
-    const a = datasetFromElements([1, 2, 3]);
-    const b = datasetFromElements([4, 5, 6]);
-    const c = datasetFromElements([7, 8, 9]);
-    const d = datasetFromElements([10, 11, 12]);
+    const a = array([1, 2, 3]);
+    const b = array([4, 5, 6]);
+    const c = array([7, 8, 9]);
+    const d = array([10, 11, 12]);
     const result = await zip({a, abacd: [a, b, {a, c, d}]}).collectAll();
 
     expect(result).toEqual([
@@ -197,9 +197,9 @@ describeWithFlags('Dataset', tf.test_util.CPU_ENVS, () => {
   it('zipping a structure with cycles throws an error', async done => {
     try {
       // tslint:disable-next-line:no-any
-      const a = datasetFromElements([1, 2, 3]);
-      const b = datasetFromElements([4, 5, 6]);
-      const c: DatasetContainer = [datasetFromElements([7, 8, 9])];
+      const a = array([1, 2, 3]);
+      const b = array([4, 5, 6]);
+      const c: DatasetContainer = [array([7, 8, 9])];
       const abc: DatasetContainer = [a, b, c];
       c.push(abc);
       await zip({a, abc}).iterator();
@@ -221,7 +221,7 @@ describeWithFlags('Dataset', tf.test_util.CPU_ENVS, () => {
                                      }
                                      return {value: count++, done: false};
                                    }));
-         const b = datasetFromElements([3, 4, 5, 6]);
+         const b = array([3, 4, 5, 6]);
          // tslint:disable-next-line:no-any
          await (await zip([a, b]).iterator()).collect(1000, 0);
          done.fail();
@@ -233,7 +233,7 @@ describeWithFlags('Dataset', tf.test_util.CPU_ENVS, () => {
      });
 
   it('can be repeated a fixed number of times', async () => {
-    const a = datasetFromElements([{'item': 1}, {'item': 2}, {'item': 3}]);
+    const a = array([{'item': 1}, {'item': 2}, {'item': 3}]);
     const result = await a.repeat(4).collectAll();
     expect(result).toEqual([
       {'item': 1},
@@ -252,7 +252,7 @@ describeWithFlags('Dataset', tf.test_util.CPU_ENVS, () => {
   });
 
   it('can be repeated indefinitely', async () => {
-    const a = datasetFromElements([{'item': 1}, {'item': 2}, {'item': 3}]);
+    const a = array([{'item': 1}, {'item': 2}, {'item': 3}]);
     await a.repeat().take(234).collectAll();
   });
 
