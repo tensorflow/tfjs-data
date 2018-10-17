@@ -15,9 +15,7 @@
  * =============================================================================
  */
 
-import {Dataset, zip} from '../../src/dataset';
-import * as tfd from '../../src/readers';
-import {DataElement} from '../../src/types';
+import * as tfd from '../../src/index';
 
 // Boston Housing data constants:
 const BASE_URL =
@@ -30,8 +28,8 @@ const TEST_TARGET_FILENAME = 'test-target.csv';
 
 /** Helper class to handle loading training and test data. */
 export class BostonHousingDataset {
-  trainDataset: Dataset<DataElement> = null;
-  testDataset: Dataset<DataElement> = null;
+  trainDataset: tfd.data.Dataset<tfd.data.DataElement> = null;
+  testDataset: tfd.data.Dataset<tfd.data.DataElement> = null;
   numFeatures: number = null;
 
   private constructor() {}
@@ -53,15 +51,15 @@ export class BostonHousingDataset {
       `${BASE_URL}${TEST_TARGET_FILENAME}`
     ];
     console.log('* Downloading data *');
-    const csvDatasets = fileUrls.map(url => tfd.csv(url));
+    const csvDatasets = fileUrls.map(url => tfd.data.csv(url));
 
     // Sets number of features so it can be used in the model.
-    this.numFeatures = (await csvDatasets[0].getHeaders()).length;
+    this.numFeatures = (await csvDatasets[0].getColumnNames()).length;
 
     // Reduces the object-type data to an array of numbers.
     const convertedDatasets = csvDatasets.map(
-        (dataset) => dataset.map((row: {[key: string]: string}) => {
-          return Object.keys(row).sort().map(key => Number(row[key]));
+        (dataset) => dataset.map((row: {[key: string]: number}) => {
+          return Object.keys(row).sort().map(key => row[key]);
         }));
 
     const trainFeaturesDataset = convertedDatasets[0];
@@ -69,13 +67,12 @@ export class BostonHousingDataset {
     const testFeaturesDataset = convertedDatasets[2];
     const testTargetDataset = convertedDatasets[3];
 
-    this.trainDataset = zip({
-                          features: trainFeaturesDataset,
-                          target: trainTargetDataset
-                        }).shuffle(1000);
-    this.testDataset = zip({
-                         features: testFeaturesDataset,
-                         target: testTargetDataset
-                       }).shuffle(1000);
+    this.trainDataset =
+        tfd.data
+            .zip({features: trainFeaturesDataset, target: trainTargetDataset})
+            .shuffle(1000);
+    this.testDataset =
+        tfd.data.zip({features: testFeaturesDataset, target: testTargetDataset})
+            .shuffle(1000);
   }
 }

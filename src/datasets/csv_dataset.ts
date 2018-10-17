@@ -16,7 +16,6 @@
  * =============================================================================
  */
 
-import {DType} from '@tensorflow/tfjs-core/dist/types';
 import {assert} from '@tensorflow/tfjs-core/dist/util';
 
 import {Dataset} from '../dataset';
@@ -32,8 +31,8 @@ import {TextLineDataset} from './text_line_dataset';
  * The produced `DataElement`s each contain one key-value pair for
  * every column of the table.  When a field is empty in the incoming data, the
  * resulting value is `undefined`, or throw error if it is required.  Values
- * that can be parsed as numbers are emitted as type `number`; otherwise they
- * are left as `string`.
+ * that can be parsed as numbers are emitted as type `number`, other values
+ * are parsed as `string`.
  *
  * The results are not batched.
  */
@@ -72,11 +71,16 @@ export class CSVDataset extends Dataset<DataElement> {
       // Check provided columnNames match header line.
       assert(
           columnNamesFromFile.length === this._columnNames.length,
-          'Provided column names does not match header line.');
+          `The length of provided columnNames (${
+              this._columnNames.length}) does not` +
+              ` match the length of the header line read from file (${
+                  columnNamesFromFile.length}).`);
       for (let i = 0; i < this._columnNames.length; i++) {
         assert(
             columnNamesFromFile[i] === this._columnNames[i],
-            'Provided column names does not match header line.');
+            `Provided No.${i} column name ${
+                this._columnNames[i]} does not match header line No.${
+                i} column ${columnNamesFromFile[i]}.`);
       }
     }
     if (columnNamesFromFile) {
@@ -87,7 +91,9 @@ export class CSVDataset extends Dataset<DataElement> {
       for (const key of Object.keys(this._columnConfigs)) {
         const index = this._columnNames.indexOf(key);
         if (index === -1) {
-          throw new Error('Column config does not match column names.');
+          throw new Error(
+              `The key ${key} provided in columnConfigs does not` +
+              ` match any of the column names (${this._columnNames}).`);
         }
       }
     }
@@ -128,8 +134,11 @@ export class CSVDataset extends Dataset<DataElement> {
    *     columnConfigs: (Optional) A dictionary whose key is column names, value
    *     is an object stating if this column is required, column's data type,
    *     default value, and if this column is label. If provided, keys must
-   *     correspond to names provided in column_names or inferred from the file
-   *     header lines.
+   *     correspond to names provided in columnNames or inferred from the file
+   *     header lines. If isLabel=true is set for any column, returns an array
+   *     of two items: the first item is a map of features kay/value pairs, the
+   *     second item is a map of labels key/value pairs. If no feature is marked
+   *     as label, returns a map of features only.
    *
    *     configuredColumnsOnly (Optional) A boolean value specifies if only
    *     parsing and returning columns which exist in columnConfigs.
@@ -179,7 +188,8 @@ export class CSVDataset extends Dataset<DataElement> {
         const value = values[i];
         let parsedValue = null;
         if (value === '') {
-          // Fills default value if provided, otherwise return undefined.
+          // If default value is provided, use it. If default value is not
+          // provided, set as undefined.
           if (config && config.default !== undefined) {
             parsedValue = config.default;
           } else if (config && (config.required || config.isLabel)) {
@@ -192,9 +202,9 @@ export class CSVDataset extends Dataset<DataElement> {
           // A value is present, so parse it based on type
           const valueAsNum = Number(value);
           if (isNaN(valueAsNum)) {
-            // If the value is a string and this column is declared as boolean
-            // in config, parse it as boolean, otherwise return string.
-            if (config && config.dtype === DType.bool) {
+            // The value is a string and this column is declared as boolean
+            // in config, parse it as boolean.
+            if (config && config.dtype === 'bool') {
               parsedValue = this.getBoolean(value);
             } else {
               // Set value as string
@@ -208,13 +218,13 @@ export class CSVDataset extends Dataset<DataElement> {
             // If this value is a number and data type is provided, parse it
             // according to provided data type.
             switch (config.dtype) {
-              case DType.float32:
+              case 'float32':
                 parsedValue = valueAsNum;
                 break;
-              case DType.int32:
+              case 'int32':
                 parsedValue = Math.floor(valueAsNum);
                 break;
-              case DType.bool:
+              case 'bool':
                 parsedValue = this.getBoolean(value);
                 break;
               default:
@@ -227,7 +237,7 @@ export class CSVDataset extends Dataset<DataElement> {
                                      features[key] = parsedValue;
       }
     }
-    // If label is not empty, return an array of features and labels, otherwise
+    // If label exists, return an array of features and labels, otherwise
     // return features only.
     if (Object.keys(labels).length === 0) {
       return features;

@@ -40,7 +40,7 @@ import {CSVConfig} from './types';
  *     columnConfigs: (Optional) A dictionary whose key is column names, value
  *     is an object stating if this column is required, column's data type,
  *     default value, and if this column is label. If provided, keys must
- *     correspond to names provided in column_names or inferred from the file
+ *     correspond to names provided in columnNames or inferred from the file
  *     header lines.
  *
  *     configuredColumnsOnly (Optional) A boolean value specifies if only

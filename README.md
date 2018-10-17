@@ -36,11 +36,7 @@ const csvUrl = 'https://storage.googleapis.com/tfjs-examples/multivariate-linear
 const csvDataset = tf.data.csv(
   csvUrl, {columnConfigs: {medv: {isLabel: true}}});
 
-const numOfFeatures;
-csvDataset.getColumnNames().then(function(columnNames) {
-  // Number of features is number of columns minus label.
-  numOfFeatures = columnNames -1;
-});
+const numOfFeatures = (await csvDataset.getColumnNames()).length - 1;
 
 const flattenedDataset =
     csvDataset
@@ -57,7 +53,7 @@ model.add(tf.layers.dense(
       {inputShape: [numOfFeatures], units: 1}));
 model.compile({optimizer: tf.train.sgd(0.000001), loss: 'meanSquaredError'});
 
-await model.fitDataset(flattenedDataset, {epochs: 10, batchesPerEpoch: 10});
+await model.fitDataset(flattenedDataset, {epochs: 10, batchesPerEpoch: 100});
 
 ```
 

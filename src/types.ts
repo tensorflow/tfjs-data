@@ -16,8 +16,8 @@
  * =============================================================================
  */
 
+import {DataType} from '@tensorflow/tfjs-core';
 import {TensorContainer, TensorContainerArray, TensorContainerObject} from '@tensorflow/tfjs-core/dist/tensor_types';
-import {DType} from '@tensorflow/tfjs-core/dist/types';
 
 import {Dataset} from './dataset';
 import {LazyIterator} from './iterators/lazy_iterator';
@@ -59,11 +59,24 @@ export type FileElement = File|Blob|Uint8Array;
 /**
  * A dictionary containing column level configurations when reading and decoding
  * CSV file(s) from csv source.
+ *
+ * required: If value in this column is required. If set to true, throw an error
+ * when it finds an empty value.
+ *
+ * dtype: Data type of this column. Could be int32, float32, bool, or string.
+ *
+ * default: Default value of this column.
+ *
+ * isLabel: Whether this column is label instead of features. If isLabel is set
+ * to be true, the .csv() API will return an array of two items: the first item
+ * is a map of features kay/value pairs, the second item is a map of labels
+ * key/value pairs. If no column is marked as label returns a map of features
+ * only.
  */
 /** @doc {heading: 'Data', subheading: 'Types'} */
 export interface ColumnConfig {
   required?: boolean;
-  dtype?: DType;
+  dtype?: DataType;
   default?: DataElement;
   isLabel?: boolean;
 }
@@ -81,16 +94,20 @@ export interface CSVConfig {
 
   /**
    * A list of strings that corresponds to the CSV column names, in order. If
-   * this is not provided, infers the column names from the first row of the
-   * records if there is header line, otherwise throw an error.
+   * provided, infers the column names from the first row of the data. If there
+   * is no header line and columnNames are not provided, throw an error.
    */
-  headers?: string[];
+  columnNames?: string[];
 
   /**
    * A dictionary whose key is column names, value is an object stating if this
    * column is required, column's data type, default value, and if this column
    * is label. If provided, keys must correspond to names provided in
-   * column_names or inferred from the file header lines.
+   * columnNames or inferred from the file header lines. If any column marked
+   * as label, the .csv() API will return an array of two items: the first item
+   * is a map of features kay/value pairs, the second item is a dict of labels
+   * key/value pairs. If no column is marked as label returns a dict of features
+   * only.
    */
   columnConfigs?: {[key: string]: ColumnConfig};
 
