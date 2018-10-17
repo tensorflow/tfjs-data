@@ -49,5 +49,5 @@ import {CSVConfig} from './types';
  *     file. Defaults to `,`.
  */
 export function csv(source: string, csvConfig: CSVConfig = {}): CSVDataset {
-  return CSVDataset.create(new URLDataSource(source), csvConfig);
+  return new CSVDataset(new URLDataSource(source), csvConfig);
 }

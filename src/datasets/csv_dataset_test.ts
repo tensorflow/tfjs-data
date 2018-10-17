@@ -82,7 +82,7 @@ describe('CSVDataset', () => {
   it('produces a stream of dicts containing UTF8-decoded csv data',
      async () => {
        const source = new FileDataSource(csvData, {chunkSize: 10});
-       const dataset = CSVDataset.create(
+       const dataset = new CSVDataset(
            source, {hasHeader: false, headers: ['foo', 'bar', 'baz']});
 
        expect(await dataset.getHeaders()).toEqual(['foo', 'bar', 'baz']);
@@ -103,7 +103,7 @@ describe('CSVDataset', () => {
 
   it('reads CSV column headers when requested', async () => {
     const source = new FileDataSource(csvDataWithHeaders, {chunkSize: 10});
-    const dataset = CSVDataset.create(source, {hasHeader: true});
+    const dataset = new CSVDataset(source, {hasHeader: true});
 
     expect(await dataset.getHeaders()).toEqual(['foo', 'bar', 'baz']);
     const iter = await dataset.iterator();
@@ -123,7 +123,7 @@ describe('CSVDataset', () => {
   it('throw error when column configs mismatch column names', async done => {
     try {
       const source = new FileDataSource(csvData, {chunkSize: 10});
-      const dataset = CSVDataset.create(source, {
+      const dataset = new CSVDataset(source, {
         hasHeader: false,
         headers: ['foo', 'bar', 'baz'],
         columnConfigs: {'A': {required: true}}
@@ -140,7 +140,7 @@ describe('CSVDataset', () => {
      async done => {
        try {
          const source = new FileDataSource(csvData, {chunkSize: 10});
-         const dataset = CSVDataset.create(source, {hasHeader: false});
+         const dataset = new CSVDataset(source, {hasHeader: false});
          await dataset.getHeaders();
          done.fail();
        } catch (error) {
@@ -152,7 +152,7 @@ describe('CSVDataset', () => {
 
   it('take first line as headers by default', async () => {
     const source = new FileDataSource(csvDataWithHeaders, {chunkSize: 10});
-    const dataset = CSVDataset.create(source);
+    const dataset = new CSVDataset(source);
     expect(await dataset.getHeaders()).toEqual(['foo', 'bar', 'baz']);
 
     expect(await dataset.getHeaders()).toEqual(['foo', 'bar', 'baz']);
@@ -172,7 +172,7 @@ describe('CSVDataset', () => {
 
   it('emits rows in order despite async requests', async () => {
     const source = new FileDataSource(csvDataWithHeadersExtra, {chunkSize: 10});
-    const ds = CSVDataset.create(source, {hasHeader: true});
+    const ds = new CSVDataset(source, {hasHeader: true});
     expect(await ds.getHeaders()).toEqual(['A', 'B', 'C']);
     const csvIterator = await ds.iterator();
     const promises = [
@@ -190,7 +190,7 @@ describe('CSVDataset', () => {
   it('throw error when required column is empty', async done => {
     try {
       const source = new FileDataSource(csvData, {chunkSize: 10});
-      const dataset = CSVDataset.create(source, {
+      const dataset = new CSVDataset(source, {
         hasHeader: false,
         headers: ['foo', 'bar', 'baz'],
         columnConfigs: {'foo': {required: true}}
@@ -208,7 +208,7 @@ describe('CSVDataset', () => {
 
   it('fill default value when provided', async () => {
     const source = new FileDataSource(csvData, {chunkSize: 10});
-    const dataset = CSVDataset.create(source, {
+    const dataset = new CSVDataset(source, {
       hasHeader: false,
       headers: ['foo', 'bar', 'baz'],
       columnConfigs: {'foo': {default: 'abc'}, 'baz': {default: 123}}
@@ -231,8 +231,7 @@ describe('CSVDataset', () => {
 
   it('provide delimiter through parameter', async () => {
     const source = new FileDataSource(csvBlobWithSemicolon, {chunkSize: 10});
-    const dataset =
-        CSVDataset.create(source, {hasHeader: true, delimiter: ';'});
+    const dataset = new CSVDataset(source, {hasHeader: true, delimiter: ';'});
     expect(await dataset.getHeaders()).toEqual(['A', 'B', 'C']);
     const iter = await dataset.iterator();
     const result = await iter.collect();
@@ -247,7 +246,7 @@ describe('CSVDataset', () => {
   it('provide datatype through parameter to parse different types',
      async () => {
        const source = new FileDataSource(csvBlobWithMixedType, {chunkSize: 10});
-       const dataset = CSVDataset.create(source, {
+       const dataset = new CSVDataset(source, {
          hasHeader: true,
          columnConfigs: {
            'A': {dtype: DType.int32},
@@ -270,7 +269,7 @@ describe('CSVDataset', () => {
 
   it('reads CSV with selected column in order', async () => {
     const source = new FileDataSource(csvDataWithHeaders, {chunkSize: 10});
-    const dataset = CSVDataset.create(source, {
+    const dataset = new CSVDataset(source, {
       hasHeader: true,
       columnConfigs: {'bar': {}, 'foo': {}},
       configuredColumnsOnly: true
@@ -294,7 +293,7 @@ describe('CSVDataset', () => {
   it('reads CSV with wrong column', async done => {
     try {
       const source = new FileDataSource(csvDataWithHeaders, {chunkSize: 10});
-      const dataset = CSVDataset.create(
+      const dataset = new CSVDataset(
           source, {hasHeader: true, headers: ['bar', 'foooooooo']});
       await dataset.getHeaders();
       done.fail();
@@ -308,7 +307,7 @@ describe('CSVDataset', () => {
   it('reads CSV with missing label value', async done => {
     try {
       const source = new FileDataSource(csvDataWithHeaders, {chunkSize: 10});
-      const dataset = CSVDataset.create(
+      const dataset = new CSVDataset(
           source, {hasHeader: true, columnConfigs: {'baz': {isLabel: true}}});
       expect(await dataset.getHeaders()).toEqual(['foo', 'bar', 'baz']);
       const iter = await dataset.iterator();
@@ -323,7 +322,7 @@ describe('CSVDataset', () => {
 
   it('reads CSV with label column', async () => {
     const source = new FileDataSource(csvDataWithHeadersExtra, {chunkSize: 10});
-    const dataset = CSVDataset.create(
+    const dataset = new CSVDataset(
         source, {hasHeader: true, columnConfigs: {'C': {isLabel: true}}});
     expect(await dataset.getHeaders()).toEqual(['A', 'B', 'C']);
     const iter = await dataset.iterator();

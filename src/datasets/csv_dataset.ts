@@ -39,52 +39,27 @@ import {TextLineDataset} from './text_line_dataset';
  */
 export class CSVDataset extends Dataset<DataElement> {
   base: TextLineDataset;
+  private _hasHeader = true;
   private _headers: string[] = null;
   private _headersValidated = false;
-
-  /**
-   * Create a `CSVDataset`.
-   *
-   * @param input A `DataSource` providing a chunked, UTF8-encoded byte stream.
-   * @param hasHeader A boolean value that indicates whether the
-   *     first row of provided CSV file is a header line with column names, and
-   *     should not be included in the data.
-   * @param headers A list of strings that corresponds to the CSV
-   *     column names, in order. If this is not provided, infers the column
-   *     names from the first row of the records if there is header line,
-   *     otherwise throw an error.
-   * @param conlumnConfigs A dictionary whose key is column names,
-   *     value is an object stating if this column is required, column's data
-   *     type, default value, and if is label. If provided, keys must correspond
-   *     to names provided in column_names or inferred from the file header
-   *     lines.
-   * @param configuredColumnsOnly A boolean value specifies if only
-   *     parsing and returning columns which exist in columnConfigs.
-   * @param delimiter The string used to parse each line of the input file.
-   */
-  constructor(
-      protected readonly input: DataSource, readonly hasHeader: boolean,
-      headers: string[], readonly conlumnConfigs: {[key: string]: ColumnConfig},
-      readonly configuredColumnsOnly: boolean, readonly delimiter: string) {
-    super();
-    this._headers = headers;
-    this.base = new TextLineDataset(input);
-  }
+  private _columnConfigs: {[key: string]: ColumnConfig} = null;
+  private _configuredColumnsOnly = false;
+  private _delimiter = ',';
 
   async getHeaders() {
     if (!this._headersValidated) {
       await this.setHeaders();
     }
-    return this.configuredColumnsOnly ? Object.keys(this.conlumnConfigs) :
-                                        this._headers;
+    return this._configuredColumnsOnly ? Object.keys(this._columnConfigs) :
+                                         this._headers;
   }
 
   /* 1) If _headers is provided as string[], use this string[] as output
    * keys in corresponded order, and they must match header line if
-   * hasHeader is true.
+   * _hasHeader is true.
    * 2) If _headers is not provided, parse header line as headers if
-   * hasHeader === true, otherwise throw an error.
-   * 3) If columnConfigs is provided, all the keys in columnConfigs must exist
+   * _hasHeader === true, otherwise throw an error.
+   * 3) If _columnConfigs is provided, all the keys in _columnConfigs must exist
    * in parsed headers.
    */
   private async setHeaders() {
@@ -107,9 +82,9 @@ export class CSVDataset extends Dataset<DataElement> {
     if (columnNamesFromFile) {
       this._headers = columnNamesFromFile;
     }
-    // Check if keys in columnConfigs match _headers.
-    if (this.conlumnConfigs) {
-      for (const key of Object.keys(this.conlumnConfigs)) {
+    // Check if keys in _columnConfigs match _headers.
+    if (this._columnConfigs) {
+      for (const key of Object.keys(this._columnConfigs)) {
         const index = this._headers.indexOf(key);
         if (index === -1) {
           throw new Error('Column config does not match column names.');
@@ -120,14 +95,14 @@ export class CSVDataset extends Dataset<DataElement> {
   }
 
   private async maybeReadHeaderLine() {
-    if (this.hasHeader) {
+    if (this._hasHeader) {
       const iter = await this.base.iterator();
       const firstElement = await iter.next();
       if (firstElement.done) {
         throw new Error('No data was found for CSV parsing.');
       }
       const firstLine: string = firstElement.value;
-      return firstLine.split(this.delimiter);
+      return firstLine.split(this._delimiter);
     } else {
       return null;
     }
@@ -161,14 +136,17 @@ export class CSVDataset extends Dataset<DataElement> {
    *     delimiter (Optional) The string used to parse each line of the input
    *     file. Defaults to `,`.
    */
-  static create(input: DataSource, csvConfig?: CSVConfig) {
+  constructor(protected readonly input: DataSource, csvConfig?: CSVConfig) {
+    super();
+    this.base = new TextLineDataset(input);
     if (!csvConfig) {
       csvConfig = {};
     }
-    return new CSVDataset(
-        input, csvConfig.hasHeader === false ? false : true, csvConfig.headers,
-        csvConfig.columnConfigs, csvConfig.configuredColumnsOnly,
-        csvConfig.delimiter ? csvConfig.delimiter : ',');
+    this._hasHeader = csvConfig.hasHeader === false ? false : true;
+    this._headers = csvConfig.headers;
+    this._columnConfigs = csvConfig.columnConfigs;
+    this._configuredColumnsOnly = csvConfig.configuredColumnsOnly;
+    this._delimiter = csvConfig.delimiter ? csvConfig.delimiter : ',';
   }
 
   async iterator(): Promise<LazyIterator<DataElement>> {
@@ -176,7 +154,7 @@ export class CSVDataset extends Dataset<DataElement> {
       await this.setHeaders();
     }
     let lines = await this.base.iterator();
-    if (this.hasHeader) {
+    if (this._hasHeader) {
       // We previously read the first line to get the headers.
       // Now that we're providing data, skip it.
       lines = lines.skip(1);
@@ -186,14 +164,14 @@ export class CSVDataset extends Dataset<DataElement> {
 
   makeDataElement(line: string): DataElement {
     // TODO(soergel): proper CSV parsing with escaping, quotes, etc.
-    const values = line.split(this.delimiter);
+    const values = line.split(this._delimiter);
     const features: {[key: string]: DataElement} = {};
     const labels: {[key: string]: DataElement} = {};
 
     for (let i = 0; i < this._headers.length; i++) {
       const key = this._headers[i];
-      const config = this.conlumnConfigs ? this.conlumnConfigs[key] : null;
-      if (this.configuredColumnsOnly && !config) {
+      const config = this._columnConfigs ? this._columnConfigs[key] : null;
+      if (this._configuredColumnsOnly && !config) {
         // This column is not selected.
         continue;
       } else {
