@@ -29,20 +29,26 @@ Reading a CSV file
 ```js
 import * as tf from '@tensorflow/tfjs';
 
-...
 const csvUrl = 'https://storage.googleapis.com/tfjs-examples/multivariate-linear-regression/data/merged-train-data.csv';
 
+// median value of owner-occupied homes in $1000s, which is the value we want
+// to predicit so it is marked as a label.
 const csvDataset = tf.data.csv(
-  csvUrl, {hasHeader: true, columnConfigs: {medv: {isLabel: true}}});
+  csvUrl, {columnConfigs: {medv: {isLabel: true}}});
 
-const numOfFeatures = (await csvDataset.getHeaders()).length - 1;
+const numOfFeatures;
+csvDataset.getColumnNames().then(function(columnNames) {
+  // Number of features is number of columns minus label.
+  numOfFeatures = columnNames -1;
+});
 
 const flattenedDataset =
     csvDataset
-        .map((row: [{[key: string]: number}]) => {
-          return [
-            tf.tensor(Object.values(row[0])), tf.tensor(Object.values(row[1]))
-          ];
+        .map(function(row) {
+          const [rawFeatures, rawLabel] = row;
+          const features = tf.tensor(Object.values(rawFeatures));
+          const label = tf.tensor(rawLabel['medv']);
+          return [features, label];
         })
         .batch(10);
 
@@ -52,7 +58,7 @@ model.add(tf.layers.dense(
 model.compile({optimizer: tf.train.sgd(0.000001), loss: 'meanSquaredError'});
 
 await model.fitDataset(flattenedDataset, {epochs: 10, batchesPerEpoch: 10});
-...
+
 ```
 
 ## For more information

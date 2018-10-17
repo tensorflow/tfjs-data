@@ -31,10 +31,11 @@ import {CSVConfig} from './types';
  *     row of provided CSV file is a header line with column names, and should
  *     not be included in the data. Defaults to `False`.
  *
- *     headers: (Optional) A list of strings that corresponds to
- *     the CSV column names, in order. If this is not provided, infers the
- *     column names from the first row of the records if there is header line,
- *     otherwise throw an error.
+ *     columnNames: (Optional) A list of strings that corresponds to
+ *     the CSV column names, in order. If provided, it ignores the column names
+ *     inferred from the header row. If not provided, infers the column names
+ *     from the first row of the records. If hasHeader is false and columnNames
+ *     not provided, throw an error.
  *
  *     columnConfigs: (Optional) A dictionary whose key is column names, value
  *     is an object stating if this column is required, column's data type,
