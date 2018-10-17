@@ -17,6 +17,8 @@
 
 import * as tf from '@tensorflow/tfjs';
 import {Tensor, Tensor2D} from '@tensorflow/tfjs-core';
+import {TensorContainer} from '@tensorflow/tfjs-core/dist/tensor_types';
+import {inputLayer} from '@tensorflow/tfjs-layers/dist/exports_layers';
 
 import {csv} from '../../src/readers';
 import {computeDatasetStatistics, DatasetStatistics} from '../../src/statistics';
@@ -184,41 +186,56 @@ document.addEventListener('DOMContentLoaded', async () => {
       'https://storage.googleapis.com/tfjs-examples/multivariate-linear-regression/data/merged-train-data.csv',
       true, null, {medv: {isLabel: true}});
 
+  // const flattenedDataset = csvDataset.batch(10).map((row: [{
+  //                                                     [key: string]:
+  //                                                         TensorContainer
+  //                                                   }]) => {
+  //   return [tf.stack(Object.values(row[0])),
+  //   tf.stack(Object.values(row[1]))];
+  // });
+
   const flattenedDataset =
       csvDataset
           .map((row: [{[key: string]: number}]) => {
-            return {a: Object.values(row[0]), b: Object.values(row[1])};
+            return [Object.values(row[0]), Object.values(row[1])];
           })
           .batch(10);
+
+
 
   // const flattenedDataset =
   //     csvDataset
   //         .map((row: [{[key: string]: number}]) => {
-  //           return [
-  //             tf.tensor(Object.values(row[0])),
-  //             tf.tensor(Object.values(row[1]))
-  //           ];
+  //           return [Object.values(row[0]), Object.values(row[1])];
   //         })
   //         .batch(10);
+  // const flattenedTargetDataset =
+  //     csvTargetDataset.map((row: {[key: string]: number}) => {
+  //       return tf.tensor(Object.values(row));
+  //     });
 
   const iter = await flattenedDataset.iterator();
   const data = (await iter.next());
-  // console.log(data);
-  data.value.a.print();
-  data.value.b.print();
-  // data[0].print();
-  // data[1].print();
-  // console.log(data);
-
+  console.log(data);
+  data.value[0].print();
+  data.value[1].print();
 
   const model = tf.sequential();
-  model.add(tf.layers.dense(
-      {inputShape: [csvDataset.csvColumnNames.length - 1], units: 1}));
+  model.add(tf.layers.dense({
+    units: 1,
+    inputShape: [csvDataset.csvColumnNames.length - 1],
+    kernelInitializer: 'zeros',
+    biasInitializer: 'zeros'
+  }));
   model.compile({optimizer: tf.train.sgd(0.000001), loss: 'meanSquaredError'});
+
+
+  model.compile(
+      {loss: 'meanSquaredError', optimizer: 'sgd', metrics: ['accuracy']});
 
   await model.fitDataset(flattenedDataset, {
     epochs: 10,
-    batchesPerEpoch: 10,
+    batchesPerEpoch: 100,
     callbacks: {
       onEpochEnd: async (epoch, logs) => {
         console.log(epoch, logs.loss);
