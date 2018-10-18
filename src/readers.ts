@@ -29,7 +29,7 @@ import {CSVConfig} from './types';
  *
  *     hasHeader: (Optional) A boolean value that indicates whether the first
  *     row of provided CSV file is a header line with column names, and should
- *     not be included in the data. Defaults to `False`.
+ *     not be included in the data. Defaults to `True`.
  *
  *     columnNames: (Optional) A list of strings that corresponds to
  *     the CSV column names, in order. If provided, it ignores the column names
@@ -43,8 +43,8 @@ import {CSVConfig} from './types';
  *     correspond to names provided in columnNames or inferred from the file
  *     header lines.
  *
- *     configuredColumnsOnly (Optional) A boolean value specifies if only
- *     parsing and returning columns which exist in columnConfigs.
+ *     configuredColumnsOnly (Optional) If true, only columns provided in
+ *     columnConfigs will be parsed and provided during iteration.
  *
  *     delimiter (Optional) The string used to parse each line of the input
  *     file. Defaults to `,`.

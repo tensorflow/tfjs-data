@@ -112,8 +112,8 @@ export interface CSVConfig {
   columnConfigs?: {[key: string]: ColumnConfig};
 
   /**
-   * A boolean value specifies if only parsing and returning columns which exist
-   * in columnConfigs.
+   * If true, only columns provided in columnConfigs will be parsed and provided
+   * during iteration.
    */
   configuredColumnsOnly?: boolean;
 

@@ -157,8 +157,6 @@ describe('CSVDataset', () => {
     const source = new FileDataSource(csvDataWithHeaders, {chunkSize: 10});
     const dataset = new CSVDataset(source);
     expect(await dataset.getColumnNames()).toEqual(['foo', 'bar', 'baz']);
-
-    expect(await dataset.getColumnNames()).toEqual(['foo', 'bar', 'baz']);
     const iter = await dataset.iterator();
     const result = await iter.collect();
 
@@ -303,6 +301,24 @@ describe('CSVDataset', () => {
           'of the header line read from file (3).');
       done();
     }
+  });
+
+  it('reads CSV with column names override header', async () => {
+    const source = new FileDataSource(csvDataWithHeaders, {chunkSize: 10});
+    const dataset = new CSVDataset(source, {columnNames: ['a', 'b', 'c']});
+    expect(await dataset.getColumnNames()).toEqual(['a', 'b', 'c']);
+    const iter = await dataset.iterator();
+    const result = await iter.collect();
+
+    expect(result).toEqual([
+      {'a': 'ab', 'b': 'cd', 'c': 'ef'},
+      {'a': 'ghi', 'b': undefined, 'c': 'jkl'},
+      {'a': undefined, 'b': 'mn', 'c': 'op'},
+      {'a': 1.4, 'b': 7.8, 'c': 12},
+      {'a': 'qrs', 'b': 'tu', 'c': undefined},
+      {'a': 'v', 'b': 'w', 'c': 'x'},
+      {'a': 'y', 'b': 'z', 'c': undefined},
+    ]);
   });
 
   it('reads CSV with missing label value', async done => {

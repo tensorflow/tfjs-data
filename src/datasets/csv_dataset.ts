@@ -38,77 +38,70 @@ import {TextLineDataset} from './text_line_dataset';
  */
 export class CSVDataset extends Dataset<DataElement> {
   base: TextLineDataset;
-  private _hasHeader = true;
-  private _columnNames: string[] = null;
-  private _columnNamesValidated = false;
-  private _columnConfigs: {[key: string]: ColumnConfig} = null;
-  private _configuredColumnsOnly = false;
-  private _delimiter = ',';
+  private hasHeader = true;
+  private columnNames: string[] = null;
+  private columnNamesValidated = false;
+  private columnConfigs: {[key: string]: ColumnConfig} = null;
+  private configuredColumnsOnly = false;
+  private delimiter = ',';
 
   async getColumnNames() {
-    if (!this._columnNamesValidated) {
+    if (!this.columnNamesValidated) {
       await this.setColumnNames();
     }
-    return this._configuredColumnsOnly ? Object.keys(this._columnConfigs) :
-                                         this._columnNames;
+    return this.configuredColumnsOnly ? Object.keys(this.columnConfigs) :
+                                        this.columnNames;
   }
 
-  /* 1) If _columnNames is provided as string[], use this string[] as output
-   * keys in corresponded order, and they must match header line if
-   * _hasHeader is true.
-   * 2) If _columnNames is not provided, parse header line as columnNames if
-   * _hasHeader === true. If _hasHeader === false, throw an error.
-   * 3) If _columnConfigs is provided, all the keys in _columnConfigs must exist
+  /* 1) If columnNames is provided as string[], use this string[] as output
+   * keys in corresponded order, and the length must match header line columns
+   * length if hasHeader is true.
+   * 2) If columnNames is not provided, parse header line as columnNames if
+   * hasHeader === true. If hasHeader === false, throw an error.
+   * 3) If columnConfigs is provided, all the keys in columnConfigs must exist
    * in parsed columnNames.
    */
   private async setColumnNames() {
     const columnNamesFromFile = await this.maybeReadHeaderLine();
-    if (!this._columnNames && !columnNamesFromFile) {
-      // Throw an error if _columnNames is not provided and no header line.
+    if (!this.columnNames && !columnNamesFromFile) {
+      // Throw an error if columnNames is not provided and no header line.
       throw new Error(
           'Column names must be provided if there is no header line.');
-    } else if (this._columnNames && columnNamesFromFile) {
+    } else if (this.columnNames && columnNamesFromFile) {
       // Check provided columnNames match header line.
       assert(
-          columnNamesFromFile.length === this._columnNames.length,
+          columnNamesFromFile.length === this.columnNames.length,
           `The length of provided columnNames (${
-              this._columnNames.length}) does not` +
+              this.columnNames.length}) does not` +
               ` match the length of the header line read from file (${
                   columnNamesFromFile.length}).`);
-      for (let i = 0; i < this._columnNames.length; i++) {
-        assert(
-            columnNamesFromFile[i] === this._columnNames[i],
-            `Provided No.${i} column name ${
-                this._columnNames[i]} does not match header line No.${
-                i} column ${columnNamesFromFile[i]}.`);
-      }
     }
-    if (columnNamesFromFile) {
-      this._columnNames = columnNamesFromFile;
+    if (!this.columnNames) {
+      this.columnNames = columnNamesFromFile;
     }
-    // Check if keys in _columnConfigs match _columnNames.
-    if (this._columnConfigs) {
-      for (const key of Object.keys(this._columnConfigs)) {
-        const index = this._columnNames.indexOf(key);
+    // Check if keys in columnConfigs match columnNames.
+    if (this.columnConfigs) {
+      for (const key of Object.keys(this.columnConfigs)) {
+        const index = this.columnNames.indexOf(key);
         if (index === -1) {
           throw new Error(
               `The key ${key} provided in columnConfigs does not` +
-              ` match any of the column names (${this._columnNames}).`);
+              ` match any of the column names (${this.columnNames}).`);
         }
       }
     }
-    this._columnNamesValidated = true;
+    this.columnNamesValidated = true;
   }
 
   private async maybeReadHeaderLine() {
-    if (this._hasHeader) {
+    if (this.hasHeader) {
       const iter = await this.base.iterator();
       const firstElement = await iter.next();
       if (firstElement.done) {
         throw new Error('No data was found for CSV parsing.');
       }
       const firstLine: string = firstElement.value;
-      return firstLine.split(this._delimiter);
+      return firstLine.split(this.delimiter);
     } else {
       return null;
     }
@@ -123,7 +116,7 @@ export class CSVDataset extends Dataset<DataElement> {
    *
    *     hasHeader: (Optional) A boolean value that indicates whether the first
    *     row of provided CSV file is a header line with column names, and should
-   *     not be included in the data. Defaults to `False`.
+   *     not be included in the data. Defaults to `True`.
    *
    *     columnNames: (Optional) A list of strings that corresponds to
    *     the CSV column names, in order. If provided, it ignores the column
@@ -140,8 +133,8 @@ export class CSVDataset extends Dataset<DataElement> {
    *     second item is a map of labels key/value pairs. If no feature is marked
    *     as label, returns a map of features only.
    *
-   *     configuredColumnsOnly (Optional) A boolean value specifies if only
-   *     parsing and returning columns which exist in columnConfigs.
+   *     configuredColumnsOnly (Optional) If true, only columns provided in
+   *     columnConfigs will be parsed and provided during iteration.
    *
    *     delimiter (Optional) The string used to parse each line of the input
    *     file. Defaults to `,`.
@@ -152,19 +145,19 @@ export class CSVDataset extends Dataset<DataElement> {
     if (!csvConfig) {
       csvConfig = {};
     }
-    this._hasHeader = csvConfig.hasHeader === false ? false : true;
-    this._columnNames = csvConfig.columnNames;
-    this._columnConfigs = csvConfig.columnConfigs;
-    this._configuredColumnsOnly = csvConfig.configuredColumnsOnly;
-    this._delimiter = csvConfig.delimiter ? csvConfig.delimiter : ',';
+    this.hasHeader = csvConfig.hasHeader === false ? false : true;
+    this.columnNames = csvConfig.columnNames;
+    this.columnConfigs = csvConfig.columnConfigs;
+    this.configuredColumnsOnly = csvConfig.configuredColumnsOnly;
+    this.delimiter = csvConfig.delimiter ? csvConfig.delimiter : ',';
   }
 
   async iterator(): Promise<LazyIterator<DataElement>> {
-    if (!this._columnNamesValidated) {
+    if (!this.columnNamesValidated) {
       await this.setColumnNames();
     }
     let lines = await this.base.iterator();
-    if (this._hasHeader) {
+    if (this.hasHeader) {
       // We previously read the first line to get the columnNames.
       // Now that we're providing data, skip it.
       lines = lines.skip(1);
@@ -174,14 +167,14 @@ export class CSVDataset extends Dataset<DataElement> {
 
   makeDataElement(line: string): DataElement {
     // TODO(soergel): proper CSV parsing with escaping, quotes, etc.
-    const values = line.split(this._delimiter);
+    const values = line.split(this.delimiter);
     const features: {[key: string]: DataElement} = {};
     const labels: {[key: string]: DataElement} = {};
 
-    for (let i = 0; i < this._columnNames.length; i++) {
-      const key = this._columnNames[i];
-      const config = this._columnConfigs ? this._columnConfigs[key] : null;
-      if (this._configuredColumnsOnly && !config) {
+    for (let i = 0; i < this.columnNames.length; i++) {
+      const key = this.columnNames[i];
+      const config = this.columnConfigs ? this.columnConfigs[key] : null;
+      if (this.configuredColumnsOnly && !config) {
         // This column is not selected.
         continue;
       } else {
