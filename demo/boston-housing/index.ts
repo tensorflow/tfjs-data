@@ -195,14 +195,17 @@ document.addEventListener('DOMContentLoaded', async () => {
       .map((row) => {
         const [rawFeatures, rawLabel] = row;
         const features = tf.tensor(Object.values(rawFeatures));
-        const label = tf.tensor(rawLabel['medv']);
+        const label = tf.tensor([rawLabel['medv']]);
         return [features, label];
       })
-      .batch(8).repeat();
+      .batch(2).repeat();
 
   const iter = await flattenedDataset.iterator();
   const data = await iter.next();
   console.log(data);
+  data.value[0].print();
+  data.value[1].print();
+  console.log(data.value[0].shape, data.value[1].shape);
 
   const model = tf.sequential();
   model.add(tf.layers.dense(
