@@ -18,6 +18,7 @@
 import * as tf from '@tensorflow/tfjs';
 import {Tensor, Tensor2D} from '@tensorflow/tfjs-core';
 
+import * as tfd from '../../src/index';
 import {computeDatasetStatistics, DatasetStatistics} from '../../src/statistics';
 
 import {BostonHousingDataset} from './data';
@@ -57,7 +58,7 @@ export async function loadDataAndNormalize() {
 
   // Gets mean and standard deviation of data.
   stats = await computeDatasetStatistics(await bostonData.trainDataset.map(
-      (row: {features: {key: number}, target: {key: number}}) => row.features));
+    (row: {features: {key: number}, target: {key: number}}) => row.features));
 
   // Normalizes features data.
   const normalizedTrainData = bostonData.trainDataset.map(normalizeFeatures);
@@ -71,15 +72,15 @@ export async function loadDataAndNormalize() {
   const testData = await testIter.collect();
 
   preparedData.normalizedTrainFeatures = tf.tensor2d(trainData.map(
-      (row: {normalizedFeatures: number[], target: number[]}) =>
-          row.normalizedFeatures));
+    (row: {normalizedFeatures: number[], target: number[]}) =>
+      row.normalizedFeatures));
   preparedData.trainTarget = tf.tensor2d(trainData.map(
-      (row: {normalizedFeatures: number[], target: number[]}) => row.target));
+    (row: {normalizedFeatures: number[], target: number[]}) => row.target));
   preparedData.normalizedTestFeatures = tf.tensor2d(testData.map(
-      (row: {normalizedFeatures: number[], target: number[]}) =>
-          row.normalizedFeatures));
+    (row: {normalizedFeatures: number[], target: number[]}) =>
+      row.normalizedFeatures));
   preparedData.testTarget = tf.tensor2d(testData.map(
-      (row: {normalizedFeatures: number[], target: number[]}) => row.target));
+    (row: {normalizedFeatures: number[], target: number[]}) => row.target));
 }
 
 /**
@@ -89,8 +90,8 @@ function normalizeFeatures(row: {features: number[], target: number[]}) {
   const features = row.features;
   const normalizedFeatures: number[] = [];
   features.forEach(
-      (value, index) => normalizedFeatures.push(
-          (value - stats[index].mean) / stats[index].stddev));
+    (value, index) => normalizedFeatures.push(
+      (value - stats[index].mean) / stats[index].stddev));
   return {normalizedFeatures, target: row.target};
 }
 
@@ -134,58 +135,91 @@ export const multiLayerPerceptronRegressionModel = (): tf.Sequential => {
 export const run = async (model: tf.Sequential) => {
   await ui.updateStatus('Compiling model...');
   model.compile(
-      {optimizer: tf.train.sgd(LEARNING_RATE), loss: 'meanSquaredError'});
+    {optimizer: tf.train.sgd(LEARNING_RATE), loss: 'meanSquaredError'});
 
   let trainLoss: number;
   let valLoss: number;
   await ui.updateStatus('Starting training process...');
   await model.fit(
-      preparedData.normalizedTrainFeatures, preparedData.trainTarget, {
-        batchSize: BATCH_SIZE,
-        epochs: NUM_EPOCHS,
-        validationSplit: 0.2,
-        callbacks: {
-          onEpochEnd: async (epoch, logs) => {
-            await ui.updateStatus(
-                `Epoch ${epoch + 1} of ${NUM_EPOCHS} completed.`);
-            trainLoss = logs.loss;
-            valLoss = logs.val_loss;
-            await ui.plotData(epoch, trainLoss, valLoss);
-          }
+    preparedData.normalizedTrainFeatures, preparedData.trainTarget, {
+      batchSize: BATCH_SIZE,
+      epochs: NUM_EPOCHS,
+      validationSplit: 0.2,
+      callbacks: {
+        onEpochEnd: async (epoch, logs) => {
+          await ui.updateStatus(
+            `Epoch ${epoch + 1} of ${NUM_EPOCHS} completed.`);
+          trainLoss = logs.loss;
+          valLoss = logs.val_loss;
+          await ui.plotData(epoch, trainLoss, valLoss);
         }
-      });
+      }
+    });
 
   await ui.updateStatus('Running on test data...');
   const result =
-      model.evaluate(
-          preparedData.normalizedTestFeatures, preparedData.testTarget,
-          {batchSize: BATCH_SIZE}) as Tensor;
+    model.evaluate(
+      preparedData.normalizedTestFeatures, preparedData.testTarget,
+      {batchSize: BATCH_SIZE}) as Tensor;
   const testLoss = result.dataSync()[0];
   await ui.updateStatus(
-      `Final train-set loss: ${trainLoss.toFixed(4)}\n` +
-      `Final validation-set loss: ${valLoss.toFixed(4)}\n` +
-      `Test-set loss: ${testLoss.toFixed(4)}`);
+    `Final train-set loss: ${trainLoss.toFixed(4)}\n` +
+    `Final validation-set loss: ${valLoss.toFixed(4)}\n` +
+    `Test-set loss: ${testLoss.toFixed(4)}`);
 };
 
 export const computeBaseline = () => {
   const avgPrice = tf.mean(preparedData.trainTarget);
   console.log(`Average price: ${avgPrice.dataSync()}`);
   const baseline =
-      tf.mean(tf.pow(tf.sub(preparedData.testTarget, avgPrice), 2));
+    tf.mean(tf.pow(tf.sub(preparedData.testTarget, avgPrice), 2));
   console.log(`Baseline loss: ${baseline.dataSync()}`);
   const baselineMsg = `Baseline loss (meanSquaredError) is ${
-      baseline.dataSync()[0].toFixed(2)}`;
+    baseline.dataSync()[0].toFixed(2)}`;
   ui.updateBaselineStatus(baselineMsg);
 };
 
 document.addEventListener('DOMContentLoaded', async () => {
-  bostonData = await BostonHousingDataset.create();
-  ui.updateStatus('Data loaded, converting to tensors');
-  await loadDataAndNormalize();
-  ui.updateStatus(
-      'Data is now available as tensors.\n' +
-      'Click a train button to begin.');
-  ui.updateBaselineStatus('Estimating baseline loss');
-  computeBaseline();
-  await ui.setup();
+
+  const csvUrl = 'https://storage.googleapis.com/tfjs-examples/multivariate-linear-regression/data/merged-train-data.csv';
+
+  // median value of owner-occupied homes in $1000s, which is the value we want
+  // to predicit so it is marked as a label.
+  const csvDataset = tfd.data.csv(
+    csvUrl, {columnConfigs: {medv: {isLabel: true}}});
+
+  const numOfFeatures = (await csvDataset.getColumnNames()).length - 1;
+
+  const flattenedDataset =
+    csvDataset
+      .map((row) => {
+        const [rawFeatures, rawLabel] = row;
+        const features = tf.tensor(Object.values(rawFeatures));
+        const label = tf.tensor(rawLabel['medv']);
+        return [features, label];
+      })
+      .batch(8).repeat();
+
+  const iter = await flattenedDataset.iterator();
+  const data = await iter.next();
+  console.log(data);
+
+  const model = tf.sequential();
+  model.add(tf.layers.dense(
+    {inputShape: [numOfFeatures], units: 1}));
+  model.compile({optimizer: tf.train.sgd(0.000001), loss: 'meanSquaredError'});
+
+  await model.fitDataset(flattenedDataset, {epochs: 10, batchesPerEpoch: 1});
+
+
+
+  // bostonData = await BostonHousingDataset.create();
+  // ui.updateStatus('Data loaded, converting to tensors');
+  // await loadDataAndNormalize();
+  // ui.updateStatus(
+  //     'Data is now available as tensors.\n' +
+  //     'Click a train button to begin.');
+  // ui.updateBaselineStatus('Estimating baseline loss');
+  // computeBaseline();
+  // await ui.setup();
 }, false);
