@@ -31,8 +31,8 @@ import * as tf from '@tensorflow/tfjs';
 
 const csvUrl = 'https://storage.googleapis.com/tfjs-examples/multivariate-linear-regression/data/merged-train-data.csv';
 
-// median value of owner-occupied homes in $1000s, which is the value we want
-// to predicit so it is marked as a label.
+// We want to predict the column "medv", which represents a median value of a
+// home (in $1000s), so we mark it as a label.
 const csvDataset = tf.data.csv(
   csvUrl, {columnConfigs: {medv: {isLabel: true}}});
 
@@ -40,7 +40,7 @@ const numOfFeatures = (await csvDataset.getColumnNames()).length - 1;
 
 const flattenedDataset =
     csvDataset
-        .map(function(row) {
+        .map(row => {
           const [rawFeatures, rawLabel] = row;
           const features = tf.tensor(Object.values(rawFeatures));
           const label = tf.tensor(rawLabel['medv']);

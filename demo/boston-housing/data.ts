@@ -21,15 +21,13 @@ import * as tfd from '../../src/index';
 const BASE_URL =
     'https://storage.googleapis.com/tfjs-examples/multivariate-linear-regression/data/';
 
-const TRAIN_FEATURES_FILENAME = 'train-data.csv';
-const TRAIN_TARGET_FILENAME = 'train-target.csv';
-const TEST_FEATURES_FILENAME = 'test-data.csv';
-const TEST_TARGET_FILENAME = 'test-target.csv';
+const TRAIN_FILENAME = 'merged-train-data.csv';
+const TEST_FILENAME = 'merged-test-data.csv';
 
 /** Helper class to handle loading training and test data. */
 export class BostonHousingDataset {
-  trainDataset: tfd.data.Dataset<tfd.data.DataElement> = null;
-  testDataset: tfd.data.Dataset<tfd.data.DataElement> = null;
+  trainDataset: tfd.Dataset<tfd.DataElement> = null;
+  testDataset: tfd.Dataset<tfd.DataElement> = null;
   numFeatures: number = null;
 
   private constructor() {}
@@ -44,35 +42,31 @@ export class BostonHousingDataset {
    * Downloads, converts and shuffles the data.
    */
   private async loadData() {
-    const fileUrls = [
-      `${BASE_URL}${TRAIN_FEATURES_FILENAME}`,
-      `${BASE_URL}${TRAIN_TARGET_FILENAME}`,
-      `${BASE_URL}${TEST_FEATURES_FILENAME}`,
-      `${BASE_URL}${TEST_TARGET_FILENAME}`
-    ];
+    const fileUrls =
+        [`${BASE_URL}${TRAIN_FILENAME}`, `${BASE_URL}${TEST_FILENAME}`];
     console.log('* Downloading data *');
-    const csvDatasets = fileUrls.map(url => tfd.data.csv(url));
 
-    // Sets number of features so it can be used in the model.
-    this.numFeatures = (await csvDatasets[0].getColumnNames()).length;
+    // We want to predict the column "medv", which represents a median value of
+    // a home (in $1000s), so we mark it as a label.
+    const csvDatasets = fileUrls.map(
+        url => tfd.csv(url, {columnConfigs: {medv: {isLabel: true}}}));
+
+    // Sets number of features so it can be used in the model. Need to exclude
+    // the column of label.
+    this.numFeatures = (await csvDatasets[0].columnNames()).length - 1;
 
     // Reduces the object-type data to an array of numbers.
     const convertedDatasets = csvDatasets.map(
-        (dataset) => dataset.map((row: {[key: string]: number}) => {
-          return Object.keys(row).sort().map(key => row[key]);
+        (dataset) => dataset.map((row: Array<{[key: string]: number}>) => {
+          const [rawFeatures, rawLabel] = row;
+          const convertedFeatures =
+              Object.keys(rawFeatures).sort().map(key => rawFeatures[key]);
+          const convertedLabel =
+              Object.keys(rawLabel).sort().map(key => rawLabel[key]);
+          return {features: convertedFeatures, target: convertedLabel};
         }));
 
-    const trainFeaturesDataset = convertedDatasets[0];
-    const trainTargetDataset = convertedDatasets[1];
-    const testFeaturesDataset = convertedDatasets[2];
-    const testTargetDataset = convertedDatasets[3];
-
-    this.trainDataset =
-        tfd.data
-            .zip({features: trainFeaturesDataset, target: trainTargetDataset})
-            .shuffle(1000);
-    this.testDataset =
-        tfd.data.zip({features: testFeaturesDataset, target: testTargetDataset})
-            .shuffle(1000);
+    this.trainDataset = convertedDatasets[0].shuffle(100);
+    this.testDataset = convertedDatasets[1].shuffle(100);
   }
 }

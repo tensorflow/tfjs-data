@@ -39,54 +39,55 @@ import {TextLineDataset} from './text_line_dataset';
 export class CSVDataset extends Dataset<DataElement> {
   base: TextLineDataset;
   private hasHeader = true;
-  private columnNames: string[] = null;
+  private fullColumnNames: string[] = null;
   private columnNamesValidated = false;
   private columnConfigs: {[key: string]: ColumnConfig} = null;
   private configuredColumnsOnly = false;
   private delimiter = ',';
 
-  async getColumnNames() {
+  async columnNames() {
     if (!this.columnNamesValidated) {
       await this.setColumnNames();
     }
     return this.configuredColumnsOnly ? Object.keys(this.columnConfigs) :
-                                        this.columnNames;
+                                        this.fullColumnNames;
   }
 
-  /* 1) If columnNames is provided as string[], use this string[] as output
-   * keys in corresponded order, and the length must match header line columns
-   * length if hasHeader is true.
-   * 2) If columnNames is not provided, parse header line as columnNames if
-   * hasHeader === true. If hasHeader === false, throw an error.
-   * 3) If columnConfigs is provided, all the keys in columnConfigs must exist
-   * in parsed columnNames.
+  /* 1) If `columnNames` is provided as string[], use this string[] as output
+   * keys in corresponding order. The length must match the number of inferred
+   * columns if `hasHeader` is true .
+   * 2) If `columnNames` is not provided, parse header line as `columnNames` if
+   * hasHeader is true. If `hasHeader` is false, throw an error.
+   * 3) If `columnConfigs` is provided, all the keys in `columnConfigs` must
+   * exist in parsed `columnNames`.
    */
   private async setColumnNames() {
     const columnNamesFromFile = await this.maybeReadHeaderLine();
-    if (!this.columnNames && !columnNamesFromFile) {
+    if (!this.fullColumnNames && !columnNamesFromFile) {
       // Throw an error if columnNames is not provided and no header line.
       throw new Error(
           'Column names must be provided if there is no header line.');
-    } else if (this.columnNames && columnNamesFromFile) {
+    } else if (this.fullColumnNames && columnNamesFromFile) {
       // Check provided columnNames match header line.
       assert(
-          columnNamesFromFile.length === this.columnNames.length,
-          `The length of provided columnNames (${
-              this.columnNames.length}) does not` +
-              ` match the length of the header line read from file (${
-                  columnNamesFromFile.length}).`);
+          columnNamesFromFile.length === this.fullColumnNames.length,
+          'The length of provided columnNames (' +
+              this.fullColumnNames.length.toString() +
+              ') does not match the length of the header line read from ' +
+              'file (' + columnNamesFromFile.length.toString() + ').');
     }
-    if (!this.columnNames) {
-      this.columnNames = columnNamesFromFile;
+    if (!this.fullColumnNames) {
+      this.fullColumnNames = columnNamesFromFile;
     }
     // Check if keys in columnConfigs match columnNames.
     if (this.columnConfigs) {
       for (const key of Object.keys(this.columnConfigs)) {
-        const index = this.columnNames.indexOf(key);
+        const index = this.fullColumnNames.indexOf(key);
         if (index === -1) {
           throw new Error(
-              `The key ${key} provided in columnConfigs does not` +
-              ` match any of the column names (${this.columnNames}).`);
+              'The key "' + key +
+              '" provided in columnConfigs does not match any of the column ' +
+              'names (' + this.fullColumnNames.toString() + ').');
         }
       }
     }
@@ -116,22 +117,22 @@ export class CSVDataset extends Dataset<DataElement> {
    *
    *     hasHeader: (Optional) A boolean value that indicates whether the first
    *     row of provided CSV file is a header line with column names, and should
-   *     not be included in the data. Defaults to `True`.
+   *     not be included in the data. Defaults to `true`.
    *
    *     columnNames: (Optional) A list of strings that corresponds to
    *     the CSV column names, in order. If provided, it ignores the column
    *     names inferred from the header row. If not provided, infers the column
    *     names from the first row of the records. If hasHeader is false and
-   *     columnNames not provided, throw an error.
+   *     columnNames is not provided, this method throws an error.
    *
    *     columnConfigs: (Optional) A dictionary whose key is column names, value
    *     is an object stating if this column is required, column's data type,
    *     default value, and if this column is label. If provided, keys must
    *     correspond to names provided in columnNames or inferred from the file
    *     header lines. If isLabel=true is set for any column, returns an array
-   *     of two items: the first item is a map of features kay/value pairs, the
-   *     second item is a map of labels key/value pairs. If no feature is marked
-   *     as label, returns a map of features only.
+   *     of two items: the first item is a dict of features key/value pairs, the
+   *     second item is a dict of labels key/value pairs. If no feature is
+   *     marked as label, returns a dict of features only.
    *
    *     configuredColumnsOnly (Optional) If true, only columns provided in
    *     columnConfigs will be parsed and provided during iteration.
@@ -146,7 +147,7 @@ export class CSVDataset extends Dataset<DataElement> {
       csvConfig = {};
     }
     this.hasHeader = csvConfig.hasHeader === false ? false : true;
-    this.columnNames = csvConfig.columnNames;
+    this.fullColumnNames = csvConfig.columnNames;
     this.columnConfigs = csvConfig.columnConfigs;
     this.configuredColumnsOnly = csvConfig.configuredColumnsOnly;
     this.delimiter = csvConfig.delimiter ? csvConfig.delimiter : ',';
@@ -171,8 +172,8 @@ export class CSVDataset extends Dataset<DataElement> {
     const features: {[key: string]: DataElement} = {};
     const labels: {[key: string]: DataElement} = {};
 
-    for (let i = 0; i < this.columnNames.length; i++) {
-      const key = this.columnNames[i];
+    for (let i = 0; i < this.fullColumnNames.length; i++) {
+      const key = this.fullColumnNames[i];
       const config = this.columnConfigs ? this.columnConfigs[key] : null;
       if (this.configuredColumnsOnly && !config) {
         // This column is not selected.

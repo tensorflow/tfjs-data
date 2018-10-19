@@ -145,7 +145,7 @@ export const run = async (model: tf.Sequential) => {
         epochs: NUM_EPOCHS,
         validationSplit: 0.2,
         callbacks: {
-          onEpochEnd: async (epoch, logs) => {
+          onEpochEnd: async (epoch: number, logs) => {
             await ui.updateStatus(
                 `Epoch ${epoch + 1} of ${NUM_EPOCHS} completed.`);
             trainLoss = logs.loss;
