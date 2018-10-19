@@ -15,7 +15,8 @@
  * =============================================================================
  */
 
-import * as tf from '@tensorflow/tfjs';
+import * as tf from '@tensorflow/tfjs-core';
+import * as tfl from '@tensorflow/tfjs-layers';
 import {Tensor, Tensor2D} from '@tensorflow/tfjs-core';
 
 import * as tfd from '../../src/index';
@@ -100,9 +101,9 @@ function normalizeFeatures(row: {features: number[], target: number[]}) {
  *
  * @returns {tf.Sequential} The linear regression model.
  */
-export const linearRegressionModel = (): tf.Sequential => {
-  const model = tf.sequential();
-  model.add(tf.layers.dense({inputShape: [bostonData.numFeatures], units: 1}));
+export const linearRegressionModel = (): tfl.Sequential => {
+  const model = tfl.sequential();
+  model.add(tfl.layers.dense({inputShape: [bostonData.numFeatures], units: 1}));
 
   return model;
 };
@@ -113,15 +114,15 @@ export const linearRegressionModel = (): tf.Sequential => {
  *
  * @returns {tf.Sequential} The multi layer perceptron regression model.
  */
-export const multiLayerPerceptronRegressionModel = (): tf.Sequential => {
-  const model = tf.sequential();
-  model.add(tf.layers.dense({
+export const multiLayerPerceptronRegressionModel = (): tfl.Sequential => {
+  const model = tfl.sequential();
+  model.add(tfl.layers.dense({
     inputShape: [bostonData.numFeatures],
     units: 50,
     activation: 'sigmoid'
   }));
-  model.add(tf.layers.dense({units: 50, activation: 'sigmoid'}));
-  model.add(tf.layers.dense({units: 1}));
+  model.add(tfl.layers.dense({units: 50, activation: 'sigmoid'}));
+  model.add(tfl.layers.dense({units: 1}));
 
   return model;
 };
@@ -132,7 +133,7 @@ export const multiLayerPerceptronRegressionModel = (): tf.Sequential => {
  *
  * @param {tf.Sequential} model Model to be trained.
  */
-export const run = async (model: tf.Sequential) => {
+export const run = async (model: tfl.Sequential) => {
   await ui.updateStatus('Compiling model...');
   model.compile(
     {optimizer: tf.train.sgd(LEARNING_RATE), loss: 'meanSquaredError'});
@@ -188,6 +189,27 @@ document.addEventListener('DOMContentLoaded', async () => {
   const csvDataset = tfd.data.csv(
     csvUrl, {columnConfigs: {medv: {isLabel: true}}});
 
+  //   const stringDataset = new Blob([`A,B,C
+  // 1,2,3
+  // 2,2,3
+  // 3,2,3
+  // 4,2,3
+  // 5,2,3
+  // 6,2,3
+  // 7,2,3`]);
+  //   const source = new tfd.data.FileDataSource(stringDataset, {chunkSize: 10});
+  //   const dataset = new tfd.data.CSVDataset(source, {columnConfigs: {C: {isLabel: true}}});
+  //   const numOfFeatures = (await dataset.getColumnNames()).length - 1;
+
+  //   const flattenedDataset = dataset
+  //     .map((row) => {
+  //       const [rawFeatures, rawLabel] = row;
+  //       const features = tf.tensor(Object.values(rawFeatures));
+  //       const label = tf.tensor([rawLabel['C']]);
+  //       return [features, label];
+  //     })
+  //     .batch(2, false).repeat();
+
   const numOfFeatures = (await csvDataset.getColumnNames()).length - 1;
 
   const flattenedDataset =
@@ -198,7 +220,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         const label = tf.tensor([rawLabel['medv']]);
         return [features, label];
       })
-      .batch(2).repeat();
+      .batch(8, false).repeat();
 
   const iter = await flattenedDataset.iterator();
   const data = await iter.next();
@@ -207,13 +229,20 @@ document.addEventListener('DOMContentLoaded', async () => {
   data.value[1].print();
   console.log(data.value[0].shape, data.value[1].shape);
 
-  const model = tf.sequential();
-  model.add(tf.layers.dense(
+  const model = tfl.sequential();
+  model.add(tfl.layers.dense(
     {inputShape: [numOfFeatures], units: 1}));
   model.compile({optimizer: tf.train.sgd(0.000001), loss: 'meanSquaredError'});
 
-  await model.fitDataset(flattenedDataset, {epochs: 10, batchesPerEpoch: 1});
-
+  const history = await model.fitDataset(flattenedDataset, {
+    epochs: 10, batchesPerEpoch: 1
+    , callbacks: {
+      onEpochEnd: async (n) => {
+        console.log('epoch', n)
+      }
+    }
+  });
+  console.log(history);
 
 
   // bostonData = await BostonHousingDataset.create();

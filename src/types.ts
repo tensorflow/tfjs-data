@@ -32,9 +32,9 @@ export type DataElementObject = TensorContainerObject;
 export type DataElementArray = TensorContainerArray;
 
 // Maybe this should be called 'NestedContainer'-- that's just a bit unwieldy.
-export type Container<T> = ContainerObject<T>|ContainerArray<T>;
+export type Container<T> = ContainerObject<T> | ContainerArray<T>;
 
-export type ContainerOrT<T> = Container<T>|T;
+export type ContainerOrT<T> = Container<T> | T;
 
 export interface ContainerObject<T> {
   [x: string]: ContainerOrT<T>;
@@ -54,7 +54,7 @@ export type IteratorContainer = Container<LazyIterator<DataElement>>;
 /**
  * Types supported by FileChunkIterator in both Browser and Node Environment.
  */
-export type FileElement = File|Blob|Uint8Array;
+export type FileElement = File | Blob | Uint8Array;
 
 /**
  * A dictionary containing column level configurations when reading and decoding
