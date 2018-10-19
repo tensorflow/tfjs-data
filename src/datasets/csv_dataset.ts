@@ -26,6 +26,15 @@ import {ColumnConfig, DataElement} from '../types';
 
 import {TextLineDataset} from './text_line_dataset';
 
+const CODE_QUOTE = '"'.charCodeAt(0);
+const CODE_LINE_FEED = '\n'.charCodeAt(0);
+const CODE_CARRIAGE_RETURN = '\r'.charCodeAt(0);
+const STATE_FIELD = Symbol('field');
+const STATE_QUOTE = Symbol('quote');
+const STATE_AFTER_QUOTE_IN_QUOTE = Symbol('afterquote');
+const STATE_AFTER_CARRIAGE_RETURN = Symbol('aftercr');
+const STATE_END_OF_LINE = Symbol('eol');
+
 /**
  * Represents a potentially large collection of delimited text records.
  *
@@ -39,6 +48,7 @@ import {TextLineDataset} from './text_line_dataset';
  */
 export class CSVDataset extends Dataset<DataElement> {
   base: TextLineDataset;
+  private state = '';
   private _csvColumnNames: string[] = null;
 
   /**
@@ -161,7 +171,8 @@ export class CSVDataset extends Dataset<DataElement> {
 
   makeDataElement(line: string): DataElement {
     // TODO(soergel): proper CSV parsing with escaping, quotes, etc.
-    const values = line.split(this.delimiter);
+    // const values = line.split(this.delimiter);
+    const values = this.parseRow(line);
     const features: {[key: string]: DataElement} = {};
     const labels: {[key: string]: DataElement} = {};
 
@@ -239,6 +250,16 @@ export class CSVDataset extends Dataset<DataElement> {
     } else {
       return 0;
     }
+  }
+
+  private parseRow(line: string): string[] {
+    const result: string[] = [];
+    let readOffset = 0;
+    let readLength = line.length;
+    let currentState = STATE_FIELD;
+    for (let i = 0; i < readLength; i++) {
+    }
+    return result;
   }
 }
 
