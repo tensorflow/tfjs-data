@@ -29,7 +29,7 @@ Reading a CSV file
 ```js
 import * as tf from '@tensorflow/tfjs';
 
-const csvUrl = 'https://storage.googleapis.com/tfjs-examples/multivariate-linear-regression/data/merged-train-data.csv';
+const csvUrl = 'https://storage.googleapis.com/tfjs-examples/multivariate-linear-regression/data/boston-housing-train.csv';
 
 // We want to predict the column "medv", which represents a median value of a
 // home (in $1000s), so we mark it as a label.
@@ -42,8 +42,8 @@ const flattenedDataset =
     csvDataset
         .map(row => {
           const [rawFeatures, rawLabel] = row;
-          const features = tf.tensor(Object.values(rawFeatures));
-          const label = tf.tensor(rawLabel['medv']);
+          const features = Object.values(rawFeatures);
+          const label = [rawLabel['medv']];
           return [features, label];
         })
         .batch(10);

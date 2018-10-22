@@ -21,8 +21,8 @@ import * as tfd from '../../src/index';
 const BASE_URL =
     'https://storage.googleapis.com/tfjs-examples/multivariate-linear-regression/data/';
 
-const TRAIN_FILENAME = 'merged-train-data.csv';
-const TEST_FILENAME = 'merged-test-data.csv';
+const TRAIN_FILENAME = 'boston-housing-train.csv';
+const TEST_FILENAME = 'boston-housing-test.csv';
 
 /** Helper class to handle loading training and test data. */
 export class BostonHousingDataset {

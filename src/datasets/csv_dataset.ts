@@ -129,10 +129,10 @@ export class CSVDataset extends Dataset<DataElement> {
    *     is an object stating if this column is required, column's data type,
    *     default value, and if this column is label. If provided, keys must
    *     correspond to names provided in columnNames or inferred from the file
-   *     header lines. If isLabel=true is set for any column, returns an array
-   *     of two items: the first item is a dict of features key/value pairs, the
-   *     second item is a dict of labels key/value pairs. If no feature is
-   *     marked as label, returns a dict of features only.
+   *     header lines. If isLabel is true any column, returns an array of two
+   *     items: the first item is a dict of features key/value pairs, the second
+   *     item is a dict of labels key/value pairs. If no feature is marked as
+   *     label, returns a dict of features only.
    *
    *     configuredColumnsOnly (Optional) If true, only columns provided in
    *     columnConfigs will be parsed and provided during iteration.
