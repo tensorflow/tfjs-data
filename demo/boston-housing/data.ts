@@ -15,6 +15,8 @@
  * =============================================================================
  */
 
+import {train} from '@tensorflow/tfjs-core';
+
 import * as tfd from '../../src/index';
 
 // Boston Housing data constants:
@@ -42,31 +44,38 @@ export class BostonHousingDataset {
    * Downloads, converts and shuffles the data.
    */
   private async loadData() {
-    const fileUrls =
-        [`${BASE_URL}${TRAIN_FILENAME}`, `${BASE_URL}${TEST_FILENAME}`];
     console.log('* Downloading data *');
 
-    // We want to predict the column "medv", which represents a median value of
-    // a home (in $1000s), so we mark it as a label.
-    const csvDatasets = fileUrls.map(
-        url => tfd.csv(url, {columnConfigs: {medv: {isLabel: true}}}));
-
+    const trainData = await this.prepareDataset(`${BASE_URL}${TRAIN_FILENAME}`);
     // Sets number of features so it can be used in the model. Need to exclude
     // the column of label.
-    this.numFeatures = (await csvDatasets[0].columnNames()).length - 1;
+    this.trainDataset = trainData.dataset;
+    this.numFeatures = trainData.numFeatures;
+    this.testDataset =
+        (await this.prepareDataset(`${BASE_URL}${TEST_FILENAME}`)).dataset;
+  }
+
+  /**
+   * Prepare dataset from provided url.
+   */
+  private async prepareDataset(url: string) {
+    // We want to predict the column "medv", which represents a median value of
+    // a home (in $1000s), so we mark it as a label.
+    const csvDataset = tfd.csv(url, {columnConfigs: {medv: {isLabel: true}}});
 
     // Reduces the object-type data to an array of numbers.
-    const convertedDatasets = csvDatasets.map(
-        (dataset) => dataset.map((row: Array<{[key: string]: number}>) => {
+    const convertedDataset =
+        csvDataset.map((row: Array<{[key: string]: number}>) => {
           const [rawFeatures, rawLabel] = row;
           const convertedFeatures =
               Object.keys(rawFeatures).sort().map(key => rawFeatures[key]);
           const convertedLabel =
               Object.keys(rawLabel).sort().map(key => rawLabel[key]);
           return {features: convertedFeatures, target: convertedLabel};
-        }));
-
-    this.trainDataset = convertedDatasets[0].shuffle(100);
-    this.testDataset = convertedDatasets[1].shuffle(100);
+        });
+    return {
+      dataset: convertedDataset,
+      numFeatures: (await csvDataset.columnNames()).length - 1
+    };
   }
 }
