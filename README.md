@@ -37,15 +37,16 @@ const csvDataset = tf.data.csv(
   csvUrl, {columnConfigs: {medv: {isLabel: true}}});
 
 const numOfFeatures = (await csvDataset.getColumnNames()).length - 1;
+
 const flattenedDataset =
-  csvDataset
-      .map(row => {
-        const [rawFeatures, rawLabel] = row;
-        const features = Object.values(rawFeatures);
-        const label = [rawLabel['medv']];
-        return [features, label];
-      })
-      .batch(10);
+    csvDataset
+        .map(row => {
+          const [rawFeatures, rawLabel] = row;
+          const features = Object.values(rawFeatures);
+          const label = [rawLabel['medv']];
+          return [features, label];
+        })
+        .batch(10);
 
 const model = tf.sequential();
 model.add(tf.layers.dense(
