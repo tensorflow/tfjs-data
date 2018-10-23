@@ -16,7 +16,6 @@
  */
 
 import * as tf from '@tensorflow/tfjs';
-import {Tensor, Tensor2D} from '@tensorflow/tfjs-core';
 // TODO(kangyi, soergel): Remove this once we have a public statistics API.
 import {computeDatasetStatistics, DatasetStatistics} from '@tensorflow/tfjs-data/dist/statistics';
 import {BostonHousingDataset} from './data';
@@ -28,10 +27,10 @@ const BATCH_SIZE = 40;
 const LEARNING_RATE = 0.01;
 
 interface PreparedData {
-  normalizedTrainFeatures: Tensor2D;
-  trainTarget: Tensor2D;
-  normalizedTestFeatures: Tensor2D;
-  testTarget: Tensor2D;
+  normalizedTrainFeatures: tf.Tensor2D;
+  trainTarget: tf.Tensor2D;
+  normalizedTestFeatures: tf.Tensor2D;
+  testTarget: tf.Tensor2D;
 }
 
 const preparedData: PreparedData = {
@@ -158,7 +157,7 @@ export const run = async (model: tf.Sequential) => {
   const result =
       model.evaluate(
           preparedData.normalizedTestFeatures, preparedData.testTarget,
-          {batchSize: BATCH_SIZE}) as Tensor;
+          {batchSize: BATCH_SIZE}) as tf.Tensor;
   const testLoss = result.dataSync()[0];
   await ui.updateStatus(
       `Final train-set loss: ${trainLoss.toFixed(4)}\n` +
