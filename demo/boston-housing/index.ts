@@ -17,9 +17,8 @@
 
 import * as tf from '@tensorflow/tfjs';
 import {Tensor, Tensor2D} from '@tensorflow/tfjs-core';
-
-import {computeDatasetStatistics, DatasetStatistics} from '../../src/statistics';
-
+// TODO(kangyi, soergel): Remove this once we have a public statistics API.
+import {computeDatasetStatistics, DatasetStatistics} from '@tensorflow/tfjs-data/dist/statistics';
 import {BostonHousingDataset} from './data';
 import * as ui from './ui';
 
