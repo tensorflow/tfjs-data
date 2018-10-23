@@ -16,10 +16,8 @@
  */
 
 import * as tf from '@tensorflow/tfjs';
-import {Tensor, Tensor2D} from '@tensorflow/tfjs-core';
-
-import {computeDatasetStatistics, DatasetStatistics} from '../../src/statistics';
-
+// TODO(kangyi, soergel): Remove this once we have a public statistics API.
+import {computeDatasetStatistics, DatasetStatistics} from '@tensorflow/tfjs-data/dist/statistics';
 import {BostonHousingDataset} from './data';
 import * as ui from './ui';
 
@@ -29,10 +27,10 @@ const BATCH_SIZE = 40;
 const LEARNING_RATE = 0.01;
 
 interface PreparedData {
-  normalizedTrainFeatures: Tensor2D;
-  trainTarget: Tensor2D;
-  normalizedTestFeatures: Tensor2D;
-  testTarget: Tensor2D;
+  normalizedTrainFeatures: tf.Tensor2D;
+  trainTarget: tf.Tensor2D;
+  normalizedTestFeatures: tf.Tensor2D;
+  testTarget: tf.Tensor2D;
 }
 
 const preparedData: PreparedData = {
@@ -56,8 +54,8 @@ export async function loadDataAndNormalize() {
   // https://github.com/tensorflow/tfjs-data/issues/32 is resolved.
 
   // Gets mean and standard deviation of data.
-  stats = await computeDatasetStatistics(await bostonData.trainDataset.map(
-      (row: {features: {key: number}, target: {key: number}}) => row.features));
+  stats = await computeDatasetStatistics(
+      bostonData.trainDataset.map((row: Array<{key: number}>) => row[0]));
 
   // Normalizes features data.
   const normalizedTrainData = bostonData.trainDataset.map(normalizeFeatures);
@@ -85,13 +83,13 @@ export async function loadDataAndNormalize() {
 /**
  * Normalizes features with statistics and returns a new object.
  */
-function normalizeFeatures(row: {features: number[], target: number[]}) {
-  const features = row.features;
+function normalizeFeatures(row: number[][]) {
+  const features = row[0];
   const normalizedFeatures: number[] = [];
   features.forEach(
       (value, index) => normalizedFeatures.push(
           (value - stats[index].mean) / stats[index].stddev));
-  return {normalizedFeatures, target: row.target};
+  return {normalizedFeatures, target: row[1]};
 }
 
 /**
@@ -159,7 +157,7 @@ export const run = async (model: tf.Sequential) => {
   const result =
       model.evaluate(
           preparedData.normalizedTestFeatures, preparedData.testTarget,
-          {batchSize: BATCH_SIZE}) as Tensor;
+          {batchSize: BATCH_SIZE}) as tf.Tensor;
   const testLoss = result.dataSync()[0];
   await ui.updateStatus(
       `Final train-set loss: ${trainLoss.toFixed(4)}\n` +
