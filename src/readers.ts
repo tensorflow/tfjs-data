@@ -23,19 +23,33 @@ import {CSVConfig} from './types';
 /**
  * Create a `CSVDataset` by reading and decoding CSV file(s) from provided URLs.
  *
- * ```js
- * const csvInputsDataset = await tf.data.csv(csvInputsUrl, true);
- * const csvTargetDataset = await tf.data.csv(csvTargetUrl, true);
+ * ```jsconst
+ * csvUrl =
+ * 'https://storage.googleapis.com/tfjs-examples/multivariate-linear-regression/data/boston-housing-train.csv';
+ * const csvInputsDataset = tf.data.csv(csvUrl, true);
+ * // We want to predict the column "medv", which represents a median value of a
+ * // home (in $1000s), so we mark it as a label.
+ * const csvDataset = tf.data.csv(
+ *   csvUrl, {columnConfigs: {medv: {isLabel: true}}});
  *
- * const trainDataset = await tf.data.zip(
- *     [csvInputsDataset, csvTargetDataset]).shuffle(100);
+ * const numOfFeatures = (await csvDataset.columnNames()).length - 1;
+ *
+ * const flattenedDataset =
+ *     csvDataset
+ *         .map(row => {
+ *           const [rawFeatures, rawLabel] = row;
+ *           const features = Object.values(rawFeatures);
+ *           const label = [rawLabel['medv']];
+ *           return [features, label];
+ *         })
+ *         .batch(10).repeat();
  *
  * const model = tf.sequential();
- * model.add(tf.layers.dense({units: 32, inputShape: [50]}));
- * model.add(tf.layers.dense({units: 4}));
- * model.compile({optimizer: 'sgd', loss: 'meanSquaredError'});
+ * model.add(tf.layers.dense(
+ *       {inputShape: [numOfFeatures], units: 1}));
+ * model.compile({optimizer: tf.train.sgd(0.000001), loss: 'meanSquaredError'});
  *
- * await model.fitDataset(trainDataset, modelFitDatasetConfig);
+ * await model.fitDataset(flattenedDataset, {epochs: 10, batchesPerEpoch: 3});
  * ```
  *
  * @param source URL to fetch CSV file.
