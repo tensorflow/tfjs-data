@@ -61,9 +61,14 @@
     "@types/webgl2" "~0.0.4"
     seedrandom "~2.4.3"
 
-"@tensorflow/tfjs-data@link:.yalc/@tensorflow/tfjs-data":
-  version "0.0.0"
-  uid ""
+"@tensorflow/tfjs-data@file:../../tensorflow-tfjs-data-0.0.1.tgz":
+  version "0.0.1"
+  resolved "file:../../tensorflow-tfjs-data-0.0.1.tgz#e32eac7b71920b04a451b76ae450e1dc1b773994"
+  dependencies:
+    "@types/node-fetch" "^2.1.2"
+    node-fetch "~2.1.2"
+    seedrandom "~2.4.3"
+    utf8 "~2.1.2"
 
 "@tensorflow/tfjs-layers@0.8.2":
   version "0.8.2"
