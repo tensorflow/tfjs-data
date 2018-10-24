@@ -255,6 +255,7 @@ export class CSVDataset extends Dataset<DataElement> {
     }
   }
 
+  // adapted from https://beta.observablehq.com/@mbostock/streaming-csv
   private parseRow(line: string): string[] {
     const result: string[] = [];
     let readOffset = 0;
