@@ -10,7 +10,9 @@
   },
   "dependencies": {
     "@tensorflow/tfjs": "^0.13.2",
+    "@tensorflow/tfjs-core": "0.13.8",
     "@tensorflow/tfjs-data": "file:../../tensorflow-tfjs-data-0.0.1.tgz",
+    "@tensorflow/tfjs-layers": "file:../../../tfjs-layers/tensorflow-tfjs-layers-v0.8.3.tgz",
     "vega-embed": "^3.18.1"
   },
   "scripts": {

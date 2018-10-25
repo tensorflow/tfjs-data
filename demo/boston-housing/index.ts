@@ -15,17 +15,18 @@
  * =============================================================================
  */
 
-import * as tf from '@tensorflow/tfjs';
+import * as tf from '@tensorflow/tfjs-core/dist/index';
 import {DataElement, Dataset} from '@tensorflow/tfjs-data/dist/src';
 // TODO(kangyi, soergel): Remove this once we have a public statistics API.
 import {computeDatasetStatistics, DatasetStatistics} from '@tensorflow/tfjs-data/dist/src/statistics';
+import * as tfl from '@tensorflow/tfjs-layers/dist/index';
 
 import {BostonHousingDataset} from './data';
 import * as ui from './ui';
 
 // Some hyperparameters for model training.
-const NUM_EPOCHS = 250;
-const BATCH_SIZE = 40;
+const NUM_EPOCHS = 50;
+const BATCH_SIZE = 10;
 const LEARNING_RATE = 0.01;
 
 interface PreparedData {
@@ -68,9 +69,9 @@ export async function loadDataAndNormalize() {
   const normalizedTestData = bostonData.testDataset.map(normalizeFeatures);
 
   preparedData.trainData =
-      bostonData.trainDataset.map(normalizeFeatures).batch(10).repeat();
+      bostonData.trainDataset.map(normalizeFeatures).batch(BATCH_SIZE).repeat();
   preparedData.testData =
-      bostonData.testDataset.map(normalizeFeatures).batch(10).repeat();
+      bostonData.testDataset.map(normalizeFeatures).batch(BATCH_SIZE).repeat();
 
   // Materializes data into arrays. Following codes should be removed once
   // model.fitDataset is available.
@@ -106,9 +107,9 @@ function normalizeFeatures(row: number[][]) {
  *
  * @returns {tf.Sequential} The linear regression model.
  */
-export const linearRegressionModel = (): tf.Sequential => {
-  const model = tf.sequential();
-  model.add(tf.layers.dense({inputShape: [bostonData.numFeatures], units: 1}));
+export const linearRegressionModel = (): tfl.Sequential => {
+  const model = tfl.sequential();
+  model.add(tfl.layers.dense({inputShape: [bostonData.numFeatures], units: 1}));
 
   return model;
 };
@@ -119,15 +120,15 @@ export const linearRegressionModel = (): tf.Sequential => {
  *
  * @returns {tf.Sequential} The multi layer perceptron regression model.
  */
-export const multiLayerPerceptronRegressionModel = (): tf.Sequential => {
-  const model = tf.sequential();
-  model.add(tf.layers.dense({
+export const multiLayerPerceptronRegressionModel = (): tfl.Sequential => {
+  const model = tfl.sequential();
+  model.add(tfl.layers.dense({
     inputShape: [bostonData.numFeatures],
     units: 50,
     activation: 'sigmoid'
   }));
-  model.add(tf.layers.dense({units: 50, activation: 'sigmoid'}));
-  model.add(tf.layers.dense({units: 1}));
+  model.add(tfl.layers.dense({units: 50, activation: 'sigmoid'}));
+  model.add(tfl.layers.dense({units: 1}));
 
   return model;
 };
@@ -138,24 +139,33 @@ export const multiLayerPerceptronRegressionModel = (): tf.Sequential => {
  *
  * @param {tf.Sequential} model Model to be trained.
  */
-export const run = async (model: tf.Sequential) => {
+export const run = async (model: tfl.Sequential) => {
   await ui.updateStatus('Compiling model...');
-  model.compile(
-      {optimizer: tf.train.sgd(LEARNING_RATE), loss: 'meanSquaredError'});
+  model.compile({
+    optimizer: 'sgd' /*tf.train.sgd(LEARNING_RATE)*/,
+    loss: 'meanSquaredError'
+  });
 
   let trainLoss: number;
   let valLoss: number;
+
   await ui.updateStatus('Starting training process...');
   await model.fitDataset(preparedData.trainData, {
     // batchSize: BATCH_SIZE,
     epochs: NUM_EPOCHS,
     batchesPerEpoch: 1,
-    validationSplit: 0.2,
+    // validationSplit: 0.2,
+    validationData:
+        [preparedData.normalizedTestFeatures, preparedData.testTarget],
+    validationBatchSize: BATCH_SIZE,
     callbacks: {
       onEpochEnd: async (epoch: number, logs) => {
         await ui.updateStatus(`Epoch ${epoch + 1} of ${NUM_EPOCHS} completed.`);
         trainLoss = logs.loss;
         valLoss = logs.val_loss;
+        if (epoch === 40) {
+          console.log(logs);
+        }
         await ui.plotData(epoch, trainLoss, valLoss);
       }
     }
@@ -163,12 +173,12 @@ export const run = async (model: tf.Sequential) => {
 
   await ui.updateStatus('Running on test data...');
   const result =
-      model.evaluateDataset(preparedData.testData, {batchSize: BATCH_SIZE}) as
-      tf.Tensor;
+      (await model.evaluateDataset(
+          preparedData.testData, {batches: BATCH_SIZE})) as tf.Tensor;
   const testLoss = result.dataSync()[0];
   await ui.updateStatus(
       `Final train-set loss: ${trainLoss.toFixed(4)}\n` +
-      `Final validation-set loss: ${valLoss.toFixed(4)}\n` +
+      // `Final validation-set loss: ${valLoss.toFixed(4)}\n` +
       `Test-set loss: ${testLoss.toFixed(4)}`);
 };
 
