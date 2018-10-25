@@ -43,7 +43,7 @@ const flattenedDataset =
         .map(row => {
           const [rawFeatures, rawLabel] = row;
           const features = Object.values(rawFeatures);
-          const label = [rawLabel['medv']];
+          const label = rawLabel['medv'];
           return [features, label];
         })
         .batch(10).repeat();
