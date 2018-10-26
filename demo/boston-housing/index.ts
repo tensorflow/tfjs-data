@@ -25,7 +25,7 @@ import {BostonHousingDataset} from './data';
 import * as ui from './ui';
 
 // Some hyperparameters for model training.
-const NUM_EPOCHS = 50;
+const NUM_EPOCHS = 250;
 const BATCH_SIZE = 10;
 const LEARNING_RATE = 0.01;
 
@@ -69,9 +69,9 @@ export async function loadDataAndNormalize() {
   const normalizedTestData = bostonData.testDataset.map(normalizeFeatures);
 
   preparedData.trainData =
-      bostonData.trainDataset.map(normalizeFeatures).batch(BATCH_SIZE).repeat();
+      bostonData.trainDataset.map(normalizeFeatures).batch(40).repeat();
   preparedData.testData =
-      bostonData.testDataset.map(normalizeFeatures).batch(BATCH_SIZE).repeat();
+      bostonData.testDataset.map(normalizeFeatures).batch(40).repeat();
 
   // Materializes data into arrays. Following codes should be removed once
   // model.fitDataset is available.
@@ -155,6 +155,8 @@ export const run = async (model: tfl.Sequential) => {
     epochs: NUM_EPOCHS,
     batchesPerEpoch: 1,
     // validationSplit: 0.2,
+    // validationData: preparedData.testData,
+    // validationBatches: 1,
     validationData:
         [preparedData.normalizedTestFeatures, preparedData.testTarget],
     validationBatchSize: BATCH_SIZE,
@@ -163,9 +165,6 @@ export const run = async (model: tfl.Sequential) => {
         await ui.updateStatus(`Epoch ${epoch + 1} of ${NUM_EPOCHS} completed.`);
         trainLoss = logs.loss;
         valLoss = logs.val_loss;
-        if (epoch === 40) {
-          console.log(logs);
-        }
         await ui.plotData(epoch, trainLoss, valLoss);
       }
     }
@@ -178,7 +177,7 @@ export const run = async (model: tfl.Sequential) => {
   const testLoss = result.dataSync()[0];
   await ui.updateStatus(
       `Final train-set loss: ${trainLoss.toFixed(4)}\n` +
-      // `Final validation-set loss: ${valLoss.toFixed(4)}\n` +
+      `Final validation-set loss: ${valLoss.toFixed(4)}\n` +
       `Test-set loss: ${testLoss.toFixed(4)}`);
 };
 
