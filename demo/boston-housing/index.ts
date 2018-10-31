@@ -20,7 +20,6 @@ import {DataElement, Dataset} from '@tensorflow/tfjs-data/dist/src';
 // TODO(kangyi, soergel): Remove this once we have a public statistics API.
 import {computeDatasetStatistics, DatasetStatistics} from '@tensorflow/tfjs-data/dist/src/statistics';
 import * as tfl from '@tensorflow/tfjs-layers/dist/index';
-import {batchSetValue} from '@tensorflow/tfjs-layers/dist/variables';
 
 import {BostonHousingDataset} from './data';
 import * as ui from './ui';
@@ -39,7 +38,11 @@ const BATCHES_PER_EPOCH = 8;
 // validation purpose before stopping at the end of every epoch. Here the
 // validation dataset has 50 samples and batch size is 40, so
 // `validationDataset` should take 2 batchSetValue.
-const VALIDATION_PATCHES = 2;
+const VALIDATION_BATCHES = 2;
+// Number of batches to draw from the dataset object before ending
+// `evaluationdATASET`. Here the test dataset has 175 samples and batch size is
+// 40, so `evaluateDataset` should take 5 batches.
+const EVALUATE_BATCHES = 5;
 const LEARNING_RATE = 0.01;
 
 interface PreparedData {
@@ -146,7 +149,7 @@ export const run = async (model: tfl.Sequential) => {
     epochs: NUM_EPOCHS,
     batchesPerEpoch: BATCHES_PER_EPOCH,
     validationData: preparedData.validationData,
-    validationBatches: VALIDATION_PATCHES,
+    validationBatches: VALIDATION_BATCHES,
     callbacks: {
       onEpochEnd: async (epoch: number, logs) => {
         await ui.updateStatus(`Epoch ${epoch + 1} of ${NUM_EPOCHS} completed.`);
@@ -160,7 +163,7 @@ export const run = async (model: tfl.Sequential) => {
   await ui.updateStatus('Running on test data...');
   const result =
       (await model.evaluateDataset(
-          preparedData.testData, {batches: BATCH_SIZE})) as tf.Tensor;
+          preparedData.testData, {batches: EVALUATE_BATCHES})) as tf.Tensor;
   const testLoss = result.dataSync()[0];
   await ui.updateStatus(
       `Final train-set loss: ${trainLoss.toFixed(4)}\n` +
