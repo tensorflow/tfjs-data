@@ -15,13 +15,12 @@
  * =============================================================================
  */
 
-import * as tf from '@tensorflow/tfjs-core/dist/index';
-import {DataElement, Dataset} from '@tensorflow/tfjs-data/dist/src';
-// TODO(kangyi, soergel): Remove this once we have a public statistics API.
-import {computeDatasetStatistics, DatasetStatistics} from '@tensorflow/tfjs-data/dist/src/statistics';
-import * as tfl from '@tensorflow/tfjs-layers/dist/index';
+import * as tf from '@tensorflow/tfjs';
+import {DataElement, Dataset} from '@tensorflow/tfjs-data';
 
 import {BostonHousingDataset} from './data';
+// TODO(kangyi, soergel): Remove this once we have a public statistics API.
+import {computeDatasetStatistics, DatasetStatistics} from './stats';
 import * as ui from './ui';
 
 // Some hyperparameters for model training.
@@ -102,9 +101,9 @@ function normalizeFeatures(row: number[][]) {
  *
  * @returns {tf.Sequential} The linear regression model.
  */
-export const linearRegressionModel = (): tfl.Sequential => {
-  const model = tfl.sequential();
-  model.add(tfl.layers.dense({inputShape: [bostonData.numFeatures], units: 1}));
+export const linearRegressionModel = (): tf.Sequential => {
+  const model = tf.sequential();
+  model.add(tf.layers.dense({inputShape: [bostonData.numFeatures], units: 1}));
 
   return model;
 };
@@ -115,15 +114,15 @@ export const linearRegressionModel = (): tfl.Sequential => {
  *
  * @returns {tf.Sequential} The multi layer perceptron regression model.
  */
-export const multiLayerPerceptronRegressionModel = (): tfl.Sequential => {
-  const model = tfl.sequential();
-  model.add(tfl.layers.dense({
+export const multiLayerPerceptronRegressionModel = (): tf.Sequential => {
+  const model = tf.sequential();
+  model.add(tf.layers.dense({
     inputShape: [bostonData.numFeatures],
     units: 50,
     activation: 'sigmoid'
   }));
-  model.add(tfl.layers.dense({units: 50, activation: 'sigmoid'}));
-  model.add(tfl.layers.dense({units: 1}));
+  model.add(tf.layers.dense({units: 50, activation: 'sigmoid'}));
+  model.add(tf.layers.dense({units: 1}));
 
   return model;
 };
@@ -134,7 +133,7 @@ export const multiLayerPerceptronRegressionModel = (): tfl.Sequential => {
  *
  * @param {tf.Sequential} model Model to be trained.
  */
-export const run = async (model: tfl.Sequential) => {
+export const run = async (model: tf.Sequential) => {
   await ui.updateStatus('Compiling model...');
   model.compile({
     optimizer: 'sgd' /*tf.train.sgd(LEARNING_RATE)*/,

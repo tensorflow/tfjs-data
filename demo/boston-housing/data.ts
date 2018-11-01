@@ -15,7 +15,7 @@
  * =============================================================================
  */
 
-import * as tfd from '@tensorflow/tfjs-data/dist/src';
+import * as tfd from '@tensorflow/tfjs-data';
 
 // Boston Housing data constants:
 const BASE_URL =
