@@ -15,7 +15,7 @@
  * =============================================================================
  */
 import * as tf from '@tensorflow/tfjs-core';
-import {Dataset} from '@tensorflow/tfjs-data/dist/src';
+import {Dataset} from '@tensorflow/tfjs-data';
 
 // TODO(kangyizhang): Remove this file once we have statistics API public.
 

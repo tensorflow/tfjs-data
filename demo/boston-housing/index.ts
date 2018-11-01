@@ -57,7 +57,8 @@ const preparedData: PreparedData = {
 };
 
 let bostonData: BostonHousingDataset;
-let stats: DatasetStatistics;
+let featureStats: DatasetStatistics;
+let targetStats: DatasetStatistics;
 
 // TODO(kangyizhang): Remove this function when model.fitDataset(dataset) is
 //  available. This work should be done by dataset class itself.
@@ -70,8 +71,11 @@ export async function loadDataAndNormalize() {
   // https://github.com/tensorflow/tfjs-data/issues/32 is resolved.
 
   // Gets mean and standard deviation of data.
-  stats = await computeDatasetStatistics(
+  featureStats = await computeDatasetStatistics(
       bostonData.trainDataset.map((row: Array<{key: number}>) => row[0]));
+  // TODO(kangyizhang): Remove this once statistics support nested object.
+  targetStats = await computeDatasetStatistics(
+      bostonData.trainDataset.map((row: Array<{key: number}>) => row[1]));
 
   // Normalizes data.
   preparedData.trainData =
@@ -92,7 +96,7 @@ function normalizeFeatures(row: number[][]) {
   const normalizedFeatures: number[] = [];
   features.forEach(
       (value, index) => normalizedFeatures.push(
-          (value - stats[index].mean) / stats[index].stddev));
+          (value - featureStats[index].mean) / featureStats[index].stddev));
   return [normalizedFeatures, row[1]];
 }
 
@@ -135,10 +139,8 @@ export const multiLayerPerceptronRegressionModel = (): tf.Sequential => {
  */
 export const run = async (model: tf.Sequential) => {
   await ui.updateStatus('Compiling model...');
-  model.compile({
-    optimizer: 'sgd' /*tf.train.sgd(LEARNING_RATE)*/,
-    loss: 'meanSquaredError'
-  });
+  model.compile(
+      {optimizer: tf.train.sgd(LEARNING_RATE), loss: 'meanSquaredError'});
 
   let trainLoss: number;
   let valLoss: number;
@@ -171,19 +173,7 @@ export const run = async (model: tf.Sequential) => {
 };
 
 export const computeBaseline = async () => {
-  const trainIter = await bostonData.trainDataset.iterator();
-  let trainSum = 0;
-  let trainCount = 0;
-  while (true) {
-    const row: {done: boolean, value: number[]} =
-        (await trainIter.next()) as {done: boolean, value: number[]};
-    if (row.done) {
-      break;
-    }
-    trainSum += Number(row.value[1]);
-    trainCount++;
-  }
-  const trainMean = trainSum / (trainCount === 0 ? 1 : trainCount);
+  const trainMean = targetStats[0].mean;
 
   const testIter = await bostonData.testDataset.iterator();
   let testSquareError = 0;
