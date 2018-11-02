@@ -14,18 +14,19 @@
  * limitations under the License.
  * =============================================================================
  */
-import * as tf from '@tensorflow/tfjs-core';
 import {Dataset} from '@tensorflow/tfjs-data';
 
 // TODO(kangyizhang): Remove this file once we have statistics API public.
 
-type ElementArray = number|number[]|tf.Tensor|string;
-
-type TabularRecord = {
-  [key: string]: ElementArray
+/**
+ * A map from string keys (aka column names) to values for a single element.
+ */
+export type TabularRecord = {
+  [key: string]: number
 };
 
-interface NumericColumnStatistics {
+/** An interface representing numeric statistics of a column. */
+export interface NumericColumnStatistics {
   min: number;
   max: number;
   mean: number;
@@ -34,10 +35,22 @@ interface NumericColumnStatistics {
   length: number;
 }
 
+/**
+ * An interface representing column level NumericColumnStatistics for a
+ * Dataset.
+ */
 export interface DatasetStatistics {
   [key: string]: NumericColumnStatistics;
 }
 
+/**
+ * Provides a function that calculates column level statistics, i.e. min, max,
+ * variance, stddev.
+ *
+ * @param dataset The Dataset object whose statistics will be calculated.
+ * @return A DatasetStatistics object that contains NumericColumnStatistics of
+ *     each column.
+ */
 export async function computeDatasetStatistics(
     dataset: Dataset<TabularRecord>) {
   const result: DatasetStatistics = {};
@@ -46,6 +59,7 @@ export async function computeDatasetStatistics(
     for (const key of Object.keys(e)) {
       const value = e[key];
       if (typeof (value) === 'string') {
+        // No statistics for string element.
       } else {
         let previousMean = 0;
         let previousLength = 0;
@@ -66,56 +80,19 @@ export async function computeDatasetStatistics(
           previousLength = columnStats.length;
           previousVariance = columnStats.variance;
         }
-        let recordMin: number;
-        let recordMax: number;
 
         // Calculate accumulated mean and variance following tf.Transform
         // implementation
-        let valueLength = 0;
-        let valueMean = 0;
-        let valueVariance = 0;
-        let combinedLength = 0;
-        let combinedMean = 0;
-        let combinedVariance = 0;
-
-        if (value instanceof tf.Tensor) {
-          recordMin = value.min().dataSync()[0];
-          recordMax = value.max().dataSync()[0];
-          const valueMoment = tf.moments(value);
-          valueMean = valueMoment.mean.get();
-          valueVariance = valueMoment.variance.get();
-          valueLength = value.size;
-
-        } else if (value instanceof Array) {
-          recordMin = value.reduce((a, b) => Math.min(a, b));
-          recordMax = value.reduce((a, b) => Math.max(a, b));
-          const valueMoment = tf.moments(value);
-          valueMean = valueMoment.mean.get();
-          valueVariance = valueMoment.variance.get();
-          valueLength = value.length;
-
-        } else if (!isNaN(value) && isFinite(value)) {
-          recordMin = value;
-          recordMax = value;
-          valueMean = value;
-          valueVariance = 0;
-          valueLength = 1;
-
-        } else {
-          columnStats = null;
-          continue;
-        }
-        combinedLength = previousLength + valueLength;
-        combinedMean = previousMean +
-            (valueLength / combinedLength) * (valueMean - previousMean);
-        combinedVariance = previousVariance +
-            (valueLength / combinedLength) *
-                (valueVariance +
-                 ((valueMean - combinedMean) * (valueMean - previousMean)) -
+        const combinedLength = previousLength + 1;
+        const combinedMean =
+            previousMean + (1 / combinedLength) * (value - previousMean);
+        const combinedVariance = previousVariance +
+            (1 / combinedLength) *
+                (((value - combinedMean) * (value - previousMean)) -
                  previousVariance);
 
-        columnStats.min = Math.min(columnStats.min, recordMin);
-        columnStats.max = Math.max(columnStats.max, recordMax);
+        columnStats.min = Math.min(columnStats.min, value);
+        columnStats.max = Math.max(columnStats.max, value);
         columnStats.length = combinedLength;
         columnStats.mean = combinedMean;
         columnStats.variance = combinedVariance;
@@ -123,5 +100,12 @@ export async function computeDatasetStatistics(
       }
     }
   });
+  // Variance and stddev should be NaN for the case of a single element.
+  for (const key in result) {
+    const stat: NumericColumnStatistics = result[key];
+    if (stat.length === 1) {
+      stat.variance = NaN;
+    }
+  }
   return result;
 }

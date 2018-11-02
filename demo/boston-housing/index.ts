@@ -16,6 +16,7 @@
  */
 
 import * as tf from '@tensorflow/tfjs';
+import {assert} from '@tensorflow/tfjs-core/dist/util';
 import {DataElement, Dataset} from '@tensorflow/tfjs-data';
 
 import {BostonHousingDataset} from './data';
@@ -30,17 +31,18 @@ const BATCH_SIZE = 40;
 //  finished and starting the next epoch. It should typically be equal to the
 //  number of samples of the dataset divided by the batch size, so that
 //  `fitDataset()` call can utilize the entire dataset. Here the train dataset
-//  has 285 samples and batchSize is 40, so `fitDataset()` should take 8 batches
-//  per epoch.
+//  has 285 samples and batchSize is 40, rounded up 285/40 to the closest
+//  integer, so `fitDataset()` should take 8 batches per epoch.
 const BATCHES_PER_EPOCH = 8;
 // Total number of batches of samples to draw from `validationData` for
 // validation purpose before stopping at the end of every epoch. Here the
-// validation dataset has 50 samples and batch size is 40, so
-// `validationDataset` should take 2 batchSetValue.
+// validation dataset has 50 samples and batch size is 40, rounded up 50/40 to
+// the closest integer, so `validationDataset` should take 2 batchSetValue.
 const VALIDATION_BATCHES = 2;
 // Number of batches to draw from the dataset object before ending
 // `evaluationdATASET`. Here the test dataset has 175 samples and batch size is
-// 40, so `evaluateDataset` should take 5 batches.
+// 40, rounded up 175/40 to the closest integer, so `evaluateDataset` should
+// take 5 batches.
 const EVALUATE_BATCHES = 5;
 const LEARNING_RATE = 0.01;
 
@@ -71,9 +73,11 @@ export async function loadDataAndNormalize() {
   // https://github.com/tensorflow/tfjs-data/issues/32 is resolved.
 
   // Gets mean and standard deviation of data.
+  // row[0] is feature data.
   featureStats = await computeDatasetStatistics(
       bostonData.trainDataset.map((row: Array<{key: number}>) => row[0]));
   // TODO(kangyizhang): Remove this once statistics support nested object.
+  // row[1] is target data.
   targetStats = await computeDatasetStatistics(
       bostonData.trainDataset.map((row: Array<{key: number}>) => row[1]));
 
@@ -91,6 +95,8 @@ export async function loadDataAndNormalize() {
 /**
  * Normalizes features with statistics and returns a new object.
  */
+// TODO(kangyizhang, bileschi): Replace these with preprocessing layers once
+// they are available.
 function normalizeFeatures(row: number[][]) {
   const features = row[0];
   const normalizedFeatures: number[] = [];
@@ -187,7 +193,8 @@ export const computeBaseline = async () => {
     testSquareError += Math.pow(row.value[1] - trainMean, 2);
     testCount++;
   }
-  const baseline = testSquareError / (testCount === 0 ? 1 : testCount);
+  assert(testCount !== 0, 'No test data found!');
+  const baseline = testSquareError / testCount;
   const baselineMsg =
       `Baseline loss (meanSquaredError) is ${baseline.toFixed(2)}`;
   ui.updateBaselineStatus(baselineMsg);
