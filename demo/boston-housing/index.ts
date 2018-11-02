@@ -26,24 +26,29 @@ import * as ui from './ui';
 
 // Some hyperparameters for model training.
 const NUM_EPOCHS = 250;
+
 const BATCH_SIZE = 40;
+
 //  Total number of steps (batches of samples) before declaring one epoch
 //  finished and starting the next epoch. It should typically be equal to the
 //  number of samples of the dataset divided by the batch size, so that
-//  `fitDataset()` call can utilize the entire dataset. Here the train dataset
-//  has 285 samples and batchSize is 40, rounded up 285/40 to the closest
-//  integer, so `fitDataset()` should take 8 batches per epoch.
+//  `fitDataset()` call can utilize the entire dataset. In this example the
+//  train dataset has 285 samples, and batchSize is 40, so batchesPerEpoch
+//  should is rounding up 285/40 to the closest integer 8.
 const BATCHES_PER_EPOCH = 8;
+
 // Total number of batches of samples to draw from `validationData` for
-// validation purpose before stopping at the end of every epoch. Here the
-// validation dataset has 50 samples and batch size is 40, rounded up 50/40 to
-// the closest integer, so `validationDataset` should take 2 batchSetValue.
+// validation purpose before stopping at the end of every epoch. In this example
+// the validation dataset has 50 samples and batch size is 40, so
+// validationBatches is rounding up 50/40 to the closest integer 2.
 const VALIDATION_BATCHES = 2;
+
 // Number of batches to draw from the dataset object before ending
-// `evaluationdATASET`. Here the test dataset has 175 samples and batch size is
-// 40, rounded up 175/40 to the closest integer, so `evaluateDataset` should
-// take 5 batches.
+// `evaluationDataset`. In this example the test dataset has 175 samples and
+// batch size is 40, so evaluateBatches is rounding up 175/40 to the closest
+// integer 5.
 const EVALUATE_BATCHES = 5;
+
 const LEARNING_RATE = 0.01;
 
 interface PreparedData {
@@ -61,9 +66,6 @@ const preparedData: PreparedData = {
 let bostonData: BostonHousingDataset;
 let featureStats: DatasetStatistics;
 let targetStats: DatasetStatistics;
-
-// TODO(kangyizhang): Remove this function when model.fitDataset(dataset) is
-//  available. This work should be done by dataset class itself.
 
 // Converts loaded data into tensors and creates normalized versions of the
 // features.
