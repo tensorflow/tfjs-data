@@ -16,7 +16,6 @@
  */
 
 import * as tf from '@tensorflow/tfjs';
-import {assert} from '@tensorflow/tfjs-core/dist/util';
 import {DataElement, Dataset} from '@tensorflow/tfjs-data';
 
 import {BostonHousingDataset} from './data';
@@ -32,22 +31,22 @@ const BATCH_SIZE = 40;
 //  Total number of steps (batches of samples) before declaring one epoch
 //  finished and starting the next epoch. It should typically be equal to the
 //  number of samples of the dataset divided by the batch size, so that
-//  `fitDataset()` call can utilize the entire dataset. In this example the
-//  train dataset has 285 samples, and batchSize is 40, so batchesPerEpoch
-//  should is rounding up 285/40 to the closest integer 8.
+//  `fitDataset()` call can utilize the entire dataset. In this example, the
+//  training dataset has 285 samples and the batch size is 40, so there will be
+//  8 batches per epoch (7 batches of 40 and a small last batch of 5).
 const BATCHES_PER_EPOCH = 8;
 
 // Total number of batches of samples to draw from `validationData` for
-// validation purpose before stopping at the end of every epoch. In this example
-// the validation dataset has 50 samples and batch size is 40, so
-// validationBatches is rounding up 50/40 to the closest integer 2.
+// validation purpose before stopping at the end of every epoch. In this
+// example, the validation dataset has 50 samples and batch size is 40, so there
+// will be 2 validation batches (1 batch of 40 and a small last batch of 10).
 const VALIDATION_BATCHES = 2;
 
 // Number of batches to draw from the dataset object before ending
-// `evaluationDataset`. In this example the test dataset has 175 samples and
-// batch size is 40, so evaluateBatches is rounding up 175/40 to the closest
-// integer 5.
-const EVALUATE_BATCHES = 5;
+// `evaluationDataset`. In this example, the test dataset has 175 samples and
+// batch size is 40, so there will be 5 evaluation batches (4 batches of 40 and
+// a small last batch of 15).
+const EVALUATION_BATCHES = 5;
 
 const LEARNING_RATE = 0.01;
 
@@ -172,7 +171,7 @@ export const run = async (model: tf.Sequential) => {
   await ui.updateStatus('Running on test data...');
   const result =
       (await model.evaluateDataset(
-          preparedData.testData, {batches: EVALUATE_BATCHES})) as tf.Tensor;
+          preparedData.testData, {batches: EVALUATION_BATCHES})) as tf.Tensor;
   const testLoss = result.dataSync()[0];
   await ui.updateStatus(
       `Final train-set loss: ${trainLoss.toFixed(4)}\n` +
@@ -182,20 +181,17 @@ export const run = async (model: tf.Sequential) => {
 
 export const computeBaseline = async () => {
   const trainMean = targetStats[0].mean;
-
-  const testIter = await bostonData.testDataset.iterator();
   let testSquareError = 0;
   let testCount = 0;
-  while (true) {
-    const row: {done: boolean, value: number[]} =
-        (await testIter.next()) as {done: boolean, value: number[]};
-    if (row.done) {
-      break;
-    }
-    testSquareError += Math.pow(row.value[1] - trainMean, 2);
+
+  await bostonData.testDataset.forEach((row: number[]) => {
+    testSquareError += Math.pow(row[1] - trainMean, 2);
     testCount++;
+  });
+
+  if (testCount === 0) {
+    throw new Error('No test data found!');
   }
-  assert(testCount !== 0, 'No test data found!');
   const baseline = testSquareError / testCount;
   const baselineMsg =
       `Baseline loss (meanSquaredError) is ${baseline.toFixed(2)}`;
