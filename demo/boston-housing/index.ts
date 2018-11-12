@@ -28,26 +28,6 @@ const NUM_EPOCHS = 250;
 
 const BATCH_SIZE = 40;
 
-//  Total number of steps (batches of samples) before declaring one epoch
-//  finished and starting the next epoch. It should typically be equal to the
-//  number of samples of the dataset divided by the batch size, so that
-//  `fitDataset()` call can utilize the entire dataset. In this example, the
-//  training dataset has 285 samples and the batch size is 40, so there will be
-//  8 batches per epoch (7 batches of 40 and a small last batch of 5).
-const BATCHES_PER_EPOCH = 8;
-
-// Total number of batches of samples to draw from `validationData` for
-// validation purpose before stopping at the end of every epoch. In this
-// example, the validation dataset has 50 samples and batch size is 40, so there
-// will be 2 validation batches (1 batch of 40 and a small last batch of 10).
-const VALIDATION_BATCHES = 2;
-
-// Number of batches to draw from the dataset object before ending
-// `evaluationDataset`. In this example, the test dataset has 175 samples and
-// batch size is 40, so there will be 5 evaluation batches (4 batches of 40 and
-// a small last batch of 15).
-const EVALUATION_BATCHES = 5;
-
 const LEARNING_RATE = 0.01;
 
 interface PreparedData {
@@ -84,13 +64,11 @@ export async function loadDataAndNormalize() {
 
   // Normalizes data.
   preparedData.trainData =
-      bostonData.trainDataset.map(normalizeFeatures).batch(BATCH_SIZE).repeat();
+      bostonData.trainDataset.map(normalizeFeatures).batch(BATCH_SIZE);
   preparedData.validationData =
-      bostonData.validationDataset.map(normalizeFeatures)
-          .batch(BATCH_SIZE)
-          .repeat();
+      bostonData.validationDataset.map(normalizeFeatures).batch(BATCH_SIZE);
   preparedData.testData =
-      bostonData.testDataset.map(normalizeFeatures).batch(BATCH_SIZE).repeat();
+      bostonData.testDataset.map(normalizeFeatures).batch(BATCH_SIZE);
 }
 
 /**
@@ -155,9 +133,7 @@ export const run = async (model: tf.Sequential) => {
   await ui.updateStatus('Starting training process...');
   await model.fitDataset(preparedData.trainData, {
     epochs: NUM_EPOCHS,
-    batchesPerEpoch: BATCHES_PER_EPOCH,
     validationData: preparedData.validationData,
-    validationBatches: VALIDATION_BATCHES,
     callbacks: {
       onEpochEnd: async (epoch: number, logs) => {
         await ui.updateStatus(`Epoch ${epoch + 1} of ${NUM_EPOCHS} completed.`);
@@ -170,8 +146,7 @@ export const run = async (model: tf.Sequential) => {
 
   await ui.updateStatus('Running on test data...');
   const result =
-      (await model.evaluateDataset(
-          preparedData.testData, {batches: EVALUATION_BATCHES})) as tf.Tensor;
+      (await model.evaluateDataset(preparedData.testData, {})) as tf.Tensor;
   const testLoss = result.dataSync()[0];
   await ui.updateStatus(
       `Final train-set loss: ${trainLoss.toFixed(4)}\n` +
