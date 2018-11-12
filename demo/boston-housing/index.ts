@@ -43,8 +43,6 @@ const preparedData: PreparedData = {
 };
 
 let bostonData: BostonHousingDataset;
-let featureStats: DatasetStatistics;
-let targetStats: DatasetStatistics;
 
 // Converts loaded data into tensors and creates normalized versions of the
 // features.
@@ -55,20 +53,22 @@ export async function loadDataAndNormalize() {
 
   // Gets mean and standard deviation of data.
   // row[0] is feature data.
-  featureStats = await computeDatasetStatistics(
+  const featureStats = await computeDatasetStatistics(
       bostonData.trainDataset.map((row: Array<{key: number}>) => row[0]));
-  // TODO(kangyizhang): Remove this once statistics support nested object.
-  // row[1] is target data.
-  targetStats = await computeDatasetStatistics(
-      bostonData.trainDataset.map((row: Array<{key: number}>) => row[1]));
 
   // Normalizes data.
   preparedData.trainData =
-      bostonData.trainDataset.map(normalizeFeatures).batch(BATCH_SIZE);
+      bostonData.trainDataset
+          .map(row => normalizeFeatures(row as number[][], featureStats))
+          .batch(BATCH_SIZE);
   preparedData.validationData =
-      bostonData.validationDataset.map(normalizeFeatures).batch(BATCH_SIZE);
+      bostonData.validationDataset
+          .map(row => normalizeFeatures(row as number[][], featureStats))
+          .batch(BATCH_SIZE);
   preparedData.testData =
-      bostonData.testDataset.map(normalizeFeatures).batch(BATCH_SIZE);
+      bostonData.testDataset
+          .map(row => normalizeFeatures(row as number[][], featureStats))
+          .batch(BATCH_SIZE);
 }
 
 /**
@@ -76,7 +76,7 @@ export async function loadDataAndNormalize() {
  */
 // TODO(kangyizhang, bileschi): Replace these with preprocessing layers once
 // they are available.
-function normalizeFeatures(row: number[][]) {
+function normalizeFeatures(row: number[][], featureStats: DatasetStatistics) {
   const features = row[0];
   const normalizedFeatures: number[] = [];
   features.forEach(
@@ -155,6 +155,10 @@ export const run = async (model: tf.Sequential) => {
 };
 
 export const computeBaseline = async () => {
+  // TODO(kangyizhang): Remove this once statistics support nested object.
+  // row[1] is target data.
+  const targetStats = await computeDatasetStatistics(
+      bostonData.trainDataset.map((row: Array<{key: number}>) => row[1]));
   const trainMean = targetStats[0].mean;
   let testSquareError = 0;
   let testCount = 0;
