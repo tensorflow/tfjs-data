@@ -87,6 +87,12 @@ export class CSVDataset extends Dataset<DataElement> {
     if (!this.fullColumnNames) {
       this.fullColumnNames = columnNamesFromFile;
     }
+    // Check if there are duplicates column names.
+    this.fullColumnNames.forEach((value, index) => {
+      if (this.fullColumnNames.indexOf(value, index + 1) > -1) {
+        throw new Error('Duplicate column names found: ' + value);
+      }
+    });
     // Check if keys in columnConfigs match columnNames.
     if (this.columnConfigs) {
       for (const key of Object.keys(this.columnConfigs)) {
