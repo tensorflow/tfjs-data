@@ -30,7 +30,7 @@ import {CSVConfig} from './types';
  * async function run() {
  *   // We want to predict the column "medv", which represents a median value of
  *   // a home (in $1000s), so we mark it as a label.
- *   const csvDataset = tfd.csv(
+ *   const csvDataset = tf.data.csv(
  *     csvUrl, {
  *       columnConfigs: {
  *         medv: {
@@ -39,12 +39,15 @@ import {CSVConfig} from './types';
  *       }
  *     });
  *
- *   // Number of features is the number of column names minus the label column.
+ *   // Number of features is the number of column names minus one for the label
+ *   // column.
  *   const numOfFeatures = (await csvDataset.columnNames()).length - 1;
  *
+ *   // Prepare the Dataset for training.
  *   const flattenedDataset =
  *     csvDataset
  *     .map(row => {
+ *       // Convert rows from object form (keyed by column name) to array form.
  *       const [rawFeatures, rawLabel] = row;
  *       const features = Object.values(rawFeatures);
  *       const label = rawLabel['medv'];
@@ -52,6 +55,7 @@ import {CSVConfig} from './types';
  *     })
  *     .batch(10);
  *
+ *   // Define the model.
  *   const model = tf.sequential();
  *   model.add(tf.layers.dense({
  *     inputShape: [numOfFeatures],
@@ -62,6 +66,7 @@ import {CSVConfig} from './types';
  *     loss: 'meanSquaredError'
  *   });
  *
+ *   // Fit the model using the prepared Dataset
  *   return model.fitDataset(flattenedDataset, {
  *     epochs: 10,
  *     callbacks: {
