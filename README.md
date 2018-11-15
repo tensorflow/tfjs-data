@@ -81,5 +81,5 @@ run().then(() => console.log('Done'));
 
 ## For more information
 
-- [TensorFlow.js API documentation](https://js.tensorflow.org/api/index.html)
+- [TensorFlow.js API documentation](https://js.tensorflow.org/api/latest/)
 - [TensorFlow.js Tutorials](https://js.tensorflow.org/tutorials/)
