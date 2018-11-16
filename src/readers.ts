@@ -46,13 +46,9 @@ import {CSVConfig} from './types';
  *   // Prepare the Dataset for training.
  *   const flattenedDataset =
  *     csvDataset
- *     .map(row => {
+ *     .map(([rawFeatures, rawLabel]) =>
  *       // Convert rows from object form (keyed by column name) to array form.
- *       const [rawFeatures, rawLabel] = row;
- *       const features = Object.values(rawFeatures);
- *       const label = rawLabel['medv'];
- *       return [features, label];
- *     })
+ *       [Object.values(rawFeatures), Object.values(rawLabel)])
  *     .batch(10);
  *
  *   // Define the model.
