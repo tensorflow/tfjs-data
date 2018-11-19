@@ -39,6 +39,13 @@ if ! [[ "$ORIGIN" =~ tensorflow/tfjs-data ]]; then
   exit
 fi
 
+if [ ! -z "$CHANGES" ];
+then
+    echo "Make sure the master branch is clean. Found changes:"
+    echo $CHANGES
+    exit 1
+fi
+
 yarn build-npm
 ./scripts/make-version # This is for safety in case you forgot to do 2).
 npm publish
