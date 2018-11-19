@@ -5,4 +5,4 @@ script:
   - yarn build
   - yarn lint
   - yarn test-node
-  - yarn test
+  - yarn test-travis
