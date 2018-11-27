@@ -1,6 +1,6 @@
 {
   "name": "@tensorflow/tfjs-data",
-  "version": "0.0.1",
+  "version": "0.1.1",
   "description": "TensorFlow Data API in JavaScript",
   "private": false,
   "main": "dist/index.js",
@@ -9,6 +9,7 @@
   "types": "dist/index.d.ts",
   "jsnext:main": "dist/tf-data.esm.js",
   "module": "dist/tf-data.esm.js",
+  "license": "Apache-2.0",
   "devDependencies": {
     "@tensorflow/tfjs-core": "0.13.6",
     "@types/fetch-mock": "^6.0.1",

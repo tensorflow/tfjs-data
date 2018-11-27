@@ -1,11 +1,11 @@
 .rpt2_cache/
 .vscode/
+demo/
 scripts/
 src/
 coverage/
 node_modules/
 karma.conf.js
-dist/**/*.js.map
 dist/**/*_test.js
 dist/**/*_test.d.ts
 *.tgz
@@ -18,5 +18,7 @@ pull_request_template.md
 tslint.json
 rollup.config.js
 WORKSPACE
+**.yalc/
+**yalc.lock
 yarn.lock
 yarn-error.log
