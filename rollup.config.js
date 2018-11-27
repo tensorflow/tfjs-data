@@ -63,14 +63,16 @@ function config({plugins = [], output = {}, external = []}) {
       globals: {
         'node-fetch': 'nodeFetch',
         '@tensorflow/tfjs-core': 'tf',
-        '@tensorflow/tfjs-layers': 'tf'
       },
+      sourcemap: true,
       ...output
     },
     external: [
       // node-fetch is only used in node. Browsers have native "fetch".
-      'node-fetch', 'crypto', '@tensorflow/tfjs-core',
-      '@tensorflow/tfjs-layers', ...external
+      'node-fetch',
+      'crypto',
+      '@tensorflow/tfjs-core',
+      ...external,
     ],
     onwarn: warning => {
       console.warn('WARNING: ', warning.toString());
