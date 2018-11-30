@@ -102,6 +102,7 @@ import {CSVConfig} from './types';
  *     delimiter (Optional) The string used to parse each line of the input
  *     file. Defaults to `,`.
  */
+/** @doc {heading: 'Data', subheading: 'Creation', namespace: 'data'} */
 export function csv(source: string, csvConfig: CSVConfig = {}): CSVDataset {
   return new CSVDataset(new URLDataSource(source), csvConfig);
 }

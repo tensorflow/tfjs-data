@@ -25,7 +25,7 @@ import {FileElement} from '../types';
  * Represents a file, blob, or Uint8Array readable as a stream of binary data
  * chunks.
  */
-/** @doc {heading: 'Data', subheading: 'Sources'} */
+/** @doc {heading: 'Data', subheading: 'Sources', namespace: 'data'} */
 export class FileDataSource extends DataSource {
   /**
    * Create a `FileDataSource`.

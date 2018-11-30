@@ -28,18 +28,155 @@ import {deepMapAndAwaitAll, DeepMapResult, isIterable, isNumericArray} from './u
 // TODO(soergel): consider vectorized operations within the pipeline.
 
 /**
- * Represents a potentially large set of elements.
+ * Represents a potentially large set of data samples.
  *
- * A `Dataset` can be used to represent an input pipeline as a
- * collection of elements (maps from string keys to values) and a "logical
- * plan" of transformations that act on those elements.
+ * A 'data sample' may be a primitive, an array, a map from string keys to
+ * values, or any nested structure of these.
  *
- * A `Dataset` provides a stream of unbatched examples, and its transformations
- * are applied one example at a time.  Batching produces a BatchDataset, and so
- * must come last in the pipeline because there are (so far) no batch-enabled
- * transformations.
+ * A `Dataset` represents an ordered collection of elements together with a
+ * chain of transformations to be performed on those elements. Each
+ * transformation is a method of `Dataset` that returns another `Dataset`, so
+ * these may be chained, e.g.
+ * `const processedDataset = rawDataset.filter(...).map(...).batch(...)`.
+ *
+ * Data loading and transformation is done in a lazy, streaming fashion.  The
+ * dataset may be iterated over multiple times; each iteration starts the data
+ * loading anew and recapitulates the transformations.
+ *
+ * A `Dataset` is typically processed as a stream of unbatched examples --i.e.,
+ * its transformations are applied one example at a time. Batching produces a
+ * new Dataset where each element is a batch. Batching should usually come last
+ * in a pipeline, because data transformations are easier to express on a
+ * per-example basis than on a per-batch basis.
+ *
+ *
+ * `.filter()` filters this dataset according to the provided filter method.
+ * Parameter: `predicate` A function mapping a dataset element to a boolean or a
+ * `Promise` for one.
+ * Returns a `Dataset` of elements for which the predicate was true.
+ * Usage example:
+ * ```js
+ * const a = tf.data.array([1, 2, 3]).filter(x => x%2 === 0);
+ * await a.forEach(e => console.log(JSON.stringify(e)));
+ * ```
+ *
+ * `.map()` maps the dataset element through a 1-to-1 transform according to
+ * provided transform method.
+ * Parameter: `transform` A function mapping a dataset element to a transformed
+ * dataset element.
+ * Returns a `Dataset` of transformed elements.
+ * Usage example:
+ * ```js
+ * const a = tf.data.array([1, 2, 3]).map(x => x*x);
+ * await a.forEach(e => console.log(JSON.stringify(e)));
+ * ```
+ *
+ * `.mapAsync()` maps the dataset element through an async 1-to-1 transform
+ * according to provided async transform method.
+ * Parameter: `transform` A function mapping a dataset element to a `Promise`
+ * for a transformed dataset element.  This transform is responsible for
+ * disposing any intermediate `Tensor`s, i.e. by wrapping its computation in
+ * `tf.tidy()`; that cannot be automated here (as it is in the synchronous
+ * `map()` case).
+ * Returns a `Dataset` of transformed elements.
+ *
+ *
+ * `.batch()` groups elements into batches and arranges their values in columnar
+ * form. It is assumed that each of the incoming dataset elements has the same
+ * set of keys.  For each key, the resulting Dataset provides a batched Element
+ * collecting all of the incoming values for that key.  Incoming strings are
+ * grouped into a string[].  Incoming Tensors are grouped into a new Tensor
+ * where the 0'th axis is the batch dimension.  These columnar representations
+ * for each key can be zipped together to reconstruct the original dataset
+ * elements.
+ * Parameter: `batchSize` The number of elements desired per batch.
+ * Parameter: `smallLastBatch` Whether to emit the final batch when it has fewer
+ * than batchSize elements. Default true.
+ * Returns a `Dataset`, from which a stream of batches can be obtained.
+ * Usage example:
+ * ```js
+ * const a = tf.data.array([1, 2, 3, 4, 5, 6, 7, 8]).batch(4);
+ * await a.forEach(e => e.print());
+ * ```
+ *
+ * `.concatenate()` concatenates one `Dataset` with another.
+ * Parameter: `dataset` A `Dataset` to be concatenated onto this one.
+ * Returns a concatenated `Dataset`.
+ * Usage example:
+ * ```js
+ * const a = tf.data.array([1, 2, 3]);
+ * const b = tf.data.array([4, 5, 6]);
+ * const c = a.concatenate(b);
+ * await c.forEach(e => console.log(JSON.stringify(e)));
+ * ```
+ *
+ * `.repeat()` repeats one dataset for specified number of times.
+ * Parameter: `count` (Optional.) An integer, representing the number of times
+ * the dataset should be repeated. The default behavior (if `count` is
+ * `undefined` or negative) is for the dataset be repeated indefinitely.
+ * Returns a `Dataset`.
+ * Usage example:
+ * ```js
+ * const a = tf.data.array([1, 2, 3]).repeat(3);
+ * await a.forEach(e => console.log(JSON.stringify(e)));
+ * ```
+ *
+ * `.take()` creates a `Dataset` with the specified number of elements from the
+ * provided `Dataset`.
+ * Parameter: `count` The number of elements of this dataset that should be
+ * taken to form the new dataset.  If `count` is `undefined` or negative, or if
+ * `count` is greater than the size of this dataset, the new dataset will
+ * contain all elements of this dataset.
+ * Returns a `Dataset`.
+ * Usage example:
+ * ```js
+ * const a = tf.data.array([1, 2, 3, 4, 5, 6]).take(3);
+ * await a.forEach(e => console.log(JSON.stringify(e)));
+ * ```
+ *
+ * `.skip()` creates a `Dataset` that skips a specified number of elements from
+ * the provided `Dataset`.
+ * Parameter: `count` The number of elements of this dataset that should be
+ * skipped to form the new dataset.  If `count` is greater than the size of this
+ * dataset, the new dataset will contain no elements.  If `count` is `undefined`
+ * or negative, skips the entire dataset.
+ * Returns a `Dataset`.
+ * Usage example:
+ * ```js
+ * const a = tf.data.array([1, 2, 3, 4, 5, 6]).skip(3);
+ * await a.forEach(e => console.log(JSON.stringify(e)));
+ * ```
+ *
+ * `.shuffle()` randomly shuffles the elements of provided dataset.
+ * Parameter: `bufferSize` An integer specifying the number of elements from
+ * this dataset from which the new dataset will sample.
+ * Parameter: `seed` (Optional.) An integer specifying the random seed that will
+ * be used to create the distribution.
+ * Parameter: `reshuffleEachIteration` (Optional.) A boolean, which if true
+ * indicates that the dataset should be pseudorandomly reshuffled each time
+ * it is iterated over. (Defaults to `true`.)
+ * Returns a `Dataset`.
+ * Usage example:
+ * ```js
+ * const a = tf.data.array([1, 2, 3, 4, 5, 6]).shuffle(3);
+ * await a.forEach(e => console.log(JSON.stringify(e)));
+ * ```
+ *
+ * `.prefetch()` creates a `Dataset` that prefetches elements from this Dataset.
+ * Parameter: `bufferSize` An integer specifying the number of elements to be
+ * prefetched.
+ * Returns a `Dataset`.
+ *
+ * `.forEach()` applies a function to every element of the dataset.
+ * Parameter: `f` A function to apply to each dataset element.
+ * Returns a `Promise` that resolves after all elements have been processed.
+ * Usage example:
+ * ```js
+ * const a = tf.data.array([1, 2, 3]);
+ * await a.forEach(e => console.log(JSON.stringify(e)));
+ * ```
  */
-/** @doc {heading: 'Data', subheading: 'Classes'} */
+/** @doc {heading: 'Data', subheading: 'Classes', namespace: 'data'} */
 export abstract class Dataset<T extends DataElement> {
   /*
    * Provide a new stream of elements.  Note this will also start new streams
@@ -65,10 +202,10 @@ export abstract class Dataset<T extends DataElement> {
    *
    * @returns A `Dataset` of elements for which the predicate was true.
    */
-  filter(filterer: (value: T) => boolean): Dataset<T> {
+  filter(predicate: (value: T) => boolean): Dataset<T> {
     const base = this;
     return datasetFromIteratorFn(async () => {
-      return (await base.iterator()).filter(x => tf.tidy(() => filterer(x)));
+      return (await base.iterator()).filter(x => tf.tidy(() => predicate(x)));
     });
   }
 
@@ -110,7 +247,7 @@ export abstract class Dataset<T extends DataElement> {
    * Groups elements into batches and arranges their values in columnar form.
    *
    * It is assumed that each of the incoming dataset elements has the same set
-   * of keys.  For each key, the resulting BatchDataset provides a BatchElement
+   * of keys.  For each key, the resulting Dataset provides a batched Element
    * collecting all of the incoming values for that key.  Incoming strings are
    * grouped into a string[].  Incoming Tensors are grouped into a new Tensor
    * where the 0'th axis is the batch dimension.  These columnar representations
@@ -120,7 +257,7 @@ export abstract class Dataset<T extends DataElement> {
    * @param batchSize The number of elements desired per batch.
    * @param smallLastBatch Whether to emit the final batch when it has fewer
    *   than batchSize elements. Default true.
-   * @returns A `BatchDataset`, from which a stream of batches can be obtained.
+   * @returns A `Dataset`, from which a stream of batches can be obtained.
    */
   batch(batchSize: number, smallLastBatch = true): Dataset<DataElement> {
     const base = this;
@@ -296,7 +433,7 @@ export function datasetFromIteratorFn<T extends DataElement>(
  * ```
  * @param items An array of elements that will be parsed as items in a dataset.
  */
-/** @doc {heading: 'Data', subheading: 'Creation'} */
+/** @doc {heading: 'Data', subheading: 'Creation', namespace: 'data'} */
 export function array<T extends DataElement>(items: T[]): Dataset<T> {
   return datasetFromIteratorFn(async () => iteratorFromItems(items));
 }
@@ -329,7 +466,7 @@ export function array<T extends DataElement>(items: T[]): Dataset<T> {
  * await ds4.forEach(e => console.log(JSON.stringify(e)));
  * ```
  */
-/** @doc {heading: 'Data', subheading: 'Operations'} */
+/** @doc {heading: 'Data', subheading: 'Operations', namespace: 'data'} */
 export function zip<O extends DataElement>(datasets: DatasetContainer):
     Dataset<O> {
   // manually type-check the argument for JS users
