@@ -41,13 +41,16 @@ import {deepMapAndAwaitAll, DeepMapResult, isIterable, isNumericArray} from './u
  *
  * Data loading and transformation is done in a lazy, streaming fashion.  The
  * dataset may be iterated over multiple times; each iteration starts the data
- * loading anew and recapitulates the transformations.
+ * loading a new and recapitulates the transformations.
  *
  * A `Dataset` is typically processed as a stream of unbatched examples --i.e.,
  * its transformations are applied one example at a time. Batching produces a
  * new Dataset where each element is a batch. Batching should usually come last
  * in a pipeline, because data transformations are easier to express on a
  * per-example basis than on a per-batch basis.
+ *
+ * The following code examples are calling `await dataset.forEach(...)` so that
+ * the dataset could be materialized to print out the data.
  *
  *
  * `.filter()` filters this dataset according to the provided filter method.
