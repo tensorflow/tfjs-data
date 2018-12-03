@@ -174,8 +174,7 @@ export function iteratorFromZipped<O extends DataElement>(
  * console.log(JSON.stringify(await filterIter.next()));
  * ```
  *
- * `.map()` maps the stream element through a 1-to-1 transform according to
- * provided transform method.
+ * `.map()` maps the stream element through a 1-to-1 transform.
  * Parameter: `transform` A function mapping a stream element to a transformed
  * element.
  * Returns a `LazyIterator` of transformed elements.
@@ -189,8 +188,7 @@ export function iteratorFromZipped<O extends DataElement>(
  * console.log(JSON.stringify(await mappedIter.next()));
  * ```
  *
- * `.mapAsync()` maps the stream through an async 1-to-1 transform according to
- * provided async transform method.
+ * `.mapAsync()` maps the stream through an async 1-to-1 transform.
  * Parameter: `transform` A function mapping a stream element to a `Promise`
  * for a transformed stream element.
  * Returns a `LazyIterator` of transformed elements.

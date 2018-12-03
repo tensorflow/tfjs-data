@@ -28,12 +28,13 @@ import {deepMapAndAwaitAll, DeepMapResult, isIterable, isNumericArray} from './u
 // TODO(soergel): consider vectorized operations within the pipeline.
 
 /**
- * Represents a potentially large set of data samples.
+ * Represents a potentially large list of independent data elements (typically
+ * 'samples' or 'examples').
  *
- * A 'data sample' may be a primitive, an array, a map from string keys to
+ * A 'data example' may be a primitive, an array, a map from string keys to
  * values, or any nested structure of these.
  *
- * A `Dataset` represents an ordered collection of elements together with a
+ * A `Dataset` represents an ordered collection of elements, together with a
  * chain of transformations to be performed on those elements. Each
  * transformation is a method of `Dataset` that returns another `Dataset`, so
  * these may be chained, e.g.
@@ -41,7 +42,7 @@ import {deepMapAndAwaitAll, DeepMapResult, isIterable, isNumericArray} from './u
  *
  * Data loading and transformation is done in a lazy, streaming fashion.  The
  * dataset may be iterated over multiple times; each iteration starts the data
- * loading a new and recapitulates the transformations.
+ * loading anew and recapitulates the transformations.
  *
  * A `Dataset` is typically processed as a stream of unbatched examples --i.e.,
  * its transformations are applied one example at a time. Batching produces a
@@ -49,8 +50,8 @@ import {deepMapAndAwaitAll, DeepMapResult, isIterable, isNumericArray} from './u
  * in a pipeline, because data transformations are easier to express on a
  * per-example basis than on a per-batch basis.
  *
- * The following code examples are calling `await dataset.forEach(...)` so that
- * the dataset could be materialized to print out the data.
+ * The following code examples are calling `await dataset.forEach(...)` to
+ * iterate once over the entire dataset in order to print out the data.
  *
  *
  * `.filter()` filters this dataset according to the provided filter method.
@@ -63,8 +64,7 @@ import {deepMapAndAwaitAll, DeepMapResult, isIterable, isNumericArray} from './u
  * await a.forEach(e => console.log(JSON.stringify(e)));
  * ```
  *
- * `.map()` maps the dataset element through a 1-to-1 transform according to
- * provided transform method.
+ * `.map()` maps the dataset element through a 1-to-1 transform.
  * Parameter: `transform` A function mapping a dataset element to a transformed
  * dataset element.
  * Returns a `Dataset` of transformed elements.
@@ -74,8 +74,7 @@ import {deepMapAndAwaitAll, DeepMapResult, isIterable, isNumericArray} from './u
  * await a.forEach(e => console.log(JSON.stringify(e)));
  * ```
  *
- * `.mapAsync()` maps the dataset element through an async 1-to-1 transform
- * according to provided async transform method.
+ * `.mapAsync()` maps the dataset element through an async 1-to-1 transform.
  * Parameter: `transform` A function mapping a dataset element to a `Promise`
  * for a transformed dataset element.  This transform is responsible for
  * disposing any intermediate `Tensor`s, i.e. by wrapping its computation in
@@ -124,8 +123,8 @@ import {deepMapAndAwaitAll, DeepMapResult, isIterable, isNumericArray} from './u
  * await a.forEach(e => console.log(JSON.stringify(e)));
  * ```
  *
- * `.take()` creates a `Dataset` with the specified number of elements from the
- * provided `Dataset`.
+ * `.take()` creates a `Dataset` with the specified number of initial elements
+ * from the provided `Dataset`.
  * Parameter: `count` The number of elements of this dataset that should be
  * taken to form the new dataset.  If `count` is `undefined` or negative, or if
  * `count` is greater than the size of this dataset, the new dataset will
@@ -137,8 +136,8 @@ import {deepMapAndAwaitAll, DeepMapResult, isIterable, isNumericArray} from './u
  * await a.forEach(e => console.log(JSON.stringify(e)));
  * ```
  *
- * `.skip()` creates a `Dataset` that skips a specified number of elements from
- * the provided `Dataset`.
+ * `.skip()` creates a `Dataset` that skips a specified number of initial
+ * elements from the provided `Dataset`.
  * Parameter: `count` The number of elements of this dataset that should be
  * skipped to form the new dataset.  If `count` is greater than the size of this
  * dataset, the new dataset will contain no elements.  If `count` is `undefined`
@@ -150,14 +149,16 @@ import {deepMapAndAwaitAll, DeepMapResult, isIterable, isNumericArray} from './u
  * await a.forEach(e => console.log(JSON.stringify(e)));
  * ```
  *
- * `.shuffle()` randomly shuffles the elements of provided dataset.
+ * `.shuffle()` randomly shuffles the elements of this Dataset in a streaming
+ * manner.
  * Parameter: `bufferSize` An integer specifying the number of elements from
  * this dataset from which the new dataset will sample.
  * Parameter: `seed` (Optional.) An integer specifying the random seed that will
  * be used to create the distribution.
  * Parameter: `reshuffleEachIteration` (Optional.) A boolean, which if true
  * indicates that the dataset should be pseudorandomly reshuffled each time
- * it is iterated over. (Defaults to `true`.)
+ * it is iterated over. (Defaults to `true`.) If false, elements will be
+ * returned in the same shuffled order on each iteration
  * Returns a `Dataset`.
  * Usage example:
  * ```js
@@ -345,7 +346,8 @@ export abstract class Dataset<T extends DataElement> {
    *   be used to create the distribution.
    * @param reshuffleEachIteration: (Optional.) A boolean, which if true
    *   indicates that the dataset should be pseudorandomly reshuffled each time
-   *   it is iterated over. (Defaults to `true`.)
+   *   it is iterated over. (Defaults to `true`.) If false, elements will be
+   *   returned in the same shuffled order on each iteration
    * @returns A `Dataset`.
    */
   shuffle(bufferSize: number, seed?: string, reshuffleEachIteration = true):
