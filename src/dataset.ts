@@ -73,7 +73,7 @@ export abstract class Dataset<T extends DataElement> {
 
   /**
    * Filters this dataset according to `predicate`.
-  *
+   *
    * ```js
    * const a = tf.data.array([1, 2, 3]).filter(x => x%2 === 0);
    * await a.forEach(e => console.log(e));
@@ -138,12 +138,12 @@ export abstract class Dataset<T extends DataElement> {
    * form.
    *
    * It is assumed that each of the incoming dataset elements has the same
-   * set of keys.  For each key, the resulting Dataset provides a batched Element
-   * collecting all of the incoming values for that key.  Incoming strings are
-   * grouped into a string[].  Incoming Tensors are grouped into a new Tensor
-   * where the 0'th axis is the batch dimension.  These columnar representations
-   * for each key can be zipped together to reconstruct the original dataset
-   * elements.
+   * set of keys.  For each key, the resulting Dataset provides a batched
+   * Element collecting all of the incoming values for that key.  Incoming
+   * strings are grouped into a string[].  Incoming Tensors are grouped into a
+   * new Tensor where the 0'th axis is the batch dimension.  These columnar
+   * representations for each key can be zipped together to reconstruct the
+   * original dataset elements.
    *
    * ```js
    * const a = tf.data.array([1, 2, 3, 4, 5, 6, 7, 8]).batch(4);
