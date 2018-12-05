@@ -76,7 +76,7 @@ export abstract class Dataset<T extends DataElement> {
   *
    * ```js
    * const a = tf.data.array([1, 2, 3]).filter(x => x%2 === 0);
-   * await a.forEach(e => console.log(JSON.stringify(e)));
+   * await a.forEach(e => console.log(e));
    * ```
    *
    * @param predicate A function mapping a dataset element to a boolean or a
@@ -97,7 +97,7 @@ export abstract class Dataset<T extends DataElement> {
    *
    * ```js
    * const a = tf.data.array([1, 2, 3]).map(x => x*x);
-   * await a.forEach(e => console.log(JSON.stringify(e)));
+   * await a.forEach(e => console.log(e));
    * ```
    *
    * @param transform A function mapping a dataset element to a transformed
@@ -178,7 +178,7 @@ export abstract class Dataset<T extends DataElement> {
    * const a = tf.data.array([1, 2, 3]);
    * const b = tf.data.array([4, 5, 6]);
    * const c = a.concatenate(b);
-   * await c.forEach(e => console.log(JSON.stringify(e)));
+   * await c.forEach(e => console.log(e));
    * ```
    *
    * @param dataset A `Dataset` to be concatenated onto this one.
@@ -200,7 +200,7 @@ export abstract class Dataset<T extends DataElement> {
    *
    * ```js
    * const a = tf.data.array([1, 2, 3]).repeat(3);
-   * await a.forEach(e => console.log(JSON.stringify(e)));
+   * await a.forEach(e => console.log(e));
    * ```
    *
    * @param count: (Optional.) An integer, representing the number of times
@@ -224,7 +224,7 @@ export abstract class Dataset<T extends DataElement> {
    *
    * ```js
    * const a = tf.data.array([1, 2, 3, 4, 5, 6]).take(3);
-   * await a.forEach(e => console.log(JSON.stringify(e)));
+   * await a.forEach(e => console.log(e));
    * ```
    *
    * @param count: The number of elements of this dataset that should be taken
@@ -245,7 +245,7 @@ export abstract class Dataset<T extends DataElement> {
    *
    * ```js
    * const a = tf.data.array([1, 2, 3, 4, 5, 6]).skip(3);
-   * await a.forEach(e => console.log(JSON.stringify(e)));
+   * await a.forEach(e => console.log(e));
    * ```
    *
    * @param count: The number of elements of this dataset that should be skipped
@@ -269,7 +269,7 @@ export abstract class Dataset<T extends DataElement> {
    *
    * ```js
    * const a = tf.data.array([1, 2, 3, 4, 5, 6]).shuffle(3);
-   * await a.forEach(e => console.log(JSON.stringify(e)));
+   * await a.forEach(e => console.log(e));
    * ```
    *
    * @param bufferSize: An integer specifying the number of elements from this
@@ -330,7 +330,7 @@ export abstract class Dataset<T extends DataElement> {
    *
    * ```js
    * const a = tf.data.array([1, 2, 3]);
-   * await a.forEach(e => console.log(JSON.stringify(e)));
+   * await a.forEach(e => console.log(e));
    * ```
    *
    * @param f A function to apply to each dataset element.
@@ -371,10 +371,10 @@ export function datasetFromIteratorFn<T extends DataElement>(
  *
  * ```js
  * const a = tf.data.array([{'item': 1}, {'item': 2}, {'item': 3}]);
- * await a.forEach(e => console.log(JSON.stringify(e)));
+ * await a.forEach(e => console.log(e));
  *
  * const b = tf.data.array([4, 5, 6]);
- * await b.forEach(e => console.log(JSON.stringify(e)));
+ * await b.forEach(e => console.log(e));
  * ```
  * @param items An array of elements that will be parsed as items in a dataset.
  */
@@ -403,12 +403,12 @@ export function array<T extends DataElement>(items: T[]): Dataset<T> {
  * const ds1 = tf.data.array([{a: 1}, {a: 2}, {a: 3}]);
  * const ds2 = tf.data.array([{b: 4}, {b: 5}, {b: 6}]);
  * const ds3 = tf.data.zip([ds1, ds2]);
- * await ds3.forEach(e => console.log(JSON.stringify(e)));
+ * await ds3.forEach(e => console.log(e));
  *
  * // If the goal is to merge the dicts in order to produce elements like
  * // {a: ..., b: ...}, this requires a second step such as:
  * const ds4 = ds3.map(x => {return {a: x[0].a, b: x[1].b}});
- * await ds4.forEach(e => console.log(JSON.stringify(e)));
+ * await ds4.forEach(e => console.log(e));
  * ```
  */
 /** @doc {heading: 'Data', subheading: 'Operations', namespace: 'data'} */
