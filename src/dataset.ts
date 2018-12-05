@@ -147,16 +147,24 @@ export abstract class Dataset<T extends DataElement> {
    * original dataset elements.
    *
    * ```js
+   * console.log('Batch a dataset of numbers:');
    * const a = tf.data.array([1, 2, 3, 4, 5, 6, 7, 8]).batch(4);
    * await a.forEach(e => e.print());
    *
+   * console.log('Batch a dataset of arrays:');
    * const b = tf.data.array([[1], [2], [3], [4], [5], [6], [7], [8]]).batch(4);
    * await b.forEach(e => e.print());
    *
+   * console.log('Batch a dataset of objects:');
    * const c = tf.data.array([{a: 1, b: 11}, {a: 2, b: 12}, {a: 3, b: 13},
    *   {a: 4, b: 14}, {a: 5, b: 15}, {a: 6, b: 16}, {a: 7, b: 17},
    *   {a: 8, b: 18}]).batch(4);
-   * await c.forEach(e => e['a'].print());
+   * await c.forEach(e => {
+   *  for(var key in e) {
+   *    console.log(key+':');
+   *    e[key].print();
+   *  }
+   * })
    * ```
    *
    * @param batchSize The number of elements desired per batch.
