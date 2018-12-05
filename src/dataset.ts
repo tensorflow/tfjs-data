@@ -160,10 +160,12 @@ export abstract class Dataset<T extends DataElement> {
    *   {a: 4, b: 14}, {a: 5, b: 15}, {a: 6, b: 16}, {a: 7, b: 17},
    *   {a: 8, b: 18}]).batch(4);
    * await c.forEach(e => {
-   *  for(var key in e) {
-   *    console.log(key+':');
-   *    e[key].print();
-   *  }
+   *   console.log('{');
+   *   for(var key in e) {
+   *     console.log(key+':');
+   *     e[key].print();
+   *   }
+   *   console.log('}');
    * })
    * ```
    *
