@@ -78,7 +78,8 @@ import {CSVConfig} from './types';
  *
  * @param source URL to fetch CSV file.
  * @param csvConfig (Optional) A CSVConfig object that contains configurations
- *     of reading and decoding from CSV file(s). A CSVConfig may contain these fields:
+ *     of reading and decoding from CSV file(s). A CSVConfig may contain these
+ *     fields:
  *
  *   - hasHeader: (Optional) A boolean value that indicates whether the first
  *     row of provided CSV file is a header line with column names, and should
