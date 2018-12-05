@@ -403,7 +403,7 @@ export function array<T extends DataElement>(items: T[]): Dataset<T> {
  * const ds1 = tf.data.array([{a: 1}, {a: 2}, {a: 3}]);
  * const ds2 = tf.data.array([{b: 4}, {b: 5}, {b: 6}]);
  * const ds3 = tf.data.zip([ds1, ds2]);
- * await ds3.forEach(e => console.log(e));
+ * await ds3.forEach(e => console.log(e[0], e[1]));
  *
  * // If the goal is to merge the dicts in order to produce elements like
  * // {a: ..., b: ...}, this requires a second step such as:
