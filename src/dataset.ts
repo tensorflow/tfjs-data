@@ -421,6 +421,7 @@ export function array<T extends DataElement>(items: T[]): Dataset<T> {
  *
  * // If the goal is to merge the dicts in order to produce elements like
  * // {a: ..., b: ...}, this requires a second step such as:
+ * console.log('Merge the objects:');
  * const ds4 = ds3.map(x => {return {a: x[0].a, b: x[1].b}});
  * await ds4.forEach(e => console.log(e));
  * ```
