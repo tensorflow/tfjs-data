@@ -46,8 +46,8 @@ import {deepMapAndAwaitAll, DeepMapResult, isIterable, isNumericArray} from './u
  *
  * A `Dataset` is typically processed as a stream of unbatched examples --i.e.,
  * its transformations are applied one example at a time. Batching produces a
- * new Dataset where each element is a batch. Batching should usually come last
- * in a pipeline, because data transformations are easier to express on a
+ * new `Dataset` where each element is a batch. Batching should usually come
+ * last in a pipeline, because data transformations are easier to express on a
  * per-example basis than on a per-batch basis.
  *
  * The following code examples are calling `await dataset.forEach(...)` to
@@ -75,7 +75,8 @@ export abstract class Dataset<T extends DataElement> {
    * Filters this dataset according to `predicate`.
    *
    * ```js
-   * const a = tf.data.array([1, 2, 3]).filter(x => x%2 === 0);
+   * const a = tf.data.array([1, 2, 3, 4, 5, 6, 7, 8, 9, 10])
+   *   .filter(x => x%2 === 0);
    * await a.forEach(e => console.log(e));
    * ```
    *
@@ -138,8 +139,8 @@ export abstract class Dataset<T extends DataElement> {
    * form.
    *
    * It is assumed that each of the incoming dataset elements has the same
-   * set of keys.  For each key, the resulting Dataset provides a batched
-   * Element collecting all of the incoming values for that key.  Incoming
+   * set of keys.  For each key, the resulting `Dataset` provides a batched
+   * element collecting all of the incoming values for that key.  Incoming
    * strings are grouped into a string[].  Incoming Tensors are grouped into a
    * new Tensor where the 0'th axis is the batch dimension.  These columnar
    * representations for each key can be zipped together to reconstruct the
@@ -152,9 +153,10 @@ export abstract class Dataset<T extends DataElement> {
    * const b = tf.data.array([[1], [2], [3], [4], [5], [6], [7], [8]]).batch(4);
    * await b.forEach(e => e.print());
    *
-   * const c = tf.data.array([{num: 1}, {num: 2}, {num: 3}, {num: 4}, {num: 5},
-   *   {num: 6}, {num: 7}, {num: 8}]).batch(4);
-   * await c.forEach(e => e['num'].print());
+   * const c = tf.data.array([{a: 1, b: 11}, {a: 2, b: 12}, {a: 3, b: 13},
+   *   {a: 4, b: 14}, {a: 5, b: 15}, {a: 6, b: 16}, {a: 7, b: 17},
+   *   {a: 8, b: 18}]).batch(4);
+   * await c.forEach(e => e['a'].print());
    * ```
    *
    * @param batchSize The number of elements desired per batch.
@@ -203,7 +205,7 @@ export abstract class Dataset<T extends DataElement> {
    * await a.forEach(e => console.log(e));
    * ```
    *
-   * @param count: (Optional.) An integer, representing the number of times
+   * @param count: (Optional) An integer, representing the number of times
    *   the dataset should be repeated. The default behavior (if `count` is
    *   `undefined` or negative) is for the dataset be repeated indefinitely.
    * @returns A `Dataset`.
@@ -265,7 +267,8 @@ export abstract class Dataset<T extends DataElement> {
   // TODO(soergel): deep sharded shuffle, where supported
 
   /**
-   * Randomly shuffles the elements of this dataset.
+   * Pseudorandomly shuffles the elements of this dataset. This is done in a
+   * streaming manner, by sampling from a given number of prefetched elements.
    *
    * ```js
    * const a = tf.data.array([1, 2, 3, 4, 5, 6]).shuffle(3);
@@ -274,12 +277,12 @@ export abstract class Dataset<T extends DataElement> {
    *
    * @param bufferSize: An integer specifying the number of elements from this
    *   dataset from which the new dataset will sample.
-   * @param seed: (Optional.) An integer specifying the random seed that will
+   * @param seed: (Optional) An integer specifying the random seed that will
    *   be used to create the distribution.
-   * @param reshuffleEachIteration: (Optional.) A boolean, which if true
+   * @param reshuffleEachIteration: (Optional) A boolean, which if true
    *   indicates that the dataset should be pseudorandomly reshuffled each time
-   *   it is iterated over. (Defaults to `true`.) If false, elements will be
-   *   returned in the same shuffled order on each iteration
+   *   it is iterated over. If false, elements will be returned in the same
+   *   shuffled order on each iteration. (Defaults to `true`.)
    * @returns A `Dataset`.
    */
   /** @doc {heading: 'Data', subheading: 'Classes'} */
@@ -297,7 +300,7 @@ export abstract class Dataset<T extends DataElement> {
   }
 
   /**
-   *  Creates a `Dataset` that prefetches elements from this Dataset.
+   *  Creates a `Dataset` that prefetches elements from this dataset.
    *
    * @param bufferSize: An integer specifying the number of elements to be
    *   prefetched.
@@ -370,9 +373,11 @@ export function datasetFromIteratorFn<T extends DataElement>(
  * Create a `Dataset` from an array of elements.
  *
  * ```js
+ * console.log('Create a Dataset from an array of objects:');
  * const a = tf.data.array([{'item': 1}, {'item': 2}, {'item': 3}]);
  * await a.forEach(e => console.log(e));
  *
+ * console.log('Create a Dataset from an array of numbers:');
  * const b = tf.data.array([4, 5, 6]);
  * await b.forEach(e => console.log(e));
  * ```
@@ -390,7 +395,7 @@ export function array<T extends DataElement>(items: T[]): Dataset<T> {
  * they correspond.
  *
  * The number of elements in the resulting dataset is the same as the size of
- * the smallest dataset in `datasets`.
+ * the smallest dataset in datasets.
  *
  * The nested structure of the `datasets` argument determines the
  * structure of elements in the resulting iterator.
@@ -400,10 +405,11 @@ export function array<T extends DataElement>(items: T[]): Dataset<T> {
  * of two dicts:
  *
  * ```js
+ * console.log('Zip two datasets of objects:');
  * const ds1 = tf.data.array([{a: 1}, {a: 2}, {a: 3}]);
  * const ds2 = tf.data.array([{b: 4}, {b: 5}, {b: 6}]);
  * const ds3 = tf.data.zip([ds1, ds2]);
- * await ds3.forEach(e => console.log(e[0], e[1]));
+ * await ds3.forEach(e => console.log(JSON.stringify(e)));
  *
  * // If the goal is to merge the dicts in order to produce elements like
  * // {a: ..., b: ...}, this requires a second step such as:

@@ -128,7 +128,8 @@ export function iteratorFromZipped<O extends DataElement>(
  * An asynchronous iterator, providing lazy access to a potentially
  * unbounded stream of elements.
  *
- * Iterator can be get from a dataset: `const iter = await dataset.iterator();`
+ * Iterator can be obtained from a dataset:
+ * `const iter = await dataset.iterator();`
  */
 export abstract class LazyIterator<T> {
   // This class implements AsyncIterator<T>, but we have not yet set the
