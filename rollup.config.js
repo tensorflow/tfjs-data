@@ -84,7 +84,6 @@ function config({plugins = [], output = {}, external = []}) {
 
 export default [
   config({
-    node: true,
     output: {
       format: 'cjs', // For Node only
       name: 'tf.data',
