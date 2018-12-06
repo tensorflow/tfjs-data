@@ -17,7 +17,6 @@
  */
 
 import {ENV} from '@tensorflow/tfjs-core';
-import {default as nodeFetch} from 'node-fetch';
 import {FileChunkIterator, FileChunkIteratorOptions} from './file_chunk_iterator';
 
 /**
@@ -29,16 +28,7 @@ import {FileChunkIterator, FileChunkIteratorOptions} from './file_chunk_iterator
  */
 export async function urlChunkIterator(
     url: RequestInfo, options: FileChunkIteratorOptions = {}) {
-  let response;
-  if (ENV.get('IS_BROWSER')) {
-    response = await fetch(url);
-    if (response.ok) {
-      const blob = await response.blob();
-      return new FileChunkIterator(blob, options);
-    } else {
-      throw new Error(response.statusText);
-    }
-  } else {
+  if (!ENV.get('IS_BROWSER')) {
     // TODO(kangyizhang): Provide argument for users to use http.request with
     // headers in node.
     if (typeof url !== 'string') {
@@ -46,12 +36,12 @@ export async function urlChunkIterator(
           'URL must be a string. Request objects are not supported ' +
           'in the node.js environment yet.');
     }
-    response = await nodeFetch(url);
-    if (response.ok) {
-      const unitArray = await response.buffer();
-      return new FileChunkIterator(unitArray, options);
-    } else {
-      throw new Error(response.statusText);
-    }
+  }
+  const response = await fetch(url);
+  if (response.ok) {
+    const blob = await response.blob();
+    return new FileChunkIterator(blob, options);
+  } else {
+    throw new Error(response.statusText);
   }
 }
