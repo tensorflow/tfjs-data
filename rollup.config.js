@@ -19,6 +19,7 @@ import commonjs from 'rollup-plugin-commonjs';
 import node from 'rollup-plugin-node-resolve';
 import typescript from 'rollup-plugin-typescript2';
 import uglify from 'rollup-plugin-uglify';
+import ignore from 'rollup-plugin-ignore';
 
 const PREAMBLE = `/**
  * @license
@@ -46,6 +47,7 @@ function config({plugins = [], output = {}, external = []}) {
     input: 'src/index.ts',
     plugins: [
       typescript({tsconfigOverride: {compilerOptions: {module: 'ES2015'}}}),
+      ...(output.format === 'cjs' ? [] : [ignore(['node-fetch'])]),
       node(),
       // Polyfill require() from dependencies.
       commonjs({
@@ -69,7 +71,7 @@ function config({plugins = [], output = {}, external = []}) {
     },
     external: [
       // node-fetch is only used in node. Browsers have native "fetch".
-      'node-fetch',
+      ...(output.format === 'cjs' ? ['node-fetch'] : []),
       'crypto',
       '@tensorflow/tfjs-core',
       ...external,
@@ -82,8 +84,9 @@ function config({plugins = [], output = {}, external = []}) {
 
 export default [
   config({
+    node: true,
     output: {
-      format: 'umd',
+      format: 'cjs', // For Node only
       name: 'tf.data',
       extend: true,
       file: 'dist/tf-data.js'
@@ -100,6 +103,9 @@ export default [
   }),
   config({
     plugins: [minify()],
-    output: {format: 'es', file: 'dist/tf-data.esm.js'}
+    output: {
+      format: 'es',
+      file: 'dist/tf-data.esm.js'
+    }
   })
 ];
