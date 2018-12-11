@@ -16,10 +16,11 @@
  * =============================================================================
  */
 
+import {ENV} from '@tensorflow/tfjs-core';
 import * as utf8 from 'utf8';
-
 import {LazyIterator, OneToManyIterator} from './lazy_iterator';
 import {StringIterator} from './string_iterator';
+
 
 export abstract class ByteChunkIterator extends LazyIterator<Uint8Array> {
   /**
@@ -125,9 +126,16 @@ class Utf8IteratorImpl extends OneToManyIterator<string> {
       okUpToIndex = nextIndex;
     }
 
-    // decode most of the chunk without copying it first
-    const bulk: string = utf8.decode(String.fromCharCode.apply(
-        null, chunk.slice(partialBytesRemaining, okUpToIndex)));
+    let bulk: string;
+    if (ENV.get('IS_BROWSER')) {
+      bulk = new TextDecoder('utf-8').decode(
+      chunk.slice(partialBytesRemaining, okUpToIndex));
+    } else {
+      // tslint:disable-next-line:no-require-imports
+      const { StringDecoder } = require('string_decoder');
+      const decoder = new StringDecoder('utf8');
+      bulk = decoder.write(chunk.slice(partialBytesRemaining, okUpToIndex));
+    }
 
     if (partialBytesRemaining > 0) {
       // Reassemble the split character
