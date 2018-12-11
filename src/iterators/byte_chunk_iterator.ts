@@ -21,7 +21,6 @@ import * as utf8 from 'utf8';
 import {LazyIterator, OneToManyIterator} from './lazy_iterator';
 import {StringIterator} from './string_iterator';
 
-
 export abstract class ByteChunkIterator extends LazyIterator<Uint8Array> {
   /**
    * Decode a stream of UTF8-encoded byte arrays to a stream of strings.
