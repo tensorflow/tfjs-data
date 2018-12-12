@@ -519,11 +519,19 @@ function deepBatchConcat(rows: any[]): DeepMapResult {
  */
 function batchConcat<T extends(number | number[] | tf.Tensor)>(arrays: T[]):
     tf.Tensor {
+  if (arrays.length === 0) {
+    // We can't return an empty Tensor because we don't know the element shape.
+    throw new Error('Can\'t make a batch of zero elements.');
+  }
+
   if (arrays[0] instanceof tf.Tensor) {
+    // Input is an array of Tensors
     return tf.stack(arrays as tf.Tensor[]);
   } else if (Array.isArray(arrays[0])) {
+    // Input is an array of arrays of numbers
     return batchConcatArrays(arrays as number[][]);
   } else {
+    // Input is a simple array of numbers
     const numbers = arrays as number[];
     return tf.Tensor.make(
         [numbers.length], {values: new Float32Array(numbers)});
@@ -531,20 +539,20 @@ function batchConcat<T extends(number | number[] | tf.Tensor)>(arrays: T[]):
 }
 
 function batchConcatArrays(arrays: number[][]) {
-  // Should we first make row Tensors and then use tf.stack here too?
+  // Should we first make row Tensors and then use tf.stack() here too?
   // Probably not: the extra Tensor allocations would outweigh any benefit.
 
   const rowLength = arrays[0].length;
   const batchShape = [arrays.length, arrays[0].length];
-  const resultVals = new Float32Array(arrays.length * rowLength);
+  const values = new Float32Array(arrays.length * rowLength);
 
   let offset = 0;
   for (const a of arrays) {
     if (a.length !== rowLength) {
       throw new Error('Elements must have the same shape to be batched');
     }
-    resultVals.set(a, offset);
+    values.set(a, offset);
     offset += rowLength;
   }
-  return tf.Tensor.make(batchShape, {values: resultVals});
+  return tf.Tensor.make(batchShape, {values});
 }
