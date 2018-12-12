@@ -17,9 +17,7 @@
  */
 
 import {ENV} from '@tensorflow/tfjs-core';
-
 import {FileDataSource} from '../sources/file_data_source';
-
 import {CSVDataset} from './csv_dataset';
 
 const csvString = `ab,cd,ef
@@ -99,6 +97,8 @@ describe('CSVDataset', () => {
 
        const iter = await dataset.iterator();
        const result = await iter.collect();
+
+       console.log(result);
 
        expect(result).toEqual([
          {'foo': 'ab', 'bar': 'cd', 'baz': 'ef'},
