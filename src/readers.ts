@@ -67,7 +67,7 @@ import {CSVConfig} from './types';
  *     epochs: 10,
  *     callbacks: {
  *       onEpochEnd: async (epoch, logs) => {
- *         console.log(epoch);
+ *         console.log(epoch + ':' + logs.loss);
  *       }
  *     }
  *   });
@@ -79,28 +79,13 @@ import {CSVConfig} from './types';
  * @param source URL to fetch CSV file.
  * @param csvConfig (Optional) A CSVConfig object that contains configurations
  *     of reading and decoding from CSV file(s).
- *
- *     hasHeader: (Optional) A boolean value that indicates whether the first
- *     row of provided CSV file is a header line with column names, and should
- *     not be included in the data. Defaults to `true`.
- *
- *     columnNames: (Optional) A list of strings that corresponds to
- *     the CSV column names, in order. If provided, it ignores the column names
- *     inferred from the header row. If not provided, infers the column names
- *     from the first row of the records. If `hasHeader` is false and
- *     `columnNames` is not provided, this method will throw an error.
- *
- *     columnConfigs: (Optional) A dictionary whose key is column names, value
- *     is an object stating if this column is required, column's data type,
- *     default value, and if this column is label. If provided, keys must
- *     correspond to names provided in `columnNames` or inferred from the file
- *     header lines.
- *
- *     configuredColumnsOnly (Optional) If true, only columns provided in
- *     `columnConfigs` will be parsed and provided during iteration.
- *
- *     delimiter (Optional) The string used to parse each line of the input
- *     file. Defaults to `,`.
+ */
+/** @doc {
+ *   heading: 'Data',
+ *   subheading: 'Creation',
+ *   namespace: 'data',
+ *   configParamIndices: [1]
+ *  }
  */
 export function csv(source: string, csvConfig: CSVConfig = {}): CSVDataset {
   return new CSVDataset(new URLDataSource(source), csvConfig);
