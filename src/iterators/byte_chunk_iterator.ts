@@ -127,11 +127,9 @@ class Utf8IteratorImpl extends OneToManyIterator<string> {
 
     let bulk: string;
     if (ENV.get('IS_BROWSER')) {
-      console.log('::::::::::::is browser::::::::::::', ENV.get('IS_BROWSER'));
       bulk = new TextDecoder('utf-8').decode(
       chunk.slice(partialBytesRemaining, okUpToIndex));
     } else {
-      console.log('::::::::::::is node::::::::::::', ENV.get('IS_NODE'));
       // tslint:disable-next-line:no-require-imports
       const { StringDecoder } = require('string_decoder');
       const decoder = new StringDecoder('utf8');
