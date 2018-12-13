@@ -33,7 +33,9 @@ const csvStringWithHeaders = `foo,bar,baz
 
 const csvData =
   ENV.get('IS_BROWSER') ? new Blob([csvString]) :
-    Buffer.from(csvString, 'utf8');
+    Buffer.from(csvString, 'ascii');
+
+    console.log(csvData);
 
 const csvDataWithHeaders = ENV.get('IS_BROWSER') ?
   new Blob([csvStringWithHeaders]) :
@@ -88,7 +90,7 @@ const csvDataWithQuote = ENV.get('IS_BROWSER') ?
   new Blob([csvWithQuote]) : Buffer.from(csvWithQuote, 'utf8');
 
 describe('CSVDataset', () => {
-  it('produces a stream of dicts containing UTF8-decoded csv data',
+  fit('produces a stream of dicts containing UTF8-decoded csv data',
     async () => {
       const source = new FileDataSource(csvData, {chunkSize: 10});
       const dataset = new CSVDataset(
