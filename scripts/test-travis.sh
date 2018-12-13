@@ -25,5 +25,5 @@ fi
 # Regular testing.
 yarn build
 yarn lint
-yarn test-node
 yarn test-travis
+yarn test-node
