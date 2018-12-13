@@ -13,3 +13,7 @@ Following is a list of major upcoming features. For details please see the [issu
 ## v0.3.0
 1. Support decoding/resizing image data [tracking issue](https://github.com/tensorflow/tfjs-data/issues/110)
 2. Statistics API for `Dataset`
+
+## Future
+1. Support HTTP request with headers for `UrlDataSource` [tracking issue](https://github.com/tensorflow/tfjs-data/issues/57)
+
