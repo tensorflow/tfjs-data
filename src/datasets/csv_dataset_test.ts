@@ -35,8 +35,6 @@ const csvData =
   ENV.get('IS_BROWSER') ? new Blob([csvString]) :
     Buffer.from(csvString);
 
-console.log(csvData);
-
 const csvDataWithHeaders = ENV.get('IS_BROWSER') ?
   new Blob([csvStringWithHeaders]) :
   Buffer.from(csvStringWithHeaders);
