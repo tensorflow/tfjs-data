@@ -19,11 +19,11 @@
 import * as tf from '@tensorflow/tfjs-core';
 import {getTensorsInContainer, isTensorInList} from '@tensorflow/tfjs-core/dist/tensor_util';
 import * as seedrandom from 'seedrandom';
-
 import {DataElement, IteratorContainer} from '../types';
 import {deepMapAndAwaitAll, DeepMapAsyncResult, DeepMapResult, deepZip, zipToList} from '../util/deep_map';
 import {GrowingRingBuffer} from '../util/growing_ring_buffer';
 import {RingBuffer} from '../util/ring_buffer';
+
 
 // Here we implement a simple asynchronous iterator.
 // This lets us avoid using either third-party stream libraries or
@@ -80,6 +80,14 @@ export function iteratorFromConcatenated<T>(
  *
  *   LazyIterator.ofConcatenatedFunction(() => new MyIterator(), 6);
  *
+ * ```js
+ * let i = -1;
+ * const func = () =>
+ *    ++i < 5 ? {value: i, done: false} : {value: null, done: true};
+ * const iter = tf.data.iteratorFromFunction(func);
+ * await iter.forEach(e => console.log(e));
+ * ```
+ *
  * @param iteratorFunc: A function that produces a new stream on each call.
  * @param count: The number of times to call the function.
  * @param baseErrorHandler An optional function that can intercept `Error`s
@@ -87,6 +95,7 @@ export function iteratorFromConcatenated<T>(
  *   whether the error should be propagated, whether the error should be
  *   ignored, or whether the base stream should be terminated.
  */
+/** @doc {heading: 'Data', subheading: 'Creation', namespace: 'data'} */
 export function iteratorFromConcatenatedFunction<T>(
     iteratorFunc: () => IteratorResult<LazyIterator<T>>, count: number,
     baseErrorHandler?: (e: Error) => boolean): LazyIterator<T> {
