@@ -132,7 +132,7 @@ class Utf8IteratorImpl extends OneToManyIterator<string> {
       // tslint:disable-next-line:no-require-imports
       const { StringDecoder } = require('string_decoder');
       const decoder = new StringDecoder('utf8');
-      bulk = decoder.write(chunk.slice(partialBytesRemaining, okUpToIndex));
+      bulk = decoder.end(chunk.slice(partialBytesRemaining, okUpToIndex));
     }
 
     if (partialBytesRemaining > 0) {
@@ -149,7 +149,7 @@ class Utf8IteratorImpl extends OneToManyIterator<string> {
         // tslint:disable-next-line:no-require-imports
         const { StringDecoder } = require('string_decoder');
         const decoder = new StringDecoder('utf8');
-        reassembled = decoder.write(this.partial);
+        reassembled = decoder.end(this.partial);
       }
 
       this.outputQueue.push(reassembled + bulk);

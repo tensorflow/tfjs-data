@@ -33,13 +33,13 @@ const csvStringWithHeaders = `foo,bar,baz
 
 const csvData =
   ENV.get('IS_BROWSER') ? new Blob([csvString]) :
-    Buffer.from(csvString, 'ascii');
+    Buffer.from(csvString);
 
 console.log(csvData);
 
 const csvDataWithHeaders = ENV.get('IS_BROWSER') ?
   new Blob([csvStringWithHeaders]) :
-  Buffer.from(csvStringWithHeaders, 'utf8');
+  Buffer.from(csvStringWithHeaders);
 
 const csvDataExtra = `A,B,C
 1,2,3
@@ -80,20 +80,18 @@ const csvWithQuote = `A,B,C
 
 const csvDataWithHeadersExtra = ENV.get('IS_BROWSER') ?
   new Blob([csvDataExtra]) :
-  Buffer.from(csvDataExtra, 'utf8');
+  Buffer.from(csvDataExtra);
 const csvDataWithSemicolon = ENV.get('IS_BROWSER') ?
   new Blob([csvDataSemicolon]) :
-  Buffer.from(csvDataSemicolon, 'utf8');
+  Buffer.from(csvDataSemicolon);
 const csvDataWithMixedType = ENV.get('IS_BROWSER') ?
-  new Blob([csvMixedType]) : Buffer.from(csvMixedType, 'utf8');
+  new Blob([csvMixedType]) : Buffer.from(csvMixedType);
 const csvDataWithQuote = ENV.get('IS_BROWSER') ?
-  new Blob([csvWithQuote]) : Buffer.from(csvWithQuote, 'utf8');
+  new Blob([csvWithQuote]) : Buffer.from(csvWithQuote);
 
 describe('CSVDataset', () => {
   it('produces a stream of dicts containing UTF8-decoded csv data',
     async () => {
-      console.log('11111', csvData);
-      console.log('22222', Buffer.from(csvString, 'utf8'));
       const source = new FileDataSource(csvData, {chunkSize: 10});
       const dataset = new CSVDataset(
         source, {hasHeader: false, columnNames: ['foo', 'bar', 'baz']});
@@ -387,7 +385,7 @@ describe('CSVDataset', () => {
     ` + csvString;
       const csvDataWithDuplicateColumnNames = ENV.get('IS_BROWSER') ?
         new Blob([csvStringWithDuplicateColumnNames]) :
-        Buffer.from(csvStringWithDuplicateColumnNames, 'utf8');
+        Buffer.from(csvStringWithDuplicateColumnNames);
       const source =
         new FileDataSource(csvDataWithDuplicateColumnNames, {chunkSize: 10});
       const dataset = new CSVDataset(source);
