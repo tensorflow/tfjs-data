@@ -98,8 +98,6 @@ describe('CSVDataset', () => {
        const iter = await dataset.iterator();
        const result = await iter.collect();
 
-       console.log(result);
-
        expect(result).toEqual([
          {'foo': 'ab', 'bar': 'cd', 'baz': 'ef'},
          {'foo': 'ghi', 'bar': undefined, 'baz': 'jkl'},

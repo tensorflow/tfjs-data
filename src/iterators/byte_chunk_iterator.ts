@@ -17,7 +17,6 @@
  */
 
 import {ENV} from '@tensorflow/tfjs-core';
-import * as utf8 from 'utf8';
 import {LazyIterator, OneToManyIterator} from './lazy_iterator';
 import {StringIterator} from './string_iterator';
 
@@ -128,21 +127,30 @@ class Utf8IteratorImpl extends OneToManyIterator<string> {
     let bulk: string;
     if (ENV.get('IS_BROWSER')) {
       bulk = new TextDecoder('utf-8').decode(
-      chunk.slice(partialBytesRemaining, okUpToIndex));
+        chunk.slice(partialBytesRemaining, okUpToIndex));
     } else {
       // tslint:disable-next-line:no-require-imports
-      const { StringDecoder } = require('string_decoder');
+      const {StringDecoder} = require('string_decoder');
       const decoder = new StringDecoder('utf8');
-      bulk = decoder.write(chunk.slice(partialBytesRemaining, okUpToIndex));
+      bulk = decoder.end(chunk.slice(partialBytesRemaining, okUpToIndex));
     }
 
     if (partialBytesRemaining > 0) {
       // Reassemble the split character
       this.partial.set(
-          chunk.slice(0, partialBytesRemaining), this.partialBytesValid);
+        chunk.slice(0, partialBytesRemaining), this.partialBytesValid);
       // Too bad about the string concat.
-      const reassembled: string =
-          utf8.decode(String.fromCharCode.apply(null, this.partial));
+      let reassembled: string;
+
+      if (ENV.get('IS_BROWSER')) {
+        reassembled = new TextDecoder('utf-8').decode(this.partial);
+      } else {
+        // tslint:disable-next-line:no-require-imports
+        const {StringDecoder} = require('string_decoder');
+        const decoder = new StringDecoder('utf8');
+        reassembled = decoder.end(this.partial);
+      }
+
       this.outputQueue.push(reassembled + bulk);
     } else {
       this.outputQueue.push(bulk);
