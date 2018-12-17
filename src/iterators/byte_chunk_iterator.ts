@@ -27,7 +27,7 @@ if (ENV.get('IS_BROWSER')) {
 } else {
   // tslint:disable-next-line:no-require-imports
   const { StringDecoder } = require('string_decoder');
-  decoder = new StringDecoder('utf8');
+  decoder = new StringDecoder('ascii');
 }
 
 export abstract class ByteChunkIterator extends LazyIterator<Uint8Array> {
@@ -136,24 +136,11 @@ class Utf8IteratorImpl extends OneToManyIterator<string> {
 
     let bulk: string;
     if (ENV.get('IS_BROWSER')) {
-      // tslint:disable-next-line:no-require-imports
-      const StringDecoder = require('string_decoder').StringDecoder;
-      const d = new StringDecoder('utf8');
-      const b = Buffer.from('abc');
-
-      console.log(b); //write buffer
-      console.log(d.write(b)); // write decoded buffer;
-
       bulk = decoder.decode(
       chunk.slice(partialBytesRemaining, okUpToIndex));
     } else {
-      const a = chunk.slice(partialBytesRemaining, okUpToIndex);
-      console.log(a);
       bulk = decoder
-        .end(a);
-        console.log(bulk);
-      // bulk = decoder
-      //   .end(chunk.slice(partialBytesRemaining, okUpToIndex));
+        .end(Buffer.from(chunk.slice(partialBytesRemaining, okUpToIndex)));
     }
 
     if (partialBytesRemaining > 0) {
@@ -167,7 +154,7 @@ class Utf8IteratorImpl extends OneToManyIterator<string> {
         reassembled = decoder.decode(
         this.partial);
       } else {
-        reassembled = decoder.end(this.partial);
+        reassembled = decoder.write(this.partial);
       }
 
       this.outputQueue.push(reassembled + bulk);
