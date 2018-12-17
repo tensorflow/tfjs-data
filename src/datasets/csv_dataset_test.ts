@@ -88,7 +88,7 @@ const csvDataWithQuote = ENV.get('IS_BROWSER') ?
   new Blob([csvWithQuote]) : Buffer.from(csvWithQuote);
 
 describe('CSVDataset', () => {
-  it('produces a stream of dicts containing UTF8-decoded csv data',
+  fit('produces a stream of dicts containing UTF8-decoded csv data',
     async () => {
       const source = new FileDataSource(csvData, {chunkSize: 10});
       const dataset = new CSVDataset(

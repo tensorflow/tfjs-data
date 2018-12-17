@@ -136,11 +136,16 @@ class Utf8IteratorImpl extends OneToManyIterator<string> {
 
     let bulk: string;
     if (ENV.get('IS_BROWSER')) {
-      bulk = (decoder as TextDecoder).decode(
+      bulk = decoder.decode(
       chunk.slice(partialBytesRemaining, okUpToIndex));
     } else {
+      const a = chunk.slice(partialBytesRemaining, okUpToIndex);
+      console.log(a);
       bulk = decoder
-        .end(chunk.slice(partialBytesRemaining, okUpToIndex));
+        .end(a);
+        console.log(bulk);
+      // bulk = decoder
+      //   .end(chunk.slice(partialBytesRemaining, okUpToIndex));
     }
 
     if (partialBytesRemaining > 0) {
@@ -151,7 +156,7 @@ class Utf8IteratorImpl extends OneToManyIterator<string> {
       let reassembled: string;
 
       if (ENV.get('IS_BROWSER')) {
-        reassembled = (decoder as TextDecoder).decode(
+        reassembled = decoder.decode(
         this.partial);
       } else {
         reassembled = decoder.end(this.partial);
