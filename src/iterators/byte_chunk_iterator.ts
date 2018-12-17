@@ -20,6 +20,16 @@ import {ENV} from '@tensorflow/tfjs-core';
 import {LazyIterator, OneToManyIterator} from './lazy_iterator';
 import {StringIterator} from './string_iterator';
 
+// tslint:disable-next-line:no-any
+let decoder:any;
+if (ENV.get('IS_BROWSER')) {
+  decoder = new TextDecoder('utf-8');
+} else {
+  // tslint:disable-next-line:no-require-imports
+  const { StringDecoder } = require('string_decoder');
+  decoder = new StringDecoder('utf8');
+}
+
 export abstract class ByteChunkIterator extends LazyIterator<Uint8Array> {
   /**
    * Decode a stream of UTF8-encoded byte arrays to a stream of strings.
@@ -126,13 +136,11 @@ class Utf8IteratorImpl extends OneToManyIterator<string> {
 
     let bulk: string;
     if (ENV.get('IS_BROWSER')) {
-      bulk = new TextDecoder('utf-8').decode(
+      bulk = (decoder as TextDecoder).decode(
       chunk.slice(partialBytesRemaining, okUpToIndex));
     } else {
-      // tslint:disable-next-line:no-require-imports
-      const { StringDecoder } = require('string_decoder');
-      const decoder = new StringDecoder('utf8');
-      bulk = decoder.end(chunk.slice(partialBytesRemaining, okUpToIndex));
+      bulk = decoder
+        .end(chunk.slice(partialBytesRemaining, okUpToIndex));
     }
 
     if (partialBytesRemaining > 0) {
@@ -143,12 +151,9 @@ class Utf8IteratorImpl extends OneToManyIterator<string> {
       let reassembled: string;
 
       if (ENV.get('IS_BROWSER')) {
-        reassembled = new TextDecoder('utf-8').decode(
+        reassembled = (decoder as TextDecoder).decode(
         this.partial);
       } else {
-        // tslint:disable-next-line:no-require-imports
-        const { StringDecoder } = require('string_decoder');
-        const decoder = new StringDecoder('utf8');
         reassembled = decoder.end(this.partial);
       }
 
