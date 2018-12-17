@@ -1,9 +1,8 @@
 # TensorFlow.js Data Roadmap
 
-**This repo is under active development and is not production-ready. We are
-actively developing as an open source project.**
+**This repo is under active development as an open source project.**
 
-Following is a list of major upcoming features. For details please see the [issue list](https://github.com/tensorflow/tfjs-data/issues).
+Following is a list of major upcoming features. For details please see the [issue list](https://github.com/tensorflow/tfjs/issues).
 
 ## v0.2.0
 1. Add/Update API to load local file as stream in Node.js env [tracking issue](https://github.com/tensorflow/tfjs/issues/1008)
