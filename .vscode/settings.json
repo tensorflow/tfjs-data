@@ -1,32 +1,29 @@
 {
-  "editor.rulers": [80],
-  "editor.detectIndentation": false,
-  "editor.tabSize": 2,
-  "files.insertFinalNewline": true,
+  "search.exclude": {
+    "**/node_modules": true,
+    "**/bower_components": true,
+    "coverage/": true,
+    "dist/": true,
+    "**/bundle.js": true,
+    "**/yarn.lock": true
+  },
+  "tslint.enable": true,
+  "tslint.run": "onType",
+  "tslint.configFile": "tslint.json",
   "files.trimTrailingWhitespace": true,
-  "update.channel": "none",
-
-  "typescript.tsdk": "/google/src/head/depot/google3/third_party/javascript/node_modules/typescript/stable/lib",
-  "typescript.format.insertSpaceAfterOpeningAndBeforeClosingNonemptyBraces": false,
+  "editor.tabSize": 2,
+  "editor.insertSpaces": true,
   "[typescript]": {
-    "editor.formatOnSave": true,
-    "editor.codeActionsOnSave": {
-      "source.organizeImports": true
-    }
-  },
-  "tslint.configFile": "/google/data/ro/teams/typescript/tslint/node_modules/google.tslint.json",
-  "tslint.nodePath": "/google/data/ro/teams/typescript/tslint/node_modules",
-
-  "clang-format.fallbackStyle": "google",
-  "python.linting.pylintPath": "/usr/bin/gpylint",
-
-  "files.associations": {
-    "BUILD": "bazel",
-    "METADATA": "bazel",
-    "WORKSPACE": "bazel",
-    "*.gss": "css"
-  },
-  "[bazel]": {
     "editor.formatOnSave": true
-  }
+  },
+  "[javascript]": {
+    "editor.formatOnSave": true
+  },
+  "editor.rulers": [80],
+  "clang-format.style": "Google",
+  "files.insertFinalNewline": true,
+  "editor.detectIndentation": false,
+  "editor.wrappingIndent": "none",
+  "typescript.tsdk": "./node_modules/typescript/lib",
+  "clang-format.executable": "${workspaceRoot}/node_modules/.bin/clang-format"
 }
