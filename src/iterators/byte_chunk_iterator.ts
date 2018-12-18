@@ -121,12 +121,9 @@ class Utf8IteratorImpl extends OneToManyIterator<string> {
       bulk = decoder.decode(
       chunk, {stream:true});
     } else {
-      // console.log(chunk);
       const b = Buffer.from(chunk.buffer);
-      // console.log(b);
       bulk = decoder
-        .end(b);
-      // console.log(bulk);
+        .write(b);
     }
     this.outputQueue.push(bulk);
     return true;
