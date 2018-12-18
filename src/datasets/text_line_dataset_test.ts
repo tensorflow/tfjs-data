@@ -29,7 +29,7 @@ const testBlob = ENV.get('IS_BROWSER') ? new Blob([runes]) :
 Buffer.from(runes);
 
 describe('TextLineDataset', () => {
-  fit('Produces a stream of strings containing UTF8-decoded text lines',
+  it('Produces a stream of strings containing UTF8-decoded text lines',
      async () => {
        const source = new FileDataSource(testBlob, {chunkSize: 10});
        const dataset = new TextLineDataset(source);
