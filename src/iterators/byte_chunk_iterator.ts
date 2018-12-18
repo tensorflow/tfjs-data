@@ -27,7 +27,7 @@ if (ENV.get('IS_BROWSER')) {
 } else {
   // tslint:disable-next-line:no-require-imports
   const { StringDecoder } = require('string_decoder');
-  decoder = new StringDecoder('ascii');
+  decoder = new StringDecoder('utf8');
 }
 
 export abstract class ByteChunkIterator extends LazyIterator<Uint8Array> {
@@ -96,7 +96,7 @@ class Utf8Iterator extends StringIterator {
  */
 class Utf8IteratorImpl extends OneToManyIterator<string> {
   // An array of the full required width of the split character, if any.
-  partial: Uint8Array = new Uint8Array([]);
+  // partial: Uint8Array = new Uint8Array([]);
   // The number of bytes of that array that are populated so far.
   partialBytesValid = 0;
 
@@ -111,83 +111,23 @@ class Utf8IteratorImpl extends OneToManyIterator<string> {
     const chunkResult = await this.upstream.next();
     let chunk;
     if (chunkResult.done) {
-      if (this.partial.length === 0) {
         return false;
-      }
-      // Pretend that the pump succeeded in order to emit the small last batch.
-      // The next pump() call will actually fail.
-      chunk = new Uint8Array([]);
     } else {
       chunk = chunkResult.value;
-    }
-    const partialBytesRemaining = this.partial.length - this.partialBytesValid;
-    let nextIndex = partialBytesRemaining;
-    let okUpToIndex = nextIndex;
-    let splitUtfWidth = 0;
-
-    while (nextIndex < chunk.length) {
-      okUpToIndex = nextIndex;
-      splitUtfWidth = utfWidth(chunk[nextIndex]);
-      nextIndex = okUpToIndex + splitUtfWidth;
-    }
-    if (nextIndex === chunk.length) {
-      okUpToIndex = nextIndex;
     }
 
     let bulk: string;
     if (ENV.get('IS_BROWSER')) {
       bulk = decoder.decode(
-      chunk.slice(partialBytesRemaining, okUpToIndex));
+      chunk, {stream:true});
     } else {
+      console.log(chunk);
+      console.log(Buffer.from(chunk.buffer));
+      const b = Buffer.from(chunk.buffer);
       bulk = decoder
-        .end(Buffer.from(chunk.slice(partialBytesRemaining, okUpToIndex)));
+        .end(b);
     }
-
-    if (partialBytesRemaining > 0) {
-      // Reassemble the split character
-      this.partial.set(
-          chunk.slice(0, partialBytesRemaining), this.partialBytesValid);
-      // Too bad about the string concat.
-      let reassembled: string;
-
-      if (ENV.get('IS_BROWSER')) {
-        reassembled = decoder.decode(
-        this.partial);
-      } else {
-        reassembled = decoder.write(this.partial);
-      }
-
-      this.outputQueue.push(reassembled + bulk);
-    } else {
       this.outputQueue.push(bulk);
-    }
-
-    if (okUpToIndex === chunk.length) {
-      this.partial = new Uint8Array([]);
-      this.partialBytesValid = 0;
-    } else {
-      // prepare the next split character
-      this.partial = new Uint8Array(new ArrayBuffer(splitUtfWidth));
-      this.partial.set(chunk.slice(okUpToIndex), 0);
-      this.partialBytesValid = chunk.length - okUpToIndex;
-    }
-
     return true;
-  }
-}
-
-function utfWidth(firstByte: number): number {
-  if (firstByte >= 252) {
-    return 6;
-  } else if (firstByte >= 248) {
-    return 5;
-  } else if (firstByte >= 240) {
-    return 4;
-  } else if (firstByte >= 224) {
-    return 3;
-  } else if (firstByte >= 192) {
-    return 2;
-  } else {
-    return 1;
   }
 }
