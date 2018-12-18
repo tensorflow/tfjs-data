@@ -17,7 +17,6 @@
  */
 
 import {ENV} from '@tensorflow/tfjs-core';
-import * as utf from 'utf8';
 import {LazyIterator, OneToManyIterator} from './lazy_iterator';
 import {StringIterator} from './string_iterator';
 
@@ -128,9 +127,8 @@ class Utf8IteratorImpl extends OneToManyIterator<string> {
       bulk = decoder
         .end(b);
       console.log(bulk);
-      console.log(utf.decode(String.fromCharCode.apply(null, chunk)));
     }
-      this.outputQueue.push(bulk);
+    this.outputQueue.push(bulk);
     return true;
   }
 }
