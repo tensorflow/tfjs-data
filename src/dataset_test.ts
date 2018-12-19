@@ -19,7 +19,7 @@
 import * as tf from '@tensorflow/tfjs-core';
 import {describeWithFlags} from '@tensorflow/tfjs-core/dist/jasmine_util';
 import {TensorContainerObject} from '@tensorflow/tfjs-core/dist/tensor_types';
-
+import {datasetFromIteratorFn} from './dataset';
 import * as tfd from './index';
 import {iteratorFromFunction, iteratorFromItems, LazyIterator} from './iterators/lazy_iterator';
 import {DataElementObject, DatasetContainer} from './types';
@@ -225,7 +225,7 @@ describeWithFlags('Dataset', tf.test_util.CPU_ENVS, () => {
        try {
          let count = 0;
          const a =
-             tfd.datasetFromIteratorFn(async () => iteratorFromFunction(() => {
+             datasetFromIteratorFn(async () => iteratorFromFunction(() => {
                                          if (count > 2) {
                                            throw new Error('propagate me!');
                                          }
