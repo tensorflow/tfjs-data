@@ -94,8 +94,18 @@ export function csv(source: string, csvConfig: CSVConfig = {}): CSVDataset {
 }
 
 /**
- * Create a `Dateset` defined by generating a `LazyIterator` from provided
- * function.
+ * Create a `Dataset` that produces each element by calling a provided function.
+ *
+ * Note that repeated iterations over this `Dataset` may produce different
+ * results, because the function will be called anew for each element of each
+ * iteration.
+ *
+ * Also, beware that the sequence of calls to this function may be out of order
+ * in time with respect to the logical order of the Dataset. This is due to the
+ * asynchronous lazy nature of stream processing, and depends on downstream
+ * transformations (e.g. .shuffle()). If the provided function is pure, this is
+ * no problem, but if it is a closure over a mutable state (e.g., a traversal
+ * pointer), then the order of the produced elements may be scrambled.
  *
  * ```js
  * let i = -1;
@@ -105,7 +115,7 @@ export function csv(source: string, csvConfig: CSVConfig = {}): CSVDataset {
  * await ds.forEach(e => console.log(e));
  * ```
  *
- * @param f A function that produces data on each call.
+ * @param f A function that produces one data element on each call.
  */
 /** @doc {
  *   heading: 'Data',
