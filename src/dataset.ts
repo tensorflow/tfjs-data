@@ -341,7 +341,7 @@ export abstract class Dataset<T extends DataElement> {
    * @returns A Promise for an array of elements, which will resolve
    *   when a new stream has been obtained and fully consumed.
    */
-  async collectAll() {
+  async toArray() {
     return (await this.iterator()).collect();
   }
 
