@@ -391,7 +391,6 @@ export abstract class Dataset<T extends DataElement> {
  * await ds.forEach(e => console.log(e));
  * ```
  */
-/** @doc {heading: 'Data', subheading: 'Creation', namespace: 'data'} */
 export function datasetFromIteratorFn<T extends DataElement>(
     iteratorFn: () => Promise<LazyIterator<T>>): Dataset<T> {
   return new class extends Dataset<T> {
