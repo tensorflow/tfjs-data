@@ -236,7 +236,7 @@ describeWithFlags('Dataset', tf.test_util.CPU_ENVS, () => {
          done.fail();
        } catch (e) {
          expect(e.message).toEqual(
-             'Error thrown while iterating through a dataset: propagate me!');
+             'propagate me!');
          done();
        }
      });
