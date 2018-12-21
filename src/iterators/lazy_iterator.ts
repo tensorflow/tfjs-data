@@ -697,14 +697,22 @@ class MapIterator<I, O> extends LazyIterator<O> {
     if (item.done) {
       return {value: null, done: true};
     }
-    const inputTensors = getTensorsInContainer(item.value as {});
+
+    let itemValue;
+    if (item.value instanceof tf.Tensor) {
+      itemValue = tf.clone(item.value);
+    } else {
+      itemValue = item.value;
+    }
+
+    const inputTensors = getTensorsInContainer(itemValue as {});
     // Careful: the transform may mutate the item in place.
     // That's why we have to remember the input Tensors above, and then
     // below dispose only those that were not passed through to the output.
     // Note too that the transform function is responsible for tidying
     // any intermediate Tensors.  Here we are concerned only about the
     // inputs.
-    const mapped = this.transform(item.value);
+    const mapped = this.transform(itemValue);
     const outputTensors = getTensorsInContainer(mapped as {});
 
     // TODO(soergel) faster intersection
