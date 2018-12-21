@@ -16,8 +16,6 @@
  * =============================================================================
  */
 
-import * as tf from '@tensorflow/tfjs-core';
-import * as tfd from '../index';
 import {DataElement, DataElementArray, DataElementObject} from '../types';
 import {iteratorFromConcatenated, iteratorFromConcatenatedFunction, iteratorFromFunction, iteratorFromIncrementing, iteratorFromItems, iteratorFromZipped, LazyIterator, ZipMismatchMode} from './lazy_iterator';
 
@@ -76,19 +74,13 @@ describe('LazyIterator', () => {
     }
   });
 
-  fit('maps elements', async () => {
-    const a = tf.ones([2, 1]);
-    const b = tf.ones([2, 1]);
-    const ds = tfd.array([a, b]);
-    await ds.forEach(elem => elem.print());
-    console.log(a.isDisposed); // true, should be false.
-
-    // const readIterator = new TestIntegerIterator().map(x => `item ${x}`);
-    // const result = await readIterator.collect();
-    // expect(result.length).toEqual(100);
-    // for (let i = 0; i < 100; i++) {
-    //   expect(result[i]).toEqual(`item ${i}`);
-    // }
+  it('maps elements', async () => {
+    const readIterator = new TestIntegerIterator().map(x => `item ${x}`);
+    const result = await readIterator.collect();
+    expect(result.length).toEqual(100);
+    for (let i = 0; i < 100; i++) {
+      expect(result[i]).toEqual(`item ${i}`);
+    }
   });
 
   it('maps elements through an async function', async () => {

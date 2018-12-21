@@ -551,4 +551,23 @@ describeWithFlags('Dataset', tf.test_util.CPU_ENVS, () => {
     // forEach consumed all of the input Tensors.
     expect(tf.memory().numTensors).toEqual(0);
   });
+
+  it('clone tensors during the creation of dataset', async () => {
+    expect(tf.memory().numTensors).toEqual(0);
+    const a = tf.ones([2, 1]);
+    const b = tf.ones([2, 1]);
+    expect(tf.memory().numTensors).toEqual(2);
+    const ds = tfd.array([a, b]);
+    expect(tf.memory().numTensors).toEqual(4);
+    let count = 0;
+    await ds.forEach(elem => {
+      count++;
+      return {};
+    });
+    expect(count).toEqual(2);
+    expect(tf.memory().numTensors).toEqual(2);
+    expect(a.isDisposed).toBeFalsy();
+    expect(b.isDisposed).toBeFalsy();
+
+  });
 });
