@@ -485,6 +485,13 @@ class ArrayIterator<T> extends LazyIterator<T> {
       return {value: null, done: true};
     }
     const result = this.items[this.trav];
+    // const item = this.items[this.trav];
+    // let result;
+    // if(item instanceof tf.Tensor){
+    //   result = tf.clone(item);
+    // } else {
+    //   result = item;
+    // }
     this.trav++;
     return {value: result, done: false};
   }

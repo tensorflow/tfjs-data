@@ -416,15 +416,17 @@ export function datasetFromIteratorFn<T extends DataElement>(
  */
 /** @doc {heading: 'Data', subheading: 'Creation', namespace: 'data'} */
 export function array<T extends DataElement>(items: T[]): Dataset<T> {
-  let itemsArray:T[] = [];
-  if (items.length > 0 && items[0] instanceof tf.Tensor) {
+  let iteratorFn:any;
+  if (items.length>0 && items[0] instanceof tf.Tensor) {
+    let itemsArray:T[] = [];
     items.forEach(item => {
       itemsArray.push(tf.clone(item as tf.Tensor) as T);
     });
+    iteratorFn = iteratorFromItems(itemsArray);
   } else {
-    itemsArray = items;
+    iteratorFn = iteratorFromItems(items);
   }
-  return datasetFromIteratorFn(async () => iteratorFromItems(itemsArray));
+  return datasetFromIteratorFn(async () => iteratorFn);
 }
 
 /**
