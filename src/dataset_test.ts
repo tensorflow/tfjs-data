@@ -552,8 +552,8 @@ describeWithFlags('Dataset', tf.test_util.CPU_ENVS, () => {
     expect(tf.memory().numTensors).toEqual(0);
   });
 
-  it('clone tensors when returning iterator of a dataset generated from a ' +
-  'list of existing tensors', async () => {
+  it('clone tensors when returning iterator of a dataset generated from ' +
+  'existing tensors', async () => {
     expect(tf.memory().numTensors).toEqual(0);
     const a = tf.ones([2, 1]);
     const b = tf.ones([2, 1]);
