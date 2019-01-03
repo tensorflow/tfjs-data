@@ -559,26 +559,32 @@ describeWithFlags('Dataset', tf.test_util.CPU_ENVS, () => {
     const b = tf.ones([2, 1]);
     expect(tf.memory().numTensors).toEqual(2);
     const ds = tfd.array([a, b]);
+    // Pre-existing tensors are not cloned during dataset creation.
     expect(tf.memory().numTensors).toEqual(2);
+
     let count = 0;
     await ds.forEach(elem => {
       count++;
       expect(elem.isDisposed).toBeFalsy();
     });
     expect(count).toEqual(2);
+    // Cloned tensors are disposed after traverse, while original tensors stay.
     expect(tf.memory().numTensors).toEqual(2);
+
     await ds.forEach(elem => {
       count++;
       expect(elem.isDisposed).toBeFalsy();
     });
     expect(count).toEqual(4);
     expect(tf.memory().numTensors).toEqual(2);
+
     await ds.forEach(elem => {
       count++;
       expect(elem.isDisposed).toBeFalsy();
     });
     expect(count).toEqual(6);
     expect(tf.memory().numTensors).toEqual(2);
+
     expect(a.isDisposed).toBeFalsy();
     expect(b.isDisposed).toBeFalsy();
 
