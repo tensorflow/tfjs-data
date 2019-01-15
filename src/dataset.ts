@@ -240,6 +240,7 @@ export abstract class Dataset<T extends DataElement> {
    *   prefetched.
    * @returns A `Dataset`.
    */
+  /** @doc {heading: 'Data', subheading: 'Classes'} */
   // TODO: Document this function once tfjs-data supports streaming.
   prefetch(bufferSize: number): Dataset<T> {
     const base = this;

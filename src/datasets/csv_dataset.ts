@@ -52,8 +52,8 @@ export class CSVDataset extends Dataset<DataElement> {
   private delimiter = ',';
 
   /**
-   * Return column names of the csv dataset. If `configuredColumnsOnly` is true,
-   * return column names in `columnConfigd`. If `configuredColumnsOnly` is
+   * Returns column names of the csv dataset. If `configuredColumnsOnly` is
+   * true, return column names in `columnConfigd`. If `configuredColumnsOnly` is
    * false and `columnNames` is provided, `columnNames`. If
    * `configuredColumnsOnly` is false and `columnNames` is not provided, return
    * return all column names parsed from the csv file.
