@@ -19,9 +19,8 @@
 import * as tf from '@tensorflow/tfjs-core';
 import {describeWithFlags} from '@tensorflow/tfjs-core/dist/jasmine_util';
 import {TensorContainerObject} from '@tensorflow/tfjs-core/dist/tensor_types';
-
 import * as tfd from './index';
-import {iteratorFromFunction, iteratorFromItems, LazyIterator} from './iterators/lazy_iterator';
+import {iteratorFromItems, LazyIterator} from './iterators/lazy_iterator';
 import {DataElementObject, DatasetContainer} from './types';
 
 class TestObjectIterator extends LazyIterator<{}> {
@@ -93,7 +92,7 @@ describeWithFlags('Dataset', tf.test_util.CPU_ENVS, () => {
   it('can be concatenated', async () => {
     const a = tfd.array([{'item': 1}, {'item': 2}, {'item': 3}]);
     const b = tfd.array([{'item': 4}, {'item': 5}, {'item': 6}]);
-    const result = await a.concatenate(b).collectAll();
+    const result = await a.concatenate(b).toArray();
     expect(result).toEqual([
       {'item': 1}, {'item': 2}, {'item': 3}, {'item': 4}, {'item': 5},
       {'item': 6}
@@ -106,7 +105,7 @@ describeWithFlags('Dataset', tf.test_util.CPU_ENVS, () => {
        const b = tfd.array([{'item': 3}, {'item': 4}]);
        const c = tfd.array([{'item': 5}, {'item': 6}]);
        const concatenated = [a, b, c].reduce((a, b) => a.concatenate(b));
-       const result = await concatenated.collectAll();
+       const result = await concatenated.toArray();
        expect(result).toEqual([
          {'item': 1}, {'item': 2}, {'item': 3}, {'item': 4}, {'item': 5},
          {'item': 6}
@@ -117,7 +116,7 @@ describeWithFlags('Dataset', tf.test_util.CPU_ENVS, () => {
      async () => {
        const a = tfd.array([1, 2, 3]);
        const b = tfd.array([4, 5, 6]);
-       const result = await tfd.zip([a, b]).collectAll();
+       const result = await tfd.zip([a, b]).toArray();
        expect(result).toEqual([[1, 4], [2, 5], [3, 6]]);
      });
 
@@ -125,7 +124,7 @@ describeWithFlags('Dataset', tf.test_util.CPU_ENVS, () => {
      async () => {
        const a = tfd.array([{a: 1}, {a: 2}, {a: 3}]);
        const b = tfd.array([{b: 4}, {b: 5}, {b: 6}]);
-       const result = await tfd.zip([a, b]).collectAll();
+       const result = await tfd.zip([a, b]).toArray();
        expect(result).toEqual(
            [[{a: 1}, {b: 4}], [{a: 2}, {b: 5}], [{a: 3}, {b: 6}]]);
      });
@@ -133,7 +132,7 @@ describeWithFlags('Dataset', tf.test_util.CPU_ENVS, () => {
   it('can be created by zipping a dict of datasets', async () => {
     const a = tfd.array([{a: 1}, {a: 2}, {a: 3}]);
     const b = tfd.array([{b: 4}, {b: 5}, {b: 6}]);
-    const result = await tfd.zip({c: a, d: b}).collectAll();
+    const result = await tfd.zip({c: a, d: b}).toArray();
     expect(result).toEqual([
       {c: {a: 1}, d: {b: 4}}, {c: {a: 2}, d: {b: 5}}, {c: {a: 3}, d: {b: 6}}
     ]);
@@ -144,7 +143,7 @@ describeWithFlags('Dataset', tf.test_util.CPU_ENVS, () => {
     const b = tfd.array([4, 5, 6]);
     const c = tfd.array([7, 8, 9]);
     const d = tfd.array([10, 11, 12]);
-    const result = await tfd.zip({a, bcd: [b, {c, d}]}).collectAll();
+    const result = await tfd.zip({a, bcd: [b, {c, d}]}).toArray();
 
     expect(result).toEqual([
       {a: 1, bcd: [4, {c: 7, d: 10}]},
@@ -156,7 +155,7 @@ describeWithFlags('Dataset', tf.test_util.CPU_ENVS, () => {
   it('can be created by zipping datasets of different sizes', async () => {
     const a = tfd.array([1, 2]);
     const b = tfd.array([3, 4, 5, 6]);
-    const result = await tfd.zip([a, b]).collectAll();
+    const result = await tfd.zip([a, b]).toArray();
     expect(result).toEqual([[1, 3], [2, 4]]);
   });
 
@@ -195,7 +194,7 @@ describeWithFlags('Dataset', tf.test_util.CPU_ENVS, () => {
     const b = tfd.array([4, 5, 6]);
     const c = tfd.array([7, 8, 9]);
     const d = tfd.array([10, 11, 12]);
-    const result = await tfd.zip({a, abacd: [a, b, {a, c, d}]}).collectAll();
+    const result = await tfd.zip({a, abacd: [a, b, {a, c, d}]}).toArray();
 
     expect(result).toEqual([
       {a: 1, abacd: [1, 4, {a: 1, c: 7, d: 10}]},
@@ -225,26 +224,26 @@ describeWithFlags('Dataset', tf.test_util.CPU_ENVS, () => {
        try {
          let count = 0;
          const a =
-             tfd.datasetFromIteratorFn(async () => iteratorFromFunction(() => {
-                                         if (count > 2) {
-                                           throw new Error('propagate me!');
-                                         }
-                                         return {value: count++, done: false};
-                                       }));
+             tfd.generator(async () => {
+               if (count > 2) {
+                 throw new Error('propagate me!');
+                }
+                return {value: count++, done: false};
+              });
          const b = tfd.array([3, 4, 5, 6]);
          // tslint:disable-next-line:no-any
          await (await tfd.zip([a, b]).iterator()).collect(1000, 0);
          done.fail();
        } catch (e) {
          expect(e.message).toEqual(
-             'Error thrown while iterating through a dataset: propagate me!');
+             'propagate me!');
          done();
        }
      });
 
   it('can be repeated a fixed number of times', async () => {
     const a = tfd.array([{'item': 1}, {'item': 2}, {'item': 3}]);
-    const result = await a.repeat(4).collectAll();
+    const result = await a.repeat(4).toArray();
     expect(result).toEqual([
       {'item': 1},
       {'item': 2},
@@ -263,7 +262,7 @@ describeWithFlags('Dataset', tf.test_util.CPU_ENVS, () => {
 
   it('can be repeated indefinitely', async () => {
     const a = tfd.array([{'item': 1}, {'item': 2}, {'item': 3}]);
-    await a.repeat().take(234).collectAll();
+    await a.repeat().take(234).toArray();
   });
 
   it('can be repeated with state in a closure', async () => {
@@ -282,12 +281,12 @@ describeWithFlags('Dataset', tf.test_util.CPU_ENVS, () => {
       }
     }
     const a = new CustomDataset();
-    await a.repeat().take(1234).collectAll();
+    await a.repeat().take(1234).toArray();
   });
 
   it('can collect all items into memory', async () => {
     const ds = new TestDataset();
-    const items = await ds.collectAll();
+    const items = await ds.toArray();
     expect(items.length).toEqual(100);
     // The test dataset has 100 elements, each containing 2 Tensors.
     expect(tf.memory().numTensors).toEqual(200);
@@ -488,7 +487,7 @@ describeWithFlags('Dataset', tf.test_util.CPU_ENVS, () => {
     try {
       const ds = new TestDataset();
       expect(tf.memory().numTensors).toEqual(0);
-      const result = await ds.skip(15).collectAll();
+      const result = await ds.skip(15).toArray();
       // The test dataset had 100 elements; we skipped 15; 85 remain.
       expect(result.length).toEqual(85);
       // Each element of the test dataset contains 2 Tensors;
@@ -503,7 +502,7 @@ describeWithFlags('Dataset', tf.test_util.CPU_ENVS, () => {
   it('filter does not leak Tensors', async () => {
     const ds = new TestDataset();
     expect(tf.memory().numTensors).toEqual(0);
-    await ds.filter(x => ((x['number'] as number) % 2 === 0)).collectAll();
+    await ds.filter(x => ((x['number'] as number) % 2 === 0)).toArray();
     // Each element of the test dataset contains 2 Tensors.
     // There were 100 elements, but we filtered out half of them.
     // Thus 50 * 2 = 100 Tensors remain.
@@ -513,7 +512,7 @@ describeWithFlags('Dataset', tf.test_util.CPU_ENVS, () => {
   it('map does not leak Tensors when none are returned', async () => {
     const ds = new TestDataset();
     expect(tf.memory().numTensors).toEqual(0);
-    await ds.map(x => ({'constant': 1})).collectAll();
+    await ds.map(x => ({'constant': 1})).toArray();
     // The map operation consumed all of the tensors and emitted none.
     expect(tf.memory().numTensors).toEqual(0);
   });
@@ -522,7 +521,7 @@ describeWithFlags('Dataset', tf.test_util.CPU_ENVS, () => {
      async () => {
        const ds = new TestDataset();
        expect(tf.memory().numTensors).toEqual(0);
-       await ds.map(x => ({'Tensor2': x['Tensor2']})).collectAll();
+       await ds.map(x => ({'Tensor2': x['Tensor2']})).toArray();
        // Each element of the test dataset contains 2 Tensors.
        // Our map operation retained one of the Tensors and discarded the
        // other. Thus the mapped data contains 100 elements with 1 Tensor
@@ -533,7 +532,7 @@ describeWithFlags('Dataset', tf.test_util.CPU_ENVS, () => {
   it('map does not leak Tensors when inputs are replaced', async () => {
     const ds = new TestDataset();
     expect(tf.memory().numTensors).toEqual(0);
-    await ds.map(x => ({'a': tf.tensor1d([1, 2, 3])})).collectAll();
+    await ds.map(x => ({'a': tf.tensor1d([1, 2, 3])})).toArray();
     // Each element of the test dataset contains 2 Tensors.
     // Our map operation discarded both Tensors and created one new one.
     // Thus the mapped data contains 100 elements with 1 Tensor each.
@@ -551,5 +550,84 @@ describeWithFlags('Dataset', tf.test_util.CPU_ENVS, () => {
     expect(count).toEqual(100);
     // forEach consumed all of the input Tensors.
     expect(tf.memory().numTensors).toEqual(0);
+  });
+
+  it('clone tensors when returning iterator of a dataset generated from ' +
+  'existing tensors', async () => {
+    expect(tf.memory().numTensors).toEqual(0);
+    const a = tf.ones([2, 1]);
+    const b = tf.ones([2, 1]);
+    expect(tf.memory().numTensors).toEqual(2);
+    const ds = tfd.array([a, b]);
+    // Pre-existing tensors are not cloned during dataset creation.
+    expect(tf.memory().numTensors).toEqual(2);
+
+    let count = 0;
+    // ds.forEach() automatically disposes incoming Tensors after processing
+    // them.
+    await ds.forEach(elem => {
+      count++;
+      expect(elem.isDisposed).toBeFalsy();
+    });
+    expect(count).toEqual(2);
+    // Cloned tensors are disposed after traverse, while original tensors stay.
+    expect(tf.memory().numTensors).toEqual(2);
+
+    await ds.forEach(elem => {
+      count++;
+      expect(elem.isDisposed).toBeFalsy();
+    });
+    expect(count).toEqual(4);
+    expect(tf.memory().numTensors).toEqual(2);
+
+    await ds.forEach(elem => {
+      count++;
+      expect(elem.isDisposed).toBeFalsy();
+    });
+    expect(count).toEqual(6);
+    expect(tf.memory().numTensors).toEqual(2);
+
+    expect(a.isDisposed).toBeFalsy();
+    expect(b.isDisposed).toBeFalsy();
+  });
+
+  it('traverse dataset from tensors without leaking Tensors', async () => {
+    expect(tf.memory().numTensors).toEqual(0);
+    const a = tf.ones([2, 1]);
+    const b = tf.ones([2, 1]);
+    const c = tf.ones([2, 1]);
+    const d = tf.ones([2, 1]);
+    expect(tf.memory().numTensors).toEqual(4);
+    const ds = tfd.array([a, b, c, d]).take(2);
+    // Pre-existing tensors are not cloned during dataset creation.
+    expect(tf.memory().numTensors).toEqual(4);
+
+    let count = 0;
+    // ds.forEach() automatically disposes incoming Tensors after processing
+    // them.
+    await ds.forEach(elem => {
+      count++;
+      expect(elem.isDisposed).toBeFalsy();
+    });
+    expect(count).toEqual(2);
+    // Cloned tensors are disposed after traverse, while original tensors stay.
+    expect(tf.memory().numTensors).toEqual(4);
+
+    await ds.forEach(elem => {
+      count++;
+      expect(elem.isDisposed).toBeFalsy();
+    });
+    expect(count).toEqual(4);
+    expect(tf.memory().numTensors).toEqual(4);
+
+    await ds.forEach(elem => {
+      count++;
+      expect(elem.isDisposed).toBeFalsy();
+    });
+    expect(count).toEqual(6);
+    expect(tf.memory().numTensors).toEqual(4);
+
+    expect(a.isDisposed).toBeFalsy();
+    expect(b.isDisposed).toBeFalsy();
   });
 });

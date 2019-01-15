@@ -18,10 +18,7 @@
 
 import * as tf from '@tensorflow/tfjs-core';
 import * as seedrandom from 'seedrandom';
-
-import {iteratorFromFunction, iteratorFromZipped, LazyIterator, ZipMismatchMode} from './iterators/lazy_iterator';
-import {iteratorFromConcatenated} from './iterators/lazy_iterator';
-import {iteratorFromItems} from './iterators/lazy_iterator';
+import {iteratorFromConcatenated, iteratorFromFunction, iteratorFromItems, iteratorFromZipped, LazyIterator, ZipMismatchMode} from './iterators/lazy_iterator';
 import {DataElement, DatasetContainer} from './types';
 import {deepMapAndAwaitAll, DeepMapResult, isIterable, isNumericArray} from './util/deep_map';
 
@@ -338,13 +335,20 @@ export abstract class Dataset<T extends DataElement> {
 
   /**
    * Collect all elements of this dataset into an array.
+   *
    * Obviously this will succeed only for small datasets that fit in memory.
-   * Useful for testing.
+   * Useful for testing and generally should be avoided if possible.
+   *
+   * ```js
+   * const a = tf.data.array([1, 2, 3, 4, 5, 6]);
+   * console.log(await a.toArray());
+   * ```
    *
    * @returns A Promise for an array of elements, which will resolve
    *   when a new stream has been obtained and fully consumed.
    */
-  async collectAll() {
+  /** @doc {heading: 'Data', subheading: 'Classes'} */
+  async toArray() {
     return (await this.iterator()).collect();
   }
 
@@ -377,6 +381,15 @@ export abstract class Dataset<T extends DataElement> {
 
 /**
  * Create a `Dataset` defined by a provided iterator() function.
+ *
+ * ```js
+ * let i = -1;
+ * const func = () =>
+ *    ++i < 5 ? {value: i, done: false} : {value: null, done: true};
+ * const iter = tf.data.iteratorFromFunction(func);
+ * const ds = tf.data.datasetFromIteratorFn(iter);
+ * await ds.forEach(e => console.log(e));
+ * ```
  */
 export function datasetFromIteratorFn<T extends DataElement>(
     iteratorFn: () => Promise<LazyIterator<T>>): Dataset<T> {

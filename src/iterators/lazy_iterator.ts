@@ -19,7 +19,6 @@
 import * as tf from '@tensorflow/tfjs-core';
 import {getTensorsInContainer, isTensorInList} from '@tensorflow/tfjs-core/dist/tensor_util';
 import * as seedrandom from 'seedrandom';
-
 import {DataElement, IteratorContainer} from '../types';
 import {deepMapAndAwaitAll, DeepMapAsyncResult, DeepMapResult, deepZip, zipToList} from '../util/deep_map';
 import {GrowingRingBuffer} from '../util/growing_ring_buffer';
@@ -46,6 +45,16 @@ export function iteratorFromIncrementing(start: number): LazyIterator<number> {
 
 /**
  * Create a `LazyIterator` from a function.
+ *
+ * ```js
+ * let i = -1;
+ * const func = () =>
+ *    ++i < 5 ? {value: i, done: false} : {value: null, done: true};
+ * const iter = tf.data.iteratorFromFunction(func);
+ * await iter.forEach(e => console.log(e));
+ * ```
+ *
+ * @param func A function that produces data on each call.
  */
 export function iteratorFromFunction<T>(
     func: () =>
@@ -475,7 +484,13 @@ class ArrayIterator<T> extends LazyIterator<T> {
     if (this.trav >= this.items.length) {
       return {value: null, done: true};
     }
-    const result = this.items[this.trav];
+    const item = this.items[this.trav];
+    let result;
+    if (item instanceof tf.Tensor) {
+      result = tf.clone(item);
+    } else {
+      result = item;
+    }
     this.trav++;
     return {value: result, done: false};
   }
