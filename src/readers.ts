@@ -16,14 +16,17 @@
  * =============================================================================
  */
 
+import {ENV} from '@tensorflow/tfjs-core';
 import {Dataset, datasetFromIteratorFn} from './dataset';
 import {CSVDataset} from './datasets/csv_dataset';
 import {iteratorFromFunction} from './iterators/lazy_iterator';
+import {FileDataSource} from './sources/file_data_source';
 import {URLDataSource} from './sources/url_data_source';
 import {CSVConfig, DataElement} from './types';
 
 /**
- * Create a `CSVDataset` by reading and decoding CSV file(s) from provided URLs.
+ * Create a `CSVDataset` by reading and decoding CSV file(s) from provided URL
+ * or local path if it's in Node environment.
  *
  * ```js
  * const csvUrl =
@@ -78,11 +81,12 @@ import {CSVConfig, DataElement} from './types';
  * await run();
  * ```
  *
- * @param source URL to fetch CSV file.
+ * @param source URL or local path to get CSV file.
  * @param csvConfig (Optional) A CSVConfig object that contains configurations
  *     of reading and decoding from CSV file(s).
  */
-/** @doc {
+/**
+ * @doc {
  *   heading: 'Data',
  *   subheading: 'Creation',
  *   namespace: 'data',
@@ -90,7 +94,20 @@ import {CSVConfig, DataElement} from './types';
  *  }
  */
 export function csv(source: string, csvConfig: CSVConfig = {}): CSVDataset {
-  return new CSVDataset(new URLDataSource(source), csvConfig);
+  if (source.substr(0, 7) === 'file://' && !ENV.get('IS_BROWSER')) {
+    // tslint:disable-next-line:no-require-imports
+    const fs = require('fs');
+    // tslint:disable-next-line:no-require-imports
+    const promisify = require('util').promisify;
+    const readFile = promisify(fs.readFile);
+    // return readFile(source.substr(7)).then((file: FileElement) => {
+    //   return new CSVDataset(new FileDataSource(file), csvConfig);
+    // });
+    return new CSVDataset(
+        new FileDataSource(readFile(source.substr(7))), csvConfig);
+  } else {
+    return new CSVDataset(new URLDataSource(source), csvConfig);
+  }
 }
 
 /**
@@ -117,7 +134,8 @@ export function csv(source: string, csvConfig: CSVConfig = {}): CSVDataset {
  *
  * @param f A function that produces one data element on each call.
  */
-/** @doc {
+/**
+ * @doc {
  *   heading: 'Data',
  *   subheading: 'Creation',
  *   namespace: 'data',
@@ -125,7 +143,7 @@ export function csv(source: string, csvConfig: CSVConfig = {}): CSVDataset {
  *  }
  */
 export function generator<T extends DataElement>(
-  f: () =>IteratorResult<T>| Promise<IteratorResult<T>>): Dataset<T> {
+    f: () => IteratorResult<T>| Promise<IteratorResult<T>>): Dataset<T> {
   const iter = iteratorFromFunction(f);
   return datasetFromIteratorFn(async () => iter);
 }

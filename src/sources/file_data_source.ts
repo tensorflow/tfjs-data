@@ -34,12 +34,16 @@ export class FileDataSource extends DataSource {
    *   such as {chunksize: 1024}.
    */
   constructor(
-      protected readonly input: FileElement,
+      protected input: FileElement,
       protected readonly options: FileChunkIteratorOptions = {}) {
     super();
   }
 
   async iterator(): Promise<ByteChunkIterator> {
+    if (this.input instanceof Promise) {
+      console.log('converted');
+      this.input = await this.input;
+    }
     return new FileChunkIterator(this.input, this.options);
   }
 }
