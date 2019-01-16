@@ -424,7 +424,15 @@ export function datasetFromIteratorFn<T extends DataElement>(
  */
 /** @doc {heading: 'Data', subheading: 'Creation', namespace: 'data'} */
 export function array<T extends DataElement>(items: T[]): Dataset<T> {
-  return datasetFromIteratorFn(async () => iteratorFromItems(items));
+  let elements: T[] = [];
+  if (items.length > 0 && ArrayBuffer.isView(items[0])) {
+    items.forEach(item => {
+      elements.push(Array.prototype.slice.call(item));
+    });
+  } else {
+    elements = items;
+  }
+  return datasetFromIteratorFn(async () => iteratorFromItems(elements));
 }
 
 /**

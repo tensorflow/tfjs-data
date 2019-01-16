@@ -18,7 +18,7 @@
 
 import * as tf from '@tensorflow/tfjs-core';
 import {describeWithFlags} from '@tensorflow/tfjs-core/dist/jasmine_util';
-import {TensorContainerObject} from '@tensorflow/tfjs-core/dist/tensor_types';
+import {TensorContainer, TensorContainerObject} from '@tensorflow/tfjs-core/dist/tensor_types';
 import * as tfd from './index';
 import {iteratorFromItems, LazyIterator} from './iterators/lazy_iterator';
 import {DataElementObject, DatasetContainer} from './types';
@@ -223,20 +223,18 @@ describeWithFlags('Dataset', tf.test_util.CPU_ENVS, () => {
      async done => {
        try {
          let count = 0;
-         const a =
-             tfd.generator(async () => {
-               if (count > 2) {
-                 throw new Error('propagate me!');
-                }
-                return {value: count++, done: false};
-              });
+         const a = tfd.generator(async () => {
+           if (count > 2) {
+             throw new Error('propagate me!');
+           }
+           return {value: count++, done: false};
+         });
          const b = tfd.array([3, 4, 5, 6]);
          // tslint:disable-next-line:no-any
          await (await tfd.zip([a, b]).iterator()).collect(1000, 0);
          done.fail();
        } catch (e) {
-         expect(e.message).toEqual(
-             'propagate me!');
+         expect(e.message).toEqual('propagate me!');
          done();
        }
      });
@@ -553,43 +551,45 @@ describeWithFlags('Dataset', tf.test_util.CPU_ENVS, () => {
   });
 
   it('clone tensors when returning iterator of a dataset generated from ' +
-  'existing tensors', async () => {
-    expect(tf.memory().numTensors).toEqual(0);
-    const a = tf.ones([2, 1]);
-    const b = tf.ones([2, 1]);
-    expect(tf.memory().numTensors).toEqual(2);
-    const ds = tfd.array([a, b]);
-    // Pre-existing tensors are not cloned during dataset creation.
-    expect(tf.memory().numTensors).toEqual(2);
+         'existing tensors',
+     async () => {
+       expect(tf.memory().numTensors).toEqual(0);
+       const a = tf.ones([2, 1]);
+       const b = tf.ones([2, 1]);
+       expect(tf.memory().numTensors).toEqual(2);
+       const ds = tfd.array([a, b]);
+       // Pre-existing tensors are not cloned during dataset creation.
+       expect(tf.memory().numTensors).toEqual(2);
 
-    let count = 0;
-    // ds.forEach() automatically disposes incoming Tensors after processing
-    // them.
-    await ds.forEach(elem => {
-      count++;
-      expect(elem.isDisposed).toBeFalsy();
-    });
-    expect(count).toEqual(2);
-    // Cloned tensors are disposed after traverse, while original tensors stay.
-    expect(tf.memory().numTensors).toEqual(2);
+       let count = 0;
+       // ds.forEach() automatically disposes incoming Tensors after processing
+       // them.
+       await ds.forEach(elem => {
+         count++;
+         expect(elem.isDisposed).toBeFalsy();
+       });
+       expect(count).toEqual(2);
+       // Cloned tensors are disposed after traverse, while original tensors
+       // stay.
+       expect(tf.memory().numTensors).toEqual(2);
 
-    await ds.forEach(elem => {
-      count++;
-      expect(elem.isDisposed).toBeFalsy();
-    });
-    expect(count).toEqual(4);
-    expect(tf.memory().numTensors).toEqual(2);
+       await ds.forEach(elem => {
+         count++;
+         expect(elem.isDisposed).toBeFalsy();
+       });
+       expect(count).toEqual(4);
+       expect(tf.memory().numTensors).toEqual(2);
 
-    await ds.forEach(elem => {
-      count++;
-      expect(elem.isDisposed).toBeFalsy();
-    });
-    expect(count).toEqual(6);
-    expect(tf.memory().numTensors).toEqual(2);
+       await ds.forEach(elem => {
+         count++;
+         expect(elem.isDisposed).toBeFalsy();
+       });
+       expect(count).toEqual(6);
+       expect(tf.memory().numTensors).toEqual(2);
 
-    expect(a.isDisposed).toBeFalsy();
-    expect(b.isDisposed).toBeFalsy();
-  });
+       expect(a.isDisposed).toBeFalsy();
+       expect(b.isDisposed).toBeFalsy();
+     });
 
   it('traverse dataset from tensors without leaking Tensors', async () => {
     expect(tf.memory().numTensors).toEqual(0);
@@ -629,5 +629,16 @@ describeWithFlags('Dataset', tf.test_util.CPU_ENVS, () => {
 
     expect(a.isDisposed).toBeFalsy();
     expect(b.isDisposed).toBeFalsy();
+  });
+
+  it('generate dataset from typed array batching correctly', async () => {
+    const xArrays = [];
+    for (let i = 0; i < 15; ++i) {
+      xArrays.push(new Int16Array(7));
+    }
+    const ds = tfd.array(xArrays as unknown as TensorContainer[]).batch(5);
+    ds.forEach(x => {
+      expect((x as tf.Tensor).shape).toEqual([5, 7]);
+    });
   });
 });
