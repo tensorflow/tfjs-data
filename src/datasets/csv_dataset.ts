@@ -53,11 +53,11 @@ export class CSVDataset extends Dataset<DataElement> {
 
   /**
    * Returns column names of the csv dataset. If `configuredColumnsOnly` is
-   * true, return column names in `columnConfigd`. If `configuredColumnsOnly` is
+   * true, return column names in `columnConfigs`. If `configuredColumnsOnly` is
    * false and `columnNames` is provided, `columnNames`. If
    * `configuredColumnsOnly` is false and `columnNames` is not provided, return
-   * return all column names parsed from the csv file. For example usage please
-   * go to `tf.data.csv`.
+   * all column names parsed from the csv file. For example usage please go to
+   * `tf.data.csv`.
    */
   /** @doc {heading: 'Data', subheading: 'Classes'} */
   async columnNames() {
