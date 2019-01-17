@@ -81,7 +81,8 @@ import {CSVConfig, DataElement} from './types';
  * await run();
  * ```
  *
- * @param source URL or local path to get CSV file.
+ * @param source URL or local path to get CSV file. If it's a local path, it
+ * must have prefix `file://`.
  * @param csvConfig (Optional) A CSVConfig object that contains configurations
  *     of reading and decoding from CSV file(s).
  */
