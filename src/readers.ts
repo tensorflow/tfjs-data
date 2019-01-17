@@ -95,15 +95,12 @@ import {CSVConfig, DataElement} from './types';
  *  }
  */
 export function csv(source: string, csvConfig: CSVConfig = {}): CSVDataset {
-  if (source.substr(0, 7) === 'file://' && !ENV.get('IS_BROWSER')) {
+  if (source.substr(0, 7) === 'file://' && ENV.get('IS_NODE')) {
     // tslint:disable-next-line:no-require-imports
     const fs = require('fs');
     // tslint:disable-next-line:no-require-imports
     const promisify = require('util').promisify;
     const readFile = promisify(fs.readFile);
-    // return readFile(source.substr(7)).then((file: FileElement) => {
-    //   return new CSVDataset(new FileDataSource(file), csvConfig);
-    // });
     return new CSVDataset(
         new FileDataSource(readFile(source.substr(7))), csvConfig);
   } else {

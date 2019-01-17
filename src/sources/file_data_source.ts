@@ -41,7 +41,6 @@ export class FileDataSource extends DataSource {
 
   async iterator(): Promise<ByteChunkIterator> {
     if (this.input instanceof Promise) {
-      console.log('converted');
       this.input = await this.input;
     }
     return new FileChunkIterator(this.input, this.options);
