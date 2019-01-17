@@ -16,10 +16,12 @@
  * =============================================================================
  */
 
+import {ENV} from '@tensorflow/tfjs-core';
 import {DataSource} from '../datasource';
 import {ByteChunkIterator} from '../iterators/byte_chunk_iterator';
 import {FileChunkIterator, FileChunkIteratorOptions} from '../iterators/file_chunk_iterator';
 import {FileElement} from '../types';
+import {isLocalPath} from '../util/source_util';
 
 /**
  * Represents a file, blob, or Uint8Array readable as a stream of binary data
@@ -29,20 +31,23 @@ export class FileDataSource extends DataSource {
   /**
    * Create a `FileDataSource`.
    *
-   * @param input A `File`, `Blob` or `Uint8Array` object to read.
+   * @param input Local file path, or `File`/`Blob`/`Uint8Array` object to
+   *     read.
    * @param options Options passed to the underlying `FileChunkIterator`s,
    *   such as {chunksize: 1024}.
    */
   constructor(
-      protected input: FileElement,
+      protected input: FileElement|string,
       protected readonly options: FileChunkIteratorOptions = {}) {
     super();
   }
 
   async iterator(): Promise<ByteChunkIterator> {
-    if (this.input instanceof Promise) {
-      this.input = await this.input;
+    if (isLocalPath(this.input) && ENV.get('IS_NODE')) {
+      // tslint:disable-next-line:no-require-imports
+      const fs = require('fs');
+      this.input = fs.readFileSync((this.input as string).substr(7));
     }
-    return new FileChunkIterator(this.input, this.options);
+    return new FileChunkIterator(this.input as FileElement, this.options);
   }
 }

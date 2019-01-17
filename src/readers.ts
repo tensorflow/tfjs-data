@@ -16,11 +16,9 @@
  * =============================================================================
  */
 
-import {ENV} from '@tensorflow/tfjs-core';
 import {Dataset, datasetFromIteratorFn} from './dataset';
 import {CSVDataset} from './datasets/csv_dataset';
 import {iteratorFromFunction} from './iterators/lazy_iterator';
-import {FileDataSource} from './sources/file_data_source';
 import {URLDataSource} from './sources/url_data_source';
 import {CSVConfig, DataElement} from './types';
 
@@ -95,17 +93,7 @@ import {CSVConfig, DataElement} from './types';
  *  }
  */
 export function csv(source: string, csvConfig: CSVConfig = {}): CSVDataset {
-  if (source.substr(0, 7) === 'file://' && ENV.get('IS_NODE')) {
-    // tslint:disable-next-line:no-require-imports
-    const fs = require('fs');
-    // tslint:disable-next-line:no-require-imports
-    const promisify = require('util').promisify;
-    const readFile = promisify(fs.readFile);
-    return new CSVDataset(
-        new FileDataSource(readFile(source.substr(7))), csvConfig);
-  } else {
-    return new CSVDataset(new URLDataSource(source), csvConfig);
-  }
+  return new CSVDataset(new URLDataSource(source), csvConfig);
 }
 
 /**
