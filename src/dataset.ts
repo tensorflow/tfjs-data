@@ -62,7 +62,7 @@ export abstract class Dataset<T extends DataElement> {
    */
   abstract async iterator(): Promise<LazyIterator<T>>;
 
-  protected readonly size: number = Infinity;
+  protected readonly size: number;
 
   getSize(): number {
     return this.size;
@@ -399,7 +399,7 @@ export abstract class Dataset<T extends DataElement> {
  * ```
  */
 export function datasetFromIteratorFn<T extends DataElement>(
-    iteratorFn: () => Promise<LazyIterator<T>>, size = Infinity): Dataset<T> {
+    iteratorFn: () => Promise<LazyIterator<T>>, size?: number): Dataset<T> {
   return new class extends Dataset<T> {
     size = size;
 
