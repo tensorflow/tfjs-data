@@ -633,12 +633,17 @@ describeWithFlags('Dataset', tf.test_util.CPU_ENVS, () => {
 
   it('can get correct size of dataset from objects array', async () => {
     const ds = tfd.array([{'item': 1}, {'item': 2}, {'item': 3}]);
-    expect(ds.getSize()).toEqual(3);
+    expect(ds.size).toEqual(3);
   });
 
   it('can get correct size of dataset from number array', async () => {
     const ds = tfd.array([1, 2, 3, 4, 5]);
-    expect(ds.getSize()).toEqual(5);
+    expect(ds.size).toEqual(5);
+  });
+
+  it('can get size 0 from empty dataset', async () => {
+    const ds = tfd.array([]);
+    expect(ds.size).toEqual(0);
   });
 
   it('size is undefined if dataset may exhausted randomly', async () => {
@@ -646,6 +651,22 @@ describeWithFlags('Dataset', tf.test_util.CPU_ENVS, () => {
     const func = () =>
         ++i < 7 ? {value: i, done: false} : {value: null, done: true};
     const ds = tfd.generator(func);
-    expect(ds.getSize()).toBeUndefined();
+    expect(ds.size).toBeUndefined();
   });
+
+  fit('zipping an array of datasets with primitive elements has correct size',
+      async () => {
+        const a = tfd.array([1, 2, 3]);
+        const b = tfd.array([4, 5, 6, 7, 8]);
+        const result = await tfd.zip([a, b]);
+        expect(result.size).toEqual(3);
+      });
+
+  fit('zipping an array of datasets with object elements has correct size',
+      async () => {
+        const a = tfd.array([{a: 1}, {a: 2}, {a: 3}]);
+        const b = tfd.array([{b: 4}, {b: 5}, {b: 6}, {b: 7}, {b: 8}]);
+        const result = await tfd.zip([a, b]);
+        expect(result.size).toEqual(3);
+      });
 });
