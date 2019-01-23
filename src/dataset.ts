@@ -62,7 +62,7 @@ export abstract class Dataset<T extends DataElement> {
    */
   abstract async iterator(): Promise<LazyIterator<T>>;
 
-  readonly size: number;
+  readonly size: number = null;
 
   // TODO(soergel): Make Datasets report whether repeated iterator() calls
   // produce the same result (e.g., reading from a file) or different results
@@ -117,21 +117,20 @@ export abstract class Dataset<T extends DataElement> {
   /** @doc {heading: 'Data', subheading: 'Classes'} */
   batch(batchSize: number, smallLastBatch = true): Dataset<DataElement> {
     const base = this;
+    tf.util.assert(batchSize > 0, 'batchSize need to be positive!');
     let size;
-    if (this.size === Infinity) {
-      // If the size of this dataset is infinity, the new size is infinity.
-      size = Infinity;
-    } else if (this.size >= 0 && smallLastBatch) {
+    if (this.size === Infinity || this.size == null) {
+      // If the size of this dataset is infinity or null, the new size keeps the
+      // same.
+      size = this.size;
+    } else if (smallLastBatch) {
       // If the size of this dataset is known and include small last batch, the
       // new size is full batch count plus last batch.
       size = Math.floor(this.size / batchSize) + 1;
-    } else if (this.size >= 0 && !smallLastBatch) {
+    } else {
       // If the size of this dataset is known and not include small last batch,
       // the new size is full batch count.
       size = Math.floor(this.size / batchSize);
-    } else {
-      // If current dataset size is undefined, new size is undefined.
-      size = undefined;
     }
     return datasetFromIteratorFn(async () => {
       return (await base.iterator())
@@ -160,14 +159,14 @@ export abstract class Dataset<T extends DataElement> {
       // If the size of any of these two dataset is infinity, new size is
       // infinity.
       size = Infinity;
-    } else if (this.size >= 0 && dataset.size >= 0) {
+    } else if (this.size != null && dataset.size != null) {
       // If the size of both datasets are known and not infinity, new size is
       // sum the size of these two datasets.
       size = this.size + dataset.size;
     } else {
       // If none of these two datasets has infinity size and any of these two
-      // datasets' size is undefined, the new size is undefined.
-      size = undefined;
+      // datasets' size is null, the new size is null.
+      size = null;
     }
     return datasetFromIteratorFn(
         async () =>
@@ -192,9 +191,18 @@ export abstract class Dataset<T extends DataElement> {
   /** @doc {heading: 'Data', subheading: 'Classes'} */
   filter(predicate: (value: T) => boolean): Dataset<T> {
     const base = this;
+    let size;
+    if (this.size === Infinity) {
+      // If the size of this dataset is infinity, new size is infinity
+      size = Infinity;
+    } else {
+      // If this dataset has limited elements, new size is null because it might
+      // exhausted randomly.
+      size = null;
+    }
     return datasetFromIteratorFn(async () => {
       return (await base.iterator()).filter(x => tf.tidy(() => predicate(x)));
-    });
+    }, size);
   }
 
   /**
@@ -234,7 +242,7 @@ export abstract class Dataset<T extends DataElement> {
     const base = this;
     return datasetFromIteratorFn(async () => {
       return (await base.iterator()).map(x => tf.tidy(() => transform(x)));
-    });
+    }, this.size);
   }
 
   /**
@@ -263,7 +271,7 @@ export abstract class Dataset<T extends DataElement> {
     const base = this;
     return datasetFromIteratorFn(async () => {
       return (await base.iterator()).mapAsync(transform);
-    });
+    }, this.size);
   }
 
   /**
@@ -278,7 +286,7 @@ export abstract class Dataset<T extends DataElement> {
   prefetch(bufferSize: number): Dataset<T> {
     const base = this;
     return datasetFromIteratorFn(
-        async () => (await base.iterator()).prefetch(bufferSize));
+        async () => (await base.iterator()).prefetch(bufferSize), this.size);
   }
 
   /**
@@ -301,7 +309,7 @@ export abstract class Dataset<T extends DataElement> {
   repeat(count?: number): Dataset<T> {
     const base = this;
     let size;
-    if (this.size >= 0 && count > 0) {
+    if (this.size != null && count > 0) {
       // If this dataset has size and count is positive, new size is current
       // size multiply count. This also covers the case that current size is
       // infinity.
@@ -309,14 +317,13 @@ export abstract class Dataset<T extends DataElement> {
     } else if (count === 0) {
       // If count is 0, new size is 0.
       size = 0;
-    } else if (this.size >= 0 && (count === undefined || count < 0)) {
+    } else if (this.size != null && (count === undefined || count < 0)) {
       // If this dataset has size and count is undefined or negative, the
       // dataset will be repeated indefinitely and new size is infinity.
       size = Infinity;
     } else {
-      // If the size of this dataset is undefined, the new dataset's size is
-      // undefined.
-      size = undefined;
+      // If the size of this dataset is null, the new dataset's size is null.
+      size = null;
     }
     return datasetFromIteratorFn(async () => {
       const iteratorIterator = iteratorFromFunction(
@@ -344,21 +351,20 @@ export abstract class Dataset<T extends DataElement> {
   skip(count: number): Dataset<T> {
     const base = this;
     let size;
-    if (this.size >= 0 && this.size >= count && count >= 0) {
+    if (this.size != null && count >= 0 && this.size >= count) {
       // If the size of this dataset is greater than count, the new dataset's
       // size is current size minus skipped size.This also covers the case that
       // current size is infinity.
       size = this.size - count;
     } else if (
-        this.size >= 0 &&
+        this.size != null &&
         (this.size < count || count === undefined || count < 0)) {
       // If the size of this dataset is smaller than count, or count is
       // undefined or negative, skips the entire dataset and the new size is 0.
       size = 0;
     } else {
-      // If the size of this dataset is undefined, the new dataset's size is
-      // undefined.
-      size = undefined;
+      // If the size of this dataset is null, the new dataset's size is null.
+      size = null;
     }
     return datasetFromIteratorFn(
         async () => (await base.iterator()).skip(count), size);
@@ -396,7 +402,7 @@ export abstract class Dataset<T extends DataElement> {
         seed2 += random.int32();
       }
       return (await base.iterator()).shuffle(bufferSize, seed2.toString());
-    });
+    }, this.size);
   }
 
   /**
@@ -418,18 +424,17 @@ export abstract class Dataset<T extends DataElement> {
   take(count: number): Dataset<T> {
     const base = this;
     let size;
-    if (this.size >= 0 && this.size > count) {
+    if (this.size != null && this.size > count) {
       // If the size of this dataset is greater than count, the new dataset's
       // size is count.
       size = count;
-    } else if (this.size >= 0 && this.size <= count) {
+    } else if (this.size != null && this.size <= count) {
       // If the size of this dataset is equal or smaller than count, the new
       // dataset's size is the size of this dataset.
       size = this.size;
     } else {
-      // If the size of this dataset is undefined, the new dataset's size is
-      // undefined.
-      size = undefined;
+      // If the size of this dataset is null, the new dataset's size is null.
+      size = null;
     }
     return datasetFromIteratorFn(
         async () => (await base.iterator()).take(count), size);
@@ -475,7 +480,8 @@ export abstract class Dataset<T extends DataElement> {
  * ```
  */
 export function datasetFromIteratorFn<T extends DataElement>(
-    iteratorFn: () => Promise<LazyIterator<T>>, size?: number): Dataset<T> {
+    iteratorFn: () => Promise<LazyIterator<T>>,
+    size: number = null): Dataset<T> {
   return new class extends Dataset<T> {
     size = size;
 
@@ -561,15 +567,13 @@ export function zip<O extends DataElement>(datasets: DatasetContainer):
   let size;
   if (Array.isArray(datasets)) {
     for (let i = 0; i < datasets.length; i++) {
-      size = size === undefined ?
-          (datasets[i] as Dataset<O>).size :
-          Math.min(size, (datasets[i] as Dataset<O>).size);
+      size = size == null ? (datasets[i] as Dataset<O>).size :
+                            Math.min(size, (datasets[i] as Dataset<O>).size);
     }
   } else if (datasets instanceof Object) {
     for (const ds in datasets) {
-      size = size === undefined ?
-          (datasets[ds] as Dataset<O>).size :
-          Math.min(size, (datasets[ds] as Dataset<O>).size);
+      size = size == null ? (datasets[ds] as Dataset<O>).size :
+                            Math.min(size, (datasets[ds] as Dataset<O>).size);
     }
   }
   return datasetFromIteratorFn<O>(async () => {

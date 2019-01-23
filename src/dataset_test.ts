@@ -651,7 +651,7 @@ describeWithFlags('Dataset', tf.test_util.CPU_ENVS, () => {
     const func = () =>
         ++i < 7 ? {value: i, done: false} : {value: null, done: true};
     const ds = tfd.generator(func);
-    expect(ds.size).toBeUndefined();
+    expect(ds.size).toBeNull();
   });
 
   it('repeat dataset has correct size', async () => {
@@ -669,7 +669,7 @@ describeWithFlags('Dataset', tf.test_util.CPU_ENVS, () => {
     const func = () =>
         ++i < 7 ? {value: i, done: false} : {value: null, done: true};
     const ds = tfd.generator(func).repeat(3);
-    expect(ds.size).toBeUndefined();
+    expect(ds.size).toBeNull();
   });
 
   it('take dataset has correct size', async () => {
@@ -687,7 +687,7 @@ describeWithFlags('Dataset', tf.test_util.CPU_ENVS, () => {
     const func = () =>
         ++i < 7 ? {value: i, done: false} : {value: null, done: true};
     const ds = tfd.generator(func).take(3);
-    expect(ds.size).toBeUndefined();
+    expect(ds.size).toBeNull();
   });
 
   it('take dataset with infinity elements has correct size', async () => {
@@ -710,7 +710,7 @@ describeWithFlags('Dataset', tf.test_util.CPU_ENVS, () => {
     const func = () =>
         ++i < 7 ? {value: i, done: false} : {value: null, done: true};
     const ds = tfd.generator(func).skip(3);
-    expect(ds.size).toBeUndefined();
+    expect(ds.size).toBeNull();
   });
 
   it('skip dataset with infinity elements has infinity size', async () => {
@@ -733,12 +733,48 @@ describeWithFlags('Dataset', tf.test_util.CPU_ENVS, () => {
     const func = () =>
         ++i < 7 ? {value: i, done: false} : {value: null, done: true};
     const ds = tfd.generator(func).batch(2);
-    expect(ds.size).toBeUndefined();
+    expect(ds.size).toBeNull();
   });
 
   it('batch dataset with infinity elements has infinity size', async () => {
     const ds = tfd.array([1, 2, 3, 4, 5]).repeat().batch(2);
     expect(ds.size).toEqual(Infinity);
+  });
+
+  it('map dataset preserves regular size', async () => {
+    const ds = tfd.array([1, 2, 3, 4, 5]).map(e => e + 1);
+    expect(ds.size).toEqual(5);
+  });
+
+  it('map dataset preserves infinity size', async () => {
+    const ds = tfd.array([1, 2, 3, 4, 5]).repeat().map(e => e + 1);
+    expect(ds.size).toEqual(Infinity);
+  });
+
+  it('map dataset preserves null size', async () => {
+    let i = -1;
+    const func = () =>
+        ++i < 7 ? {value: i, done: false} : {value: null, done: true};
+    const ds = tfd.generator(func).map(e => e + 1);
+    expect(ds.size).toBeNull();
+  });
+
+  it('filter dataset preserves infinity size', async () => {
+    const ds = tfd.array([1, 2, 3, 4, 5]).repeat().filter(e => e % 2 === 0);
+    expect(ds.size).toEqual(Infinity);
+  });
+
+  it('filter dataset with regular size has null size', async () => {
+    const ds = tfd.array([1, 2, 3, 4, 5]).filter(e => e % 2 === 0);
+    expect(ds.size).toBeNull();
+  });
+
+  it('filter dataset with null size has null size', async () => {
+    let i = -1;
+    const func = () =>
+        ++i < 7 ? {value: i, done: false} : {value: null, done: true};
+    const ds = tfd.generator(func).filter(e => e % 2 === 0);
+    expect(ds.size).toBeNull();
   });
 
   it('zipping an array of datasets with primitive elements has correct size',
