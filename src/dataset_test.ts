@@ -654,19 +654,122 @@ describeWithFlags('Dataset', tf.test_util.CPU_ENVS, () => {
     expect(ds.size).toBeUndefined();
   });
 
-  fit('zipping an array of datasets with primitive elements has correct size',
-      async () => {
-        const a = tfd.array([1, 2, 3]);
-        const b = tfd.array([4, 5, 6, 7, 8]);
-        const result = await tfd.zip([a, b]);
-        expect(result.size).toEqual(3);
-      });
+  it('repeat dataset has correct size', async () => {
+    const ds = tfd.array([1, 2, 3, 4, 5]).repeat(3);
+    expect(ds.size).toEqual(15);
+  });
 
-  fit('zipping an array of datasets with object elements has correct size',
-      async () => {
-        const a = tfd.array([{a: 1}, {a: 2}, {a: 3}]);
-        const b = tfd.array([{b: 4}, {b: 5}, {b: 6}, {b: 7}, {b: 8}]);
-        const result = await tfd.zip([a, b]);
-        expect(result.size).toEqual(3);
-      });
+  it('repeat dataset forever has infinity size', async () => {
+    const ds = tfd.array([1, 2, 3, 4, 5]).repeat();
+    expect(ds.size).toEqual(Infinity);
+  });
+
+  it('repeat undefined size dataset has undefined size', async () => {
+    let i = -1;
+    const func = () =>
+        ++i < 7 ? {value: i, done: false} : {value: null, done: true};
+    const ds = tfd.generator(func).repeat(3);
+    expect(ds.size).toBeUndefined();
+  });
+
+  it('take dataset has correct size', async () => {
+    const ds = tfd.array([1, 2, 3, 4, 5]).take(3);
+    expect(ds.size).toEqual(3);
+  });
+
+  it('take dataset without enough elements has correct size', async () => {
+    const ds = tfd.array([1, 2, 3, 4, 5]).take(10);
+    expect(ds.size).toEqual(5);
+  });
+
+  it('take dataset with undefined size has undefined size', async () => {
+    let i = -1;
+    const func = () =>
+        ++i < 7 ? {value: i, done: false} : {value: null, done: true};
+    const ds = tfd.generator(func).take(3);
+    expect(ds.size).toBeUndefined();
+  });
+
+  it('take dataset with infinity elements has correct size', async () => {
+    const ds = tfd.array([1, 2, 3, 4, 5]).repeat().take(10);
+    expect(ds.size).toEqual(10);
+  });
+
+  it('skip dataset has correct size', async () => {
+    const ds = tfd.array([1, 2, 3, 4, 5]).skip(2);
+    expect(ds.size).toEqual(3);
+  });
+
+  it('skip dataset without enough elements has correct size', async () => {
+    const ds = tfd.array([1, 2, 3, 4, 5]).skip(10);
+    expect(ds.size).toEqual(0);
+  });
+
+  it('skip dataset with undefined size has undefined size', async () => {
+    let i = -1;
+    const func = () =>
+        ++i < 7 ? {value: i, done: false} : {value: null, done: true};
+    const ds = tfd.generator(func).skip(3);
+    expect(ds.size).toBeUndefined();
+  });
+
+  it('skip dataset with infinity elements has infinity size', async () => {
+    const ds = tfd.array([1, 2, 3, 4, 5]).repeat().skip(10);
+    expect(ds.size).toEqual(Infinity);
+  });
+
+  it('batch dataset with small last batch has correct size', async () => {
+    const ds = tfd.array([1, 2, 3, 4, 5, 6, 7]).batch(2, true);
+    expect(ds.size).toEqual(4);
+  });
+
+  it('batch dataset without small last batch has correct size', async () => {
+    const ds = tfd.array([1, 2, 3, 4, 5, 6, 7]).batch(2, false);
+    expect(ds.size).toEqual(3);
+  });
+
+  it('batch dataset with undefined size has undefined size', async () => {
+    let i = -1;
+    const func = () =>
+        ++i < 7 ? {value: i, done: false} : {value: null, done: true};
+    const ds = tfd.generator(func).batch(2);
+    expect(ds.size).toBeUndefined();
+  });
+
+  it('batch dataset with infinity elements has infinity size', async () => {
+    const ds = tfd.array([1, 2, 3, 4, 5]).repeat().batch(2);
+    expect(ds.size).toEqual(Infinity);
+  });
+
+  it('zipping an array of datasets with primitive elements has correct size',
+     async () => {
+       const a = tfd.array([1, 2, 3]);
+       const b = tfd.array([4, 5, 6, 7, 8]);
+       const result = await tfd.zip([a, b]);
+       expect(result.size).toEqual(3);
+     });
+
+  it('zipping an array of datasets with object elements has correct size',
+     async () => {
+       const a = tfd.array([{a: 1}, {a: 2}, {a: 3}]);
+       const b = tfd.array([{b: 4}, {b: 5}, {b: 6}, {b: 7}, {b: 8}]);
+       const result = await tfd.zip([a, b]);
+       expect(result.size).toEqual(3);
+     });
+
+  it('zipping an object of datasets with primitive elements has correct size',
+     async () => {
+       const a = tfd.array([1, 2, 3]);
+       const b = tfd.array([4, 5, 6, 7, 8]);
+       const result = await tfd.zip({'a': a, 'b': b});
+       expect(result.size).toEqual(3);
+     });
+
+  it('zipping an object of datasets with object elements has correct size',
+     async () => {
+       const a = tfd.array([{a: 1}, {a: 2}, {a: 3}]);
+       const b = tfd.array([{b: 4}, {b: 5}, {b: 6}, {b: 7}, {b: 8}]);
+       const result = await tfd.zip({'a': a, 'b': b});
+       expect(result.size).toEqual(3);
+     });
 });

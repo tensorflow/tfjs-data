@@ -124,11 +124,11 @@ export abstract class Dataset<T extends DataElement> {
     } else if (this.size >= 0 && smallLastBatch) {
       // If the size of this dataset is known and include small last batch, the
       // new size is full batch count plus last batch.
-      size = this.size / batchSize + 1;
+      size = Math.floor(this.size / batchSize) + 1;
     } else if (this.size >= 0 && !smallLastBatch) {
       // If the size of this dataset is known and not include small last batch,
       // the new size is full batch count.
-      size = this.size / batchSize;
+      size = Math.floor(this.size / batchSize);
     } else {
       // If current dataset size is undefined, new size is undefined.
       size = undefined;
