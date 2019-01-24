@@ -32,7 +32,7 @@ export class FileDataSource extends DataSource {
    * Create a `FileDataSource`.
    *
    * @param input Local file path, or `File`/`Blob`/`Uint8Array` object to
-   *     read.
+   *     read. Local file only works in node environment.
    * @param options Options passed to the underlying `FileChunkIterator`s,
    *   such as {chunksize: 1024}.
    */
@@ -48,6 +48,8 @@ export class FileDataSource extends DataSource {
       const fs = require('fs');
       this.input = fs.readFileSync((this.input as string).substr(7));
     }
+    // TODO(kangyizhang): Add LocalFileChunkIterator to split local streaming
+    // with file in browser.
     return new FileChunkIterator(this.input as FileElement, this.options);
   }
 }

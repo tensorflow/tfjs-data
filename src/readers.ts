@@ -80,7 +80,7 @@ import {CSVConfig, DataElement} from './types';
  * ```
  *
  * @param source URL or local path to get CSV file. If it's a local path, it
- * must have prefix `file://`.
+ * must have prefix `file://` and it only works in node environment.
  * @param csvConfig (Optional) A CSVConfig object that contains configurations
  *     of reading and decoding from CSV file(s).
  */
