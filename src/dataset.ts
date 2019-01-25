@@ -117,7 +117,8 @@ export abstract class Dataset<T extends DataElement> {
   /** @doc {heading: 'Data', subheading: 'Classes'} */
   batch(batchSize: number, smallLastBatch = true): Dataset<DataElement> {
     const base = this;
-    tf.util.assert(batchSize > 0, 'batchSize need to be positive!');
+    tf.util.assert(batchSize > 0, `batchSize need to be positive, but it is
+      ${batchSize}`);
     let size;
     if (this.size === Infinity || this.size == null) {
       // If the size of this dataset is infinity or null, the new size keeps the
@@ -126,7 +127,7 @@ export abstract class Dataset<T extends DataElement> {
     } else if (smallLastBatch) {
       // If the size of this dataset is known and include small last batch, the
       // new size is full batch count plus last batch.
-      size = Math.floor(this.size / batchSize) + 1;
+      size = Math.ceil(this.size / batchSize);
     } else {
       // If the size of this dataset is known and not include small last batch,
       // the new size is full batch count.
@@ -164,7 +165,7 @@ export abstract class Dataset<T extends DataElement> {
       // sum the size of these two datasets.
       size = this.size + dataset.size;
     } else {
-      // If none of these two datasets has infinity size and any of these two
+      // If neither of these two datasets has infinity size and any of these two
       // datasets' size is null, the new size is null.
       size = null;
     }
