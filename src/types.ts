@@ -18,7 +18,6 @@
 
 import {DataType} from '@tensorflow/tfjs-core';
 import {TensorContainer, TensorContainerArray, TensorContainerObject} from '@tensorflow/tfjs-core/dist/tensor_types';
-
 import {Dataset} from './dataset';
 import {LazyIterator} from './iterators/lazy_iterator';
 
@@ -137,3 +136,18 @@ export interface CSVConfig {
    */
   delimiter?: string;
 }
+
+export type JavascriptGenerator<T extends DataElement> = () => {
+  next: () => {
+    value: T;
+    done: boolean;
+  }
+};
+
+export type JavascriptIterator<T extends DataElement> = {
+  next:
+      () => {
+        value: T;
+        done: boolean;
+      }
+};
