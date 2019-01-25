@@ -114,7 +114,7 @@ export function csv(source: string, csvConfig: CSVConfig = {}): CSVDataset {
  * let i = -1;
  * const func = () =>
  *    ++i < 5 ? {value: i, done: false} : {value: null, done: true};
- * const ds = tf.data.generator(func);
+ * const ds = tf.data.fromFunction(func);
  * await ds.forEach(e => console.log(e));
  * ```
  *
@@ -145,9 +145,9 @@ export function fromFunction<T extends DataElement>(
  * Example of generating a dataset from iterator:
  * ```js
  * function makeIterator() {
- *  let iterationCount = 0;
+ *   let iterationCount = 0;
  *
- *  const iterator = {
+ *   const iterator = {
  *     next: () => {
  *       let result;
  *       if (iterationCount <= 10) {
@@ -161,7 +161,8 @@ export function fromFunction<T extends DataElement>(
  *   return iterator;
  * }
  *
- * const ds = tfd.generator(makeIterator());
+ * const iter = makeIterator();
+ * const ds = tfd.generator(iter);
  * ds.forEach(e => console.log(e));
  * ```
  *
