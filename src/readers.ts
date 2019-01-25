@@ -20,7 +20,7 @@ import {Dataset, datasetFromIteratorFn} from './dataset';
 import {CSVDataset} from './datasets/csv_dataset';
 import {iteratorFromFunction} from './iterators/lazy_iterator';
 import {URLDataSource} from './sources/url_data_source';
-import {CSVConfig, DataElement, JavascriptGenerator, JavascriptIterator} from './types';
+import {CSVConfig, DataElement} from './types';
 
 /**
  * Create a `CSVDataset` by reading and decoding CSV file(s) from provided URL
@@ -120,15 +120,7 @@ export function csv(source: string, csvConfig: CSVConfig = {}): CSVDataset {
  *
  * @param f A function that produces one data element on each call.
  */
-/**
- * @doc {
- *   heading: 'Data',
- *   subheading: 'Creation',
- *   namespace: 'data',
- *   configParamIndices: [1]
- *  }
- */
-export function fromFunction<T extends DataElement>(
+export function func<T extends DataElement>(
     f: () => IteratorResult<T>| Promise<IteratorResult<T>>): Dataset<T> {
   const iter = iteratorFromFunction(f);
   return datasetFromIteratorFn(async () => iter);
@@ -142,40 +134,38 @@ export function fromFunction<T extends DataElement>(
  * format of `{value: DataElement, done:boolean}`. Provided generator should be
  * a function which returns a iterator.
  *
- * Example of generating a dataset from iterator:
+ * Example of creating a dataset from an iterator factory:
  * ```js
  * function makeIterator() {
- *   let iterationCount = 0;
+ *   const numElements = 10;
+ *   let index = 0;
  *
  *   const iterator = {
  *     next: () => {
  *       let result;
- *       if (iterationCount <= 10) {
- *         result = {value: iterationCount, done: false};
- *         iterationCount++;
+ *       if (index < numElements) {
+ *         result = {value: index, done: false};
+ *         index++;
  *         return result;
  *       }
- *       return {value: iterationCount, done: true};
+ *       return {value: index, done: true};
  *     }
  *   };
  *   return iterator;
  * }
- *
- * const iter = makeIterator();
- * const ds = tfd.generator(iter);
+ * const ds = tfd.generator(makeIterator);
  * ds.forEach(e => console.log(e));
  * ```
  *
- * Example of generating a dataset from generator:
+ * Example of creating a dataset from a generator:
  * ```js
  * function* dataGenerator() {
  *   const numElements = 10;
  *   let index = 0;
  *   while (index < numElements) {
  *     const x = index;
- *     const y = index * 2;
  *     index++;
- *     yield [x, y];
+ *     yield x;
  *   }
  * }
  *
@@ -183,9 +173,8 @@ export function fromFunction<T extends DataElement>(
  * ds.forEach(e => console.log(e));
  * ```
  *
- * @param generator A JavaScript iterator which has `.next()` function that
- *     produces one data element on each call, or a Javascript generator
- *     function that returns a JavaScript iterator.
+ * @param generator A Javascript generator function that returns a JavaScript
+ *     iterator.
  */
 /**
  * @doc {
@@ -196,13 +185,7 @@ export function fromFunction<T extends DataElement>(
  *  }
  */
 export function generator<T extends DataElement>(
-    generator: JavascriptGenerator<T>|JavascriptIterator<T>): Dataset<T> {
-  let iterator;
-  if (generator instanceof Function) {
-    iterator = generator();
-  } else {
-    iterator = generator;
-  }
-  const iter = iteratorFromFunction(iterator.next);
-  return datasetFromIteratorFn(async () => iter);
+    generator: () => Iterator<T>): Dataset<T> {
+  return datasetFromIteratorFn(
+    async () => iteratorFromFunction(generator().next));
 }

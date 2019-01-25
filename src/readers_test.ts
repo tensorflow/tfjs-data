@@ -17,14 +17,14 @@
 
 import * as tf from '@tensorflow/tfjs-core';
 import {describeWithFlags} from '@tensorflow/tfjs-core/dist/jasmine_util';
-import {fromFunction, generator} from './readers';
+import {func, generator} from './readers';
 
 describeWithFlags('readers', tf.test_util.ALL_ENVS, () => {
   it('generate dataset from function', async () => {
     let i = -1;
-    const func = () =>
+    const f = () =>
         ++i < 5 ? {value: i, done: false} : {value: null, done: true};
-    const ds = fromFunction(func);
+    const ds = func(f);
     const result = await ds.toArray();
     expect(result).toEqual([0, 1, 2, 3, 4]);
   });
@@ -44,10 +44,26 @@ describeWithFlags('readers', tf.test_util.ALL_ENVS, () => {
     expect(result).toEqual([0, 1, 2, 3, 4]);
   });
 
-  it('generate dataset from JavaScript iterator', async () => {
+  it('generate multiple datasets from JavaScript generator', async () => {
+    function* dataGenerator() {
+      const numElements = 5;
+      let index = 0;
+      while (index < numElements) {
+        const x = index;
+        index++;
+        yield x;
+      }
+    }
+    const ds = generator(dataGenerator);
+    const result1 = await ds.toArray();
+    expect(result1).toEqual([0, 1, 2, 3, 4]);
+    const result2 = await ds.toArray();
+    expect(result2).toEqual([0, 1, 2, 3, 4]);
+  });
+
+  it('generate dataset from JavaScript iterator factory', async () => {
     function makeIterator() {
       let iterationCount = 0;
-
       const iterator = {
         next: () => {
           let result;
@@ -61,9 +77,32 @@ describeWithFlags('readers', tf.test_util.ALL_ENVS, () => {
       };
       return iterator;
     }
-    const iter = makeIterator();
-    const ds = generator(iter);
+    const ds = generator(makeIterator);
     const result = await ds.toArray();
     expect(result).toEqual([0, 1, 2, 3, 4]);
+  });
+
+  it('generate multiple datasets from JavaScript iterator factory',
+  async () => {
+    function makeIterator() {
+      let iterationCount = 0;
+      const iterator = {
+        next: () => {
+          let result;
+          if (iterationCount < 5) {
+            result = {value: iterationCount, done: false};
+            iterationCount++;
+            return result;
+          }
+          return {value: iterationCount, done: true};
+        }
+      };
+      return iterator;
+    }
+    const ds = generator(makeIterator);
+    const result1 = await ds.toArray();
+    expect(result1).toEqual([0, 1, 2, 3, 4]);
+    const result2 = await ds.toArray();
+    expect(result2).toEqual([0, 1, 2, 3, 4]);
   });
 });

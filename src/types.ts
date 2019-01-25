@@ -136,18 +136,3 @@ export interface CSVConfig {
    */
   delimiter?: string;
 }
-
-export type JavascriptGenerator<T extends DataElement> = () => {
-  next: () => {
-    value: T;
-    done: boolean;
-  }
-};
-
-export type JavascriptIterator<T extends DataElement> = {
-  next:
-      () => {
-        value: T;
-        done: boolean;
-      }
-};
