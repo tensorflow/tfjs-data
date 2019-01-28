@@ -17,14 +17,14 @@
 
 import * as tf from '@tensorflow/tfjs-core';
 import {describeWithFlags} from '@tensorflow/tfjs-core/dist/jasmine_util';
-import {func, generator} from './readers';
+import *as tfd from './readers';
 
 describeWithFlags('readers', tf.test_util.ALL_ENVS, () => {
   it('generate dataset from function', async () => {
     let i = -1;
     const f = () =>
         ++i < 5 ? {value: i, done: false} : {value: null, done: true};
-    const ds = func(f);
+    const ds = tfd.func(f);
     const result = await ds.toArray();
     expect(result).toEqual([0, 1, 2, 3, 4]);
   });
@@ -39,7 +39,7 @@ describeWithFlags('readers', tf.test_util.ALL_ENVS, () => {
         yield x;
       }
     }
-    const ds = generator(dataGenerator);
+    const ds = tfd.generator(dataGenerator);
     const result = await ds.toArray();
     expect(result).toEqual([0, 1, 2, 3, 4]);
   });
@@ -54,7 +54,7 @@ describeWithFlags('readers', tf.test_util.ALL_ENVS, () => {
         yield x;
       }
     }
-    const ds = generator(dataGenerator);
+    const ds = tfd.generator(dataGenerator);
     const result1 = await ds.toArray();
     expect(result1).toEqual([0, 1, 2, 3, 4]);
     const result2 = await ds.toArray();
@@ -77,7 +77,7 @@ describeWithFlags('readers', tf.test_util.ALL_ENVS, () => {
       };
       return iterator;
     }
-    const ds = generator(makeIterator);
+    const ds = tfd.generator(makeIterator);
     const result = await ds.toArray();
     expect(result).toEqual([0, 1, 2, 3, 4]);
   });
@@ -99,7 +99,7 @@ describeWithFlags('readers', tf.test_util.ALL_ENVS, () => {
       };
       return iterator;
     }
-    const ds = generator(makeIterator);
+    const ds = tfd.generator(makeIterator);
     const result1 = await ds.toArray();
     expect(result1).toEqual([0, 1, 2, 3, 4]);
     const result2 = await ds.toArray();

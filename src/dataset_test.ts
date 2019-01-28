@@ -223,7 +223,7 @@ describeWithFlags('Dataset', tf.test_util.CPU_ENVS, () => {
      async done => {
        try {
          let count = 0;
-         const a = tfd.function(async () => {
+         const a = tfd.func(async () => {
            if (count > 2) {
              throw new Error('propagate me!');
            }

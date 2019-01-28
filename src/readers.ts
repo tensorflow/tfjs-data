@@ -128,11 +128,10 @@ export function func<T extends DataElement>(
 
 /**
  * Create a `Dataset` that produces each element from provided JavaScript
- * generator or iterator.
+ * generator, which is a function*, or a function that returns iterators.
  *
- * Provided iterator should have `.next()` function that returns element in
- * format of `{value: DataElement, done:boolean}`. Provided generator should be
- * a function which returns a iterator.
+ * The returned iterator should have `.next()` function that returns element in
+ * format of `{value: DataElement, done:boolean}`.
  *
  * Example of creating a dataset from an iterator factory:
  * ```js
