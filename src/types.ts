@@ -136,3 +136,9 @@ export interface CSVConfig {
    */
   delimiter?: string;
 }
+
+export interface WebcamConfig {
+  width?:number,
+  height?:number,
+  frameRate?:number
+}
