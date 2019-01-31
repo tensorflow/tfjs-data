@@ -19,6 +19,8 @@
 import * as tf from '@tensorflow/tfjs-core';
 import {describeWithFlags} from '@tensorflow/tfjs-core/dist/jasmine_util';
 import {TensorContainerObject} from '@tensorflow/tfjs-core/dist/tensor_types';
+
+import {array} from './dataset';
 import * as tfd from './index';
 import {iteratorFromItems, LazyIterator} from './iterators/lazy_iterator';
 import {DataElementObject, DatasetContainer} from './types';
@@ -68,24 +70,14 @@ function complexifyExampleAsDict(simple: any): {} {
   const y = simple['Tensor2'];
   const z = simple['string'];
   return {
-    a: [v, w, {aa: [x, y, z], ab: [v, w, x]}],
+    a: {v, w, q: {aa: {x, y, z}, ab: {v, w, x}}},
     b: {
       ba: {baa: y, bab: z, bac: v},
       bb: {bba: w, bbb: x, bbc: y},
       bc: {bca: z, bcb: v, bcc: w}
     },
-    c: [[x, y, z], [v, w, x], [y, z, v]]
+    c: {ca: {x, y, z}, cb: {v, w, x}, cc: {y, z, v}},
   };
-}
-
-// tslint:disable-next-line:no-any
-function complexifyExampleAsArray(simple: any): {} {
-  const v = simple['number'];
-  const w = simple['numberArray'];
-  const x = simple['Tensor'];
-  const y = simple['Tensor2'];
-  const z = simple['string'];
-  return [{a: v, b: w}, {ca: [x, y, z], cb: [v, w, x]}];
 }
 
 describeWithFlags('Dataset', tf.test_util.CPU_ENVS, () => {
@@ -351,77 +343,91 @@ describeWithFlags('Dataset', tf.test_util.CPU_ENVS, () => {
        result.slice(0, 12).forEach((compare: any) => {
          // TODO(soergel): could use deepMap to implement deep compare.
          // For now, just spot-check a few deep entries.
-         expect(compare.complexThenBatch.a[0].shape)
-             .toEqual(compare.batchThenComplex.a[0].shape);
-         expect(compare.complexThenBatch.a[0].dataSync())
-             .toEqual(compare.batchThenComplex.a[0].dataSync());
+         expect(compare.complexThenBatch.a.v.shape)
+             .toEqual(compare.batchThenComplex.a.v.shape);
+         expect(compare.complexThenBatch.a.v.dataSync())
+             .toEqual(compare.batchThenComplex.a.v.dataSync());
 
-         expect(compare.complexThenBatch.a[2].ab[2].shape)
-             .toEqual(compare.batchThenComplex.a[2].ab[2].shape);
-         expect(compare.complexThenBatch.a[2].ab[2].dataSync())
-             .toEqual(compare.batchThenComplex.a[2].ab[2].dataSync());
+         expect(compare.complexThenBatch.a.q.ab.x.shape)
+             .toEqual(compare.batchThenComplex.a.q.ab.x.shape);
+         expect(compare.complexThenBatch.a.q.ab.x.dataSync())
+             .toEqual(compare.batchThenComplex.a.q.ab.x.dataSync());
 
          expect(compare.complexThenBatch.b.bb.bbb.shape)
              .toEqual(compare.batchThenComplex.b.bb.bbb.shape);
          expect(compare.complexThenBatch.b.bb.bbb.dataSync())
              .toEqual(compare.batchThenComplex.b.bb.bbb.dataSync());
 
-         expect(compare.complexThenBatch.c[1][1].shape)
-             .toEqual(compare.batchThenComplex.c[1][1].shape);
-         expect(compare.complexThenBatch.c[1][1].dataSync())
-             .toEqual(compare.batchThenComplex.c[1][1].dataSync());
+         expect(compare.complexThenBatch.c.ca.x.shape)
+             .toEqual(compare.batchThenComplex.c.ca.x.shape);
+         expect(compare.complexThenBatch.c.ca.x.dataSync())
+             .toEqual(compare.batchThenComplex.c.ca.x.dataSync());
        });
        tf.dispose(result);
        expect(tf.ENV.engine.memory().numTensors).toBe(0);
      });
 
-  it('batches complex nested arrays into column-oriented batches', async () => {
-    // Our "complexified" examples map the simple examples into a deep
-    // nested structure. This test shows that batching complexified examples
-    // produces the same result as complexifying batches of simple examples.
+  it('batches nested numeric arrays into a single Tensor', async () => {
+    const dataset =
+        new TestDataset()
+            .map((e) => {
+              const a = e.number as number;
+              const b = a * 2;
+              const c = b + 5;
+              return {
+                foo: [[[a, b], [c, a], [b, c]], [[b, c], [a, b], [c, a]]]
+              };
+            })
+            .batch(8);
 
-    const complexThenBatch =
-        new TestDataset().map(complexifyExampleAsArray).batch(8);
-    const batchThenComplex =
-        new TestDataset().batch(8).map(complexifyExampleAsArray);
-
-    const compareDataset = tfd.zip({complexThenBatch, batchThenComplex});
-
-    const result = await (await compareDataset.iterator()).collect();
-
+    const result = await (await dataset.iterator()).collect();
     expect(result.length).toEqual(13);
+
     // tslint:disable-next-line:no-any
-    result.slice(0, 12).forEach((compare: any) => {
-      // TODO(soergel): could use deepMap to implement deep compare.
-      // For now, just spot-check a few deep entries.
-      expect(compare.complexThenBatch[0].a.shape)
-          .toEqual(compare.batchThenComplex[0].a.shape);
-      expect(compare.complexThenBatch[0].a.dataSync())
-          .toEqual(compare.batchThenComplex[0].a.dataSync());
-
-      expect(compare.complexThenBatch[0].b.shape)
-          .toEqual(compare.batchThenComplex[0].b.shape);
-      expect(compare.complexThenBatch[0].b.dataSync())
-          .toEqual(compare.batchThenComplex[0].b.dataSync());
-
-      expect(compare.complexThenBatch[1].ca[0].shape)
-          .toEqual(compare.batchThenComplex[1].ca[0].shape);
-      expect(compare.complexThenBatch[1].ca[0].dataSync())
-          .toEqual(compare.batchThenComplex[1].ca[0].dataSync());
-
-      expect(compare.complexThenBatch[1].ca[1].shape)
-          .toEqual(compare.batchThenComplex[1].ca[1].shape);
-      expect(compare.complexThenBatch[1].ca[1].dataSync())
-          .toEqual(compare.batchThenComplex[1].ca[1].dataSync());
-
-      expect(compare.complexThenBatch[1].ca[2].length)
-          .toEqual(compare.batchThenComplex[1].ca[2].length);
-      expect(compare.complexThenBatch[1].ca[2])
-          .toEqual(compare.batchThenComplex[1].ca[2]);
+    result.slice(0, 12).forEach((e: any) => {
+      expect(e.foo instanceof tf.Tensor).toBeTruthy();
+      expect(e.foo.shape).toEqual([8, 2, 3, 2]);
     });
+
     tf.dispose(result);
     expect(tf.ENV.engine.memory().numTensors).toBe(0);
   });
+
+  // TODO(soergel, smilkov): Reinstate this once tfjs-core enforces TensorLike.
+  /*
+  it('throws an error when given an array containing a dict', async done => {
+    // const prevFlag = tf.ENV.get('TENSORLIKE_CHECK_SHAPE_CONSISTENCY');
+    // tf.ENV.set('TENSORLIKE_CHECK_SHAPE_CONSISTENCY', true);
+    const dataset = array([[1, {a: 2, b: 3}], [4, {a: 5, b: 6}]]).batch(2);
+    try {
+      await (await dataset.iterator()).collect();
+      done.fail();
+    } catch (e) {
+      expect(e.message).toEqual('TODO');
+      done();
+    }
+    expect(tf.ENV.engine.memory().numTensors).toBe(0);
+    // tf.ENV.set('TENSORLIKE_CHECK_SHAPE_CONSISTENCY', prevFlag);
+  });
+  */
+
+  it('throws an error when given an array of inconsistent shape',
+     async done => {
+       // TODO(soergel): is this flag guaranteed on in testing anyway?
+       // const prevFlag = tf.ENV.get('TENSORLIKE_CHECK_SHAPE_CONSISTENCY');
+       // tf.ENV.set('TENSORLIKE_CHECK_SHAPE_CONSISTENCY', true);
+       const dataset = array([[[1, 2], [3]], [[4, 5], [6]]]).batch(2);
+       try {
+         await (await dataset.iterator()).collect();
+         done.fail();
+       } catch (e) {
+         expect(e.message).toEqual(
+             'Element arr[0][1] should have 2 elements, but has 1 elements');
+         done();
+       }
+       expect(tf.ENV.engine.memory().numTensors).toBe(0);
+       // tf.ENV.set('TENSORLIKE_CHECK_SHAPE_CONSISTENCY', prevFlag);
+     });
 
   it('batch creates a small last batch', async () => {
     const ds = new TestDataset();

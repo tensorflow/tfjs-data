@@ -252,23 +252,12 @@ export function isIterable(obj: any): boolean {
 }
 
 /**
- * Determine whether the argument is an array of numbers.
+ * Determine whether the argument is an object, but not a Tensor or an array.
  *
- * @returns true if the argument is an array and all of its children are
- *   numbers; false otherwise.
+ * @returns true if the argument is any non-Tensor object (not an array).
  */
 // tslint:disable-next-line:no-any
-export function isNumericArray(obj: any): boolean {
-  if (obj == null) {
-    return false;
-  }
-  if (!Array.isArray(obj)) {
-    return false;
-  }
-  for (const k in obj) {
-    if (typeof obj[k] !== 'number') {
-      return false;
-    }
-  }
-  return true;
+export function isNonTensorObject(obj: any): boolean {
+  return obj != null && !Array.isArray(obj) &&
+      (typeof obj === 'object' && !(obj instanceof tf.Tensor));
 }
