@@ -110,8 +110,8 @@ describeWithFlags('readers', tf.test_util.ALL_ENVS, () => {
     async function waitAndCreateCount() {
       return new Promise(resolve => {
         setTimeout(() => {
-          resolve(3)
-        }, 1000)
+          resolve(3);
+        }, 1000);
       });
     }
     async function makeIterator() {
@@ -128,7 +128,7 @@ describeWithFlags('readers', tf.test_util.ALL_ENVS, () => {
           }
         };
         return iterator;
-    };
+    }
     const ds = tfd.generator(makeIterator);
     const result = await ds.toArray();
     expect(result).toEqual([3, 4, 5]);
