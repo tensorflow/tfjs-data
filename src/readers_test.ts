@@ -17,7 +17,7 @@
 
 import * as tf from '@tensorflow/tfjs-core';
 import {describeWithFlags} from '@tensorflow/tfjs-core/dist/jasmine_util';
-import *as tfd from './readers';
+import * as tfd from './readers';
 
 describeWithFlags('readers', tf.test_util.ALL_ENVS, () => {
   it('generate dataset from function', async () => {
@@ -104,5 +104,33 @@ describeWithFlags('readers', tf.test_util.ALL_ENVS, () => {
     expect(result1).toEqual([0, 1, 2, 3, 4]);
     const result2 = await ds.toArray();
     expect(result2).toEqual([0, 1, 2, 3, 4]);
+  });
+
+  it('generate dataset from async iterator factory', async () => {
+    async function waitAndCreateCount() {
+      return new Promise(resolve => {
+        setTimeout(() => {
+          resolve(3)
+        }, 1000)
+      });
+    }
+    async function makeIterator() {
+        let iterationCount = (await waitAndCreateCount()) as number;
+        const iterator = {
+          next: () => {
+            let result;
+            if (iterationCount < 6) {
+              result = {value: iterationCount, done: false};
+              iterationCount++;
+              return result;
+            }
+            return {value: iterationCount, done: true};
+          }
+        };
+        return iterator;
+    };
+    const ds = tfd.generator(makeIterator);
+    const result = await ds.toArray();
+    expect(result).toEqual([3, 4, 5]);
   });
 });
