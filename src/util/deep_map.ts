@@ -17,6 +17,7 @@
  */
 
 import * as tf from '@tensorflow/tfjs-core';
+import {isTypedArray} from '@tensorflow/tfjs-core/dist/util';
 
 // tslint:disable:no-any
 
@@ -252,12 +253,14 @@ export function isIterable(obj: any): boolean {
 }
 
 /**
- * Determine whether the argument is an object, but not a Tensor or an array.
+ * Determine whether the argument is an object, but not a Tensor, an array, or
+ * a TypedArray.
  *
  * @returns true if the argument is any non-Tensor object (not an array).
  */
 // tslint:disable-next-line:no-any
 export function isNonTensorObject(obj: any): boolean {
   return obj != null && !Array.isArray(obj) &&
-      (typeof obj === 'object' && !(obj instanceof tf.Tensor));
+      (typeof obj === 'object' && !(obj instanceof tf.Tensor) &&
+       !isTypedArray(obj));
 }

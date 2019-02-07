@@ -73,17 +73,21 @@ export abstract class Dataset<T extends DataElement> {
   // abstract isDeterministic(): boolean;
 
   /**
-   * Groups elements into batches and arranges their values in columnar
-   * form.
+   * Groups elements into batches.
    *
    * It is assumed that each of the incoming dataset elements has the same
    * structure-- i.e. the same set of keys at each location in an object
    * hierarchy.  For each key, the resulting `Dataset` provides a batched
-   * element collecting all of the incoming values for that key.  Incoming
-   * strings are grouped into a string[].  Incoming Tensors are grouped into a
-   * new Tensor where the 0'th axis is the batch dimension.  Incoming arrays are
-   * converted to Tensor and then batched.  A nested array is interpreted as an
-   * n-D Tensor.  An array that cannot be converted to Tensor produces an error.
+   * element collecting all of the incoming values for that key.
+   *
+   *  * Incoming strings are grouped into a string[].
+   *  * Incoming Tensors are grouped into a new Tensor where the 0'th axis is
+   *    the batch dimension.
+   *  * Incoming arrays are converted to Tensor and then batched.
+   *  * A nested array is interpreted as an n-D Tensor, so the batched result
+   *    has n+1 dimensions.
+   *  * An array that cannot be converted to Tensor produces an error.
+   *
    * If an array should not be batched as a unit, it should first be converted
    * to an object with integer keys.
    *
@@ -467,13 +471,6 @@ export abstract class Dataset<T extends DataElement> {
   async toArray() {
     return (await this.iterator()).collect();
   }
-
-  /* TODO(soergel): for parity with tf.data:
-  Dataset.flat_map()
-  Dataset.dense_to_sparse_batch()
-  Dataset.group_by_window()
-  Dataset.padded_batch()
-  */
 }
 
 /**
