@@ -19,7 +19,7 @@
 import * as tf from '@tensorflow/tfjs-core';
 
 // tslint:disable-next-line:max-line-length
-import {deepMap, deepMapAndAwaitAll, DeepMapAsyncResult, DeepMapResult, deepZip, isIterable, isNonTensorObject} from './deep_map';
+import {canTensorify, deepMap, deepMapAndAwaitAll, DeepMapAsyncResult, DeepMapResult, deepZip, isIterable} from './deep_map';
 
 const integerNames = [
   'zero', 'one', 'two', 'three', ['an array representing', 'four'],
@@ -231,30 +231,30 @@ describe('deepZip', () => {
     expect(() => deepZip(input)).toThrowError();
   });
 
-  describe('isNonTensorObject', () => {
-    it('returns false for primitives', () => {
-      expect(isNonTensorObject('a')).toBeFalsy();
-      expect(isNonTensorObject(1)).toBeFalsy();
-      expect(isNonTensorObject(true)).toBeFalsy();
+  describe('canTensorify', () => {
+    it('returns true for primitives', () => {
+      expect(canTensorify('a')).toBeTruthy();
+      expect(canTensorify(1)).toBeTruthy();
+      expect(canTensorify(true)).toBeTruthy();
     });
 
-    it('returns false for arrays', () => {
-      expect(isNonTensorObject(['a', 'b', 'c'])).toBeFalsy();
-      expect(isNonTensorObject([1, 2, 3])).toBeFalsy();
-      expect(isNonTensorObject([true, false, true])).toBeFalsy();
+    it('returns true for arrays', () => {
+      expect(canTensorify(['a', 'b', 'c'])).toBeTruthy();
+      expect(canTensorify([1, 2, 3])).toBeTruthy();
+      expect(canTensorify([true, false, true])).toBeTruthy();
     });
 
-    it('returns false for TypedArrays', () => {
-      expect(isNonTensorObject(new Float32Array([1, 2, 3]))).toBeFalsy();
-      expect(isNonTensorObject(new Int32Array([1, 2, 3]))).toBeFalsy();
+    it('returns true for TypedArrays', () => {
+      expect(canTensorify(new Float32Array([1, 2, 3]))).toBeTruthy();
+      expect(canTensorify(new Int32Array([1, 2, 3]))).toBeTruthy();
     });
 
-    it('returns false for Tensors', () => {
-      expect(isNonTensorObject(tf.tensor([1, 2, 3]))).toBeFalsy();
+    it('returns true for Tensors', () => {
+      expect(canTensorify(tf.tensor([1, 2, 3]))).toBeTruthy();
     });
 
-    it('returns true for non-Tensor objects', () => {
-      expect(isNonTensorObject({a: 1, b: 2, c: 3})).toBeTruthy();
+    it('returns false for non-Tensor objects', () => {
+      expect(canTensorify({a: 1, b: 2, c: 3})).toBeFalsy();
     });
   });
 });

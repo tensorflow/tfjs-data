@@ -253,13 +253,15 @@ export function isIterable(obj: any): boolean {
 }
 
 /**
- * Determine whether the argument is an object, but not a Tensor, an array, or
- * a TypedArray.
+ * Determine whether the argument can be converted to Tensor.
  *
- * @returns true if the argument is any non-Tensor object (not an array).
+ * Tensors, primitives, arrays, and TypedArrays all qualify; anything else does
+ * not.
+ *
+ * @returns true if the argument can be converted to Tensor.
  */
 // tslint:disable-next-line:no-any
-export function isNonTensorObject(obj: any): boolean {
+export function canTensorify(obj: any): boolean {
   return obj != null && !Array.isArray(obj) &&
       (typeof obj === 'object' && !(obj instanceof tf.Tensor) &&
        !isTypedArray(obj));

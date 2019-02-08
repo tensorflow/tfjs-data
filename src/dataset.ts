@@ -22,7 +22,8 @@ import * as seedrandom from 'seedrandom';
 
 import {iteratorFromConcatenated, iteratorFromFunction, iteratorFromItems, iteratorFromZipped, LazyIterator, ZipMismatchMode} from './iterators/lazy_iterator';
 import {DataElement, DatasetContainer} from './types';
-import {deepMapAndAwaitAll, DeepMapResult, isIterable, isNonTensorObject} from './util/deep_map';
+import {canTensorify, deepMapAndAwaitAll, DeepMapResult, isIterable} from './util/deep_map';
+
 
 // TODO(soergel): consider vectorized operations within the pipeline.
 
@@ -91,8 +92,7 @@ export abstract class Dataset<T extends DataElement> {
    * If an array should not be batched as a unit, it should first be converted
    * to an object with integer keys.
    *
-   * These columnar representations for each key can be zipped together to
-   * reconstruct the original dataset elements.
+   * Here are a few examples:
    *
    * Batch a dataset of numbers:
    * ```js
@@ -620,14 +620,15 @@ function deepBatchConcat(rows: any[]): DeepMapResult {
     return {value: rows, recurse: false};
   }
 
-  if (isNonTensorObject(exampleRow)) {
-    // the example row is an object, so recurse into it.
-    return {value: null, recurse: true};
+  if (canTensorify(exampleRow)) {
+    // rows is an array of non-string primitives, Tensors, or arrays.  Batch
+    // them.
+    const value = batchConcat(rows);
+    return {value, recurse: false};
   }
 
-  // rows is an array of non-string primitives, Tensors, or arrays.  Batch them.
-  const value = batchConcat(rows);
-  return {value, recurse: false};
+  // the example row is an object, so recurse into it.
+  return {value: null, recurse: true};
 }
 
 /**
