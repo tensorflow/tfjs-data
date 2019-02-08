@@ -492,7 +492,7 @@ describeWithFlags(
         tf.dispose(expectedNumberArrayLastBatch);
         tf.dispose(expectedTensorLastBatch);
         tf.dispose(expectedTensor2LastBatch);
-        tf.dispose(expectedStringLastBatch)
+        tf.dispose(expectedStringLastBatch);
 
         expect(tf.ENV.engine.memory().numTensors).toBe(0);
       });

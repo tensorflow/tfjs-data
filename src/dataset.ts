@@ -24,7 +24,6 @@ import {iteratorFromConcatenated, iteratorFromFunction, iteratorFromItems, itera
 import {DataElement, DatasetContainer} from './types';
 import {canTensorify, deepMapAndAwaitAll, DeepMapResult, isIterable} from './util/deep_map';
 
-
 // TODO(soergel): consider vectorized operations within the pipeline.
 
 /**
