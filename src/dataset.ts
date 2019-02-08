@@ -81,7 +81,7 @@ export abstract class Dataset<T extends DataElement> {
    * hierarchy.  For each key, the resulting `Dataset` provides a batched
    * element collecting all of the incoming values for that key.
    *
-   *  * Incoming strings are grouped into a string[].
+   *  * Incoming primitives are grouped into a 1-D Tensor.
    *  * Incoming Tensors are grouped into a new Tensor where the 0'th axis is
    *    the batch dimension.
    *  * Incoming arrays are converted to Tensor and then batched.
@@ -614,15 +614,8 @@ function deepBatchConcat(rows: any[]): DeepMapResult {
   // use the first item to decide whether to recurse or batch here.
   const exampleRow = rows[0];
 
-  if (typeof (exampleRow) === 'string') {
-    // rows is an array of strings, so it's already 'batched'.
-    // TODO(soergel): clean up the string special case when Tensor supports it.
-    return {value: rows, recurse: false};
-  }
-
   if (canTensorify(exampleRow)) {
-    // rows is an array of non-string primitives, Tensors, or arrays.  Batch
-    // them.
+    // rows is an array of primitives, Tensors, or arrays.  Batch them.
     const value = batchConcat(rows);
     return {value, recurse: false};
   }

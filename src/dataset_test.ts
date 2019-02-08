@@ -301,7 +301,7 @@ describeWithFlags(
           expect((b['numberArray'] as tf.Tensor).shape).toEqual([8, 3]);
           expect((b['Tensor'] as tf.Tensor).shape).toEqual([8, 3]);
           expect((b['Tensor2'] as tf.Tensor).shape).toEqual([8, 2, 2]);
-          expect((b['string'] as string[]).length).toEqual(8);
+          expect((b['string'] as tf.Tensor).shape).toEqual([8]);
         });
         tf.dispose(result);
         expect(tf.ENV.engine.memory().numTensors).toBe(0);
@@ -326,7 +326,7 @@ describeWithFlags(
         const bElement = await bIter.next();
         // The batch element contains four Tensors, and the 8*2 Tensors in the
         // original unbatched elements have already been disposed.
-        expect(tf.ENV.engine.memory().numTensors).toBe(4);
+        expect(tf.ENV.engine.memory().numTensors).toBe(5);
         tf.dispose(bElement.value);
         expect(tf.ENV.engine.memory().numTensors).toBe(0);
       });
@@ -446,7 +446,7 @@ describeWithFlags(
         expect((lastBatch['numberArray'] as tf.Tensor).shape).toEqual([4, 3]);
         expect((lastBatch['Tensor'] as tf.Tensor).shape).toEqual([4, 3]);
         expect((lastBatch['Tensor2'] as tf.Tensor).shape).toEqual([4, 2, 2]);
-        expect((lastBatch['string'] as string[]).length).toEqual(4);
+        expect((lastBatch['string'] as tf.Tensor).shape).toEqual([4]);
 
         const expectedNumberLastBatch = tf.tensor1d([96, 97, 98, 99]);
         tf.test_util.expectArraysClose(
@@ -483,15 +483,16 @@ describeWithFlags(
             lastBatch['Tensor2'] as tf.Tensor, expectedTensor2LastBatch);
 
         const expectedStringLastBatch =
-            ['Item 96', 'Item 97', 'Item 98', 'Item 99'];
-        expect(lastBatch['string'] as string[])
-            .toEqual(expectedStringLastBatch);
+            tf.tensor1d(['Item 96', 'Item 97', 'Item 98', 'Item 99']);
+        tf.test_util.expectArraysEqual(
+            lastBatch['string'] as tf.Tensor, expectedStringLastBatch);
 
         tf.dispose(result);
         tf.dispose(expectedNumberLastBatch);
         tf.dispose(expectedNumberArrayLastBatch);
         tf.dispose(expectedTensorLastBatch);
         tf.dispose(expectedTensor2LastBatch);
+        tf.dispose(expectedStringLastBatch)
 
         expect(tf.ENV.engine.memory().numTensors).toBe(0);
       });
