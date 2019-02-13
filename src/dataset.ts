@@ -225,7 +225,7 @@ export abstract class Dataset<T extends DataElement> {
     return (await this.iterator()).each(f);
   }
 
-  /** @deprecated Please use `dataset.set()` instead. */
+  /** @deprecated Please use `dataset.each()` instead. */
   async forEach(f: (input: T) => void): Promise<void> {
     tf.deprecationWarn(
         'dataset.forEach() is deprecated and will be removed. ' +
