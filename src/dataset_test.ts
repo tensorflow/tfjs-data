@@ -538,7 +538,7 @@ describeWithFlags(
         expect(tf.memory().numTensors).toEqual(200);
       });
 
-      it('shuffle throws an error when batchSize is not specified and ' +
+      it('shuffle throws an error when bufferSize is not specified and ' +
              'dataset.size is unknown.',
          async () => {
            const ds = new TestDataset();
@@ -548,7 +548,7 @@ describeWithFlags(
                    '`Dataset.shuffle()` requires bufferSize to be specified.');
          });
 
-      it('shuffle throws an error when batchSize is not specified and ' +
+      it('shuffle throws an error when bufferSize is not specified and ' +
              'dataset.size is known.',
          async () => {
            const ds = new TestDataset(true);
@@ -562,12 +562,14 @@ describeWithFlags(
                    'dataset size (200 elements)');
          });
 
-      it('prefetch defaults to batchSize=100', async () => {
-        const ds = new TestDataset();
-        const prefetched = ds.prefetch(undefined);
-        // tslint:disable-next-line:no-any
-        expect((await prefetched.iterator() as any).bufferSize).toEqual(100);
-      });
+      it('prefetch throws an error when bufferSize is not specified.',
+         async () => {
+           const ds = new TestDataset();
+
+           expect(() => ds.prefetch(undefined))
+               .toThrowError(
+                   '`Dataset.prefetch()` requires bufferSize to be specified.');
+         });
 
       it('prefetch does not leak Tensors', async () => {
         const ds = new TestDataset();

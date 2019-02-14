@@ -290,11 +290,16 @@ export abstract class Dataset<T extends DataElement> {
    *  Creates a `Dataset` that prefetches elements from this dataset.
    *
    * @param bufferSize: An integer specifying the number of elements to be
-   *   prefetched.  Default 100.
+   *   prefetched.
    * @returns A `Dataset`.
    */
   /** @doc {heading: 'Data', subheading: 'Classes'} */
-  prefetch(bufferSize = 100): Dataset<T> {
+  prefetch(bufferSize: number): Dataset<T> {
+    if (bufferSize == null) {
+      throw new RangeError(
+          '`Dataset.prefetch()` requires bufferSize to be specified.');
+    }
+
     const base = this;
     return datasetFromIteratorFn(
         async () => (await base.iterator()).prefetch(bufferSize), this.size);
