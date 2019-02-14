@@ -548,13 +548,11 @@ describeWithFlags(
            const ds = new TestDataset();
            ds.shuffle(undefined);
 
-           expect(warningMessages.length).toEqual(2);
+           expect(warningMessages.length).toEqual(1);
            expect(warningMessages[0])
                .toEqual(
                    '`Dataset.shuffle` requires a bufferSize argument, but it ' +
-                   'was not provided.  Attempting workaround.');
-           expect(warningMessages[1])
-               .toEqual(
+                   'was not provided.  Attempting workaround.  ' +
                    'Dataset size unknown.  Shuffling using ' +
                    'bufferSize = 10000.');
          });
@@ -569,13 +567,11 @@ describeWithFlags(
            const ds = new TestDataset(true);
            ds.shuffle(undefined);
 
-           expect(warningMessages.length).toEqual(2);
+           expect(warningMessages.length).toEqual(1);
            expect(warningMessages[0])
                .toEqual(
                    '`Dataset.shuffle` requires a bufferSize argument, but it ' +
-                   'was not provided.  Attempting workaround.');
-           expect(warningMessages[1])
-               .toEqual(
+                   'was not provided.  Attempting workaround.  ' +
                    'Dataset has 200 elements.  Shuffling using ' +
                    'bufferSize = 200.');
          });
@@ -590,13 +586,11 @@ describeWithFlags(
            const ds = new TestDataset(true).repeat(200);
            ds.shuffle(undefined);
 
-           expect(warningMessages.length).toEqual(2);
+           expect(warningMessages.length).toEqual(1);
            expect(warningMessages[0])
                .toEqual(
                    '`Dataset.shuffle` requires a bufferSize argument, but it ' +
-                   'was not provided.  Attempting workaround.');
-           expect(warningMessages[1])
-               .toEqual(
+                   'was not provided.  Attempting workaround.  ' +
                    'Dataset has 40000 elements.  Shuffling using ' +
                    'bufferSize = 10000.');
          });
