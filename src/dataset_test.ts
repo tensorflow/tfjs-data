@@ -57,6 +57,13 @@ class TestObjectIterator extends LazyIterator<{}> {
 }
 
 export class TestDataset extends tfd.Dataset<DataElementObject> {
+  readonly size: number;
+  constructor(setSize = false) {
+    super();
+    if (setSize) {
+      this.size = 200;
+    }
+  }
   async iterator(): Promise<LazyIterator<{}>> {
     return new TestObjectIterator();
   }
@@ -521,6 +528,91 @@ describeWithFlags(
         // There were 100 elements, but we filtered out half of them.
         // Thus 50 * 2 = 100 Tensors remain.
         expect(tf.memory().numTensors).toEqual(100);
+      });
+
+      it('shuffle does not leak Tensors', async () => {
+        const ds = new TestDataset();
+        expect(tf.memory().numTensors).toEqual(0);
+        await ds.shuffle(1000).toArray();
+        // The shuffle operation emitted all of the tensors.
+        expect(tf.memory().numTensors).toEqual(200);
+      });
+
+      it('shuffle defaults to batchSize=10000 when dataset.size is unknown, ' +
+             'emitting a warning',
+         async () => {
+           const warningMessages: string[] = [];
+           spyOn(console, 'warn')
+               .and.callFake((msg: string) => warningMessages.push(msg));
+
+           const ds = new TestDataset();
+           ds.shuffle(undefined);
+
+           expect(warningMessages.length).toEqual(2);
+           expect(warningMessages[0])
+               .toEqual(
+                   '`Dataset.shuffle` requires a bufferSize argument, but it ' +
+                   'was not provided.  Attempting workaround.');
+           expect(warningMessages[1])
+               .toEqual(
+                   'Dataset size unknown.  Shuffling using ' +
+                   'bufferSize = 10000.');
+         });
+
+      it('shuffle defaults to batchSize=dataset.size for small data, ' +
+             'emitting a warning',
+         async () => {
+           const warningMessages: string[] = [];
+           spyOn(console, 'warn')
+               .and.callFake((msg: string) => warningMessages.push(msg));
+
+           const ds = new TestDataset(true);
+           ds.shuffle(undefined);
+
+           expect(warningMessages.length).toEqual(2);
+           expect(warningMessages[0])
+               .toEqual(
+                   '`Dataset.shuffle` requires a bufferSize argument, but it ' +
+                   'was not provided.  Attempting workaround.');
+           expect(warningMessages[1])
+               .toEqual(
+                   'Dataset has 200 elements.  Shuffling using ' +
+                   'bufferSize = 200.');
+         });
+
+      it('shuffle defaults to batchSize=10000 for large data, emitting a ' +
+             'warning',
+         async () => {
+           const warningMessages: string[] = [];
+           spyOn(console, 'warn')
+               .and.callFake((msg: string) => warningMessages.push(msg));
+
+           const ds = new TestDataset(true).repeat(200);
+           ds.shuffle(undefined);
+
+           expect(warningMessages.length).toEqual(2);
+           expect(warningMessages[0])
+               .toEqual(
+                   '`Dataset.shuffle` requires a bufferSize argument, but it ' +
+                   'was not provided.  Attempting workaround.');
+           expect(warningMessages[1])
+               .toEqual(
+                   'Dataset has 40000 elements.  Shuffling using ' +
+                   'bufferSize = 10000.');
+         });
+
+      it('prefetch defaults to batchSize=100', async () => {
+        const ds = new TestDataset();
+        const prefetched = ds.prefetch(undefined);
+        expect((await prefetched.iterator() as any).bufferSize).toEqual(100);
+      });
+
+      it('prefetch does not leak Tensors', async () => {
+        const ds = new TestDataset();
+        expect(tf.memory().numTensors).toEqual(0);
+        await ds.prefetch(1000).toArray();
+        // The prefetch operation emitted all of the tensors.
+        expect(tf.memory().numTensors).toEqual(200);
       });
 
       it('map does not leak Tensors when none are returned', async () => {

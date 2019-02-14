@@ -128,7 +128,7 @@ export abstract class Dataset<T extends DataElement> {
   /** @doc {heading: 'Data', subheading: 'Classes'} */
   batch(batchSize: number, smallLastBatch = true): Dataset<DataElement> {
     const base = this;
-    tf.util.assert(batchSize > 0, `batchSize need to be positive, but it is
+    tf.util.assert(batchSize > 0, `batchSize needs to be positive, but it is
       ${batchSize}`);
     let size;
     if (this.size === Infinity || this.size == null) {
@@ -290,12 +290,11 @@ export abstract class Dataset<T extends DataElement> {
    *  Creates a `Dataset` that prefetches elements from this dataset.
    *
    * @param bufferSize: An integer specifying the number of elements to be
-   *   prefetched.
+   *   prefetched.  Default 100.
    * @returns A `Dataset`.
    */
   /** @doc {heading: 'Data', subheading: 'Classes'} */
-  // TODO: Document this function once tfjs-data supports streaming.
-  prefetch(bufferSize: number): Dataset<T> {
+  prefetch(bufferSize = 100): Dataset<T> {
     const base = this;
     return datasetFromIteratorFn(
         async () => (await base.iterator()).prefetch(bufferSize), this.size);
@@ -384,6 +383,8 @@ export abstract class Dataset<T extends DataElement> {
 
   // TODO(soergel): deep sharded shuffle, where supported
 
+  static readonly MAX_BUFFER_SIZE = 10000;
+
   /**
    * Pseudorandomly shuffles the elements of this dataset. This is done in a
    * streaming manner, by sampling from a given number of prefetched elements.
@@ -406,6 +407,24 @@ export abstract class Dataset<T extends DataElement> {
   /** @doc {heading: 'Data', subheading: 'Classes'} */
   shuffle(bufferSize: number, seed?: string, reshuffleEachIteration = true):
       Dataset<T> {
+    if (bufferSize == null) {
+      console.warn(
+          '`Dataset.shuffle` requires a bufferSize argument, but it ' +
+          'was not provided.  Attempting workaround.');
+
+      if (this.size == null) {
+        bufferSize = Dataset.MAX_BUFFER_SIZE;
+        console.warn(`Dataset size unknown.  Shuffling using bufferSize = ${
+            bufferSize}.`);
+      } else {
+        bufferSize = this.size <= Dataset.MAX_BUFFER_SIZE ?
+            this.size :
+            Dataset.MAX_BUFFER_SIZE;
+
+        console.warn(`Dataset has ${
+            this.size} elements.  Shuffling using bufferSize = ${bufferSize}.`);
+      }
+    }
     const base = this;
     const random = seedrandom.alea(seed || tf.util.now().toString());
     return datasetFromIteratorFn(async () => {
