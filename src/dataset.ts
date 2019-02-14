@@ -407,24 +407,16 @@ export abstract class Dataset<T extends DataElement> {
   /** @doc {heading: 'Data', subheading: 'Classes'} */
   shuffle(bufferSize: number, seed?: string, reshuffleEachIteration = true):
       Dataset<T> {
-    if (bufferSize == null) {
+    if (bufferSize == null || bufferSize < 0) {
       if (this.size == null) {
-        bufferSize = Dataset.MAX_BUFFER_SIZE;
-        console.warn(
-            '`Dataset.shuffle` requires a bufferSize argument, but it ' +
-            'was not provided.  Attempting workaround.  ' +
-            `Dataset size unknown.  Shuffling using bufferSize = ${
-                bufferSize}.`);
+        throw new RangeError(
+            '`Dataset.shuffle()` requires bufferSize to be specified.');
       } else {
-        bufferSize = this.size <= Dataset.MAX_BUFFER_SIZE ?
-            this.size :
-            Dataset.MAX_BUFFER_SIZE;
-
-        console.warn(
-            '`Dataset.shuffle` requires a bufferSize argument, but it ' +
-            'was not provided.  Attempting workaround.  ' +
-            `Dataset has ${this.size} elements.  Shuffling using bufferSize = ${
-                bufferSize}.`);
+        throw new RangeError(
+            '`Dataset.shuffle()` requires bufferSize to be specified.  ' +
+            'If your data fits in main memory (for regular JS objects), ' +
+            'and/or GPU memory (for `tf.Tensor`s), consider setting ' +
+            `bufferSize to the dataset size (${this.size} elements)`);
       }
     }
     const base = this;

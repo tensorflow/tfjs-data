@@ -538,61 +538,28 @@ describeWithFlags(
         expect(tf.memory().numTensors).toEqual(200);
       });
 
-      it('shuffle defaults to batchSize=10000 when dataset.size is unknown, ' +
-             'emitting a warning',
+      it('shuffle throws an error when batchSize is not specified and ' +
+             'dataset.size is unknown.',
          async () => {
-           const warningMessages: string[] = [];
-           spyOn(console, 'warn')
-               .and.callFake((msg: string) => warningMessages.push(msg));
-
            const ds = new TestDataset();
-           ds.shuffle(undefined);
 
-           expect(warningMessages.length).toEqual(1);
-           expect(warningMessages[0])
-               .toEqual(
-                   '`Dataset.shuffle` requires a bufferSize argument, but it ' +
-                   'was not provided.  Attempting workaround.  ' +
-                   'Dataset size unknown.  Shuffling using ' +
-                   'bufferSize = 10000.');
+           expect(() => ds.shuffle(undefined))
+               .toThrowError(
+                   '`Dataset.shuffle()` requires bufferSize to be specified.');
          });
 
-      it('shuffle defaults to batchSize=dataset.size for small data, ' +
-             'emitting a warning',
+      it('shuffle throws an error when batchSize is not specified and ' +
+             'dataset.size is known.',
          async () => {
-           const warningMessages: string[] = [];
-           spyOn(console, 'warn')
-               .and.callFake((msg: string) => warningMessages.push(msg));
-
            const ds = new TestDataset(true);
-           ds.shuffle(undefined);
 
-           expect(warningMessages.length).toEqual(1);
-           expect(warningMessages[0])
-               .toEqual(
-                   '`Dataset.shuffle` requires a bufferSize argument, but it ' +
-                   'was not provided.  Attempting workaround.  ' +
-                   'Dataset has 200 elements.  Shuffling using ' +
-                   'bufferSize = 200.');
-         });
-
-      it('shuffle defaults to batchSize=10000 for large data, emitting a ' +
-             'warning',
-         async () => {
-           const warningMessages: string[] = [];
-           spyOn(console, 'warn')
-               .and.callFake((msg: string) => warningMessages.push(msg));
-
-           const ds = new TestDataset(true).repeat(200);
-           ds.shuffle(undefined);
-
-           expect(warningMessages.length).toEqual(1);
-           expect(warningMessages[0])
-               .toEqual(
-                   '`Dataset.shuffle` requires a bufferSize argument, but it ' +
-                   'was not provided.  Attempting workaround.  ' +
-                   'Dataset has 40000 elements.  Shuffling using ' +
-                   'bufferSize = 10000.');
+           expect(() => ds.shuffle(undefined))
+               .toThrowError(
+                   '`Dataset.shuffle()` requires bufferSize to be ' +
+                   'specified.  If your data fits in main memory (for ' +
+                   'regular JS objects), and/or GPU memory (for ' +
+                   '`tf.Tensor`s), consider setting bufferSize to the ' +
+                   'dataset size (200 elements)');
          });
 
       it('prefetch defaults to batchSize=100', async () => {
