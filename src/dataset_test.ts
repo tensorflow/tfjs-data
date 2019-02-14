@@ -604,6 +604,7 @@ describeWithFlags(
       it('prefetch defaults to batchSize=100', async () => {
         const ds = new TestDataset();
         const prefetched = ds.prefetch(undefined);
+        // tslint:disable-next-line:no-any
         expect((await prefetched.iterator() as any).bufferSize).toEqual(100);
       });
 
