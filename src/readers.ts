@@ -115,11 +115,12 @@ export function csv(source: string, csvConfig: CSVConfig = {}): CSVDataset {
  * const func = () =>
  *    ++i < 5 ? {value: i, done: false} : {value: null, done: true};
  * const ds = tf.data.generator(func);
- * await ds.forEach(e => console.log(e));
+ * await ds.forEachAsync(e => console.log(e));
  * ```
  *
  * @param f A function that produces one data element on each call.
  */
+
 /**
  * @doc {
  *   heading: 'Data',
