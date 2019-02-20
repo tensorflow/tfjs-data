@@ -114,7 +114,7 @@ export function csv(source: string, csvConfig: CSVConfig = {}): CSVDataset {
  * let i = -1;
  * const func = () =>
  *    ++i < 5 ? {value: i, done: false} : {value: null, done: true};
- * const ds = tf.data.func(func);
+ * const ds = tf.data.generator(func);
  * await ds.forEachAsync(e => console.log(e));
  * ```
  *
