@@ -1,8 +1,8 @@
 import {fromPixels, Tensor3D} from '@tensorflow/tfjs-core';
-
-import {RateLimitingIterator} from './rate_limiting_iterator';
-import {LazyIterator} from './lazy_iterator';
 import {WebcamConfig} from '../types';
+import {LazyIterator} from './lazy_iterator';
+import {RateLimitingIterator} from './rate_limiting_iterator';
+
 
 /**
  * @license

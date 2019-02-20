@@ -17,10 +17,12 @@
  */
 
 import * as tf from '@tensorflow/tfjs-core';
+import {TensorLike} from '@tensorflow/tfjs-core/dist/types';
 import * as seedrandom from 'seedrandom';
+
 import {iteratorFromConcatenated, iteratorFromFunction, iteratorFromItems, iteratorFromZipped, LazyIterator, ZipMismatchMode} from './iterators/lazy_iterator';
 import {DataElement, DatasetContainer} from './types';
-import {deepMapAndAwaitAll, DeepMapResult, isIterable, isNumericArray} from './util/deep_map';
+import {canTensorify, deepMapAndAwaitAll, DeepMapResult, isIterable} from './util/deep_map';
 
 // TODO(soergel): consider vectorized operations within the pipeline.
 
@@ -62,6 +64,8 @@ export abstract class Dataset<T extends DataElement> {
    */
   abstract async iterator(): Promise<LazyIterator<T>>;
 
+  readonly size: number = null;
+
   // TODO(soergel): Make Datasets report whether repeated iterator() calls
   // produce the same result (e.g., reading from a file) or different results
   // (e.g., from the webcam).  Currently we don't make this distinction but it
@@ -69,16 +73,25 @@ export abstract class Dataset<T extends DataElement> {
   // abstract isDeterministic(): boolean;
 
   /**
-   * Groups elements into batches and arranges their values in columnar
-   * form.
+   * Groups elements into batches.
    *
    * It is assumed that each of the incoming dataset elements has the same
-   * set of keys.  For each key, the resulting `Dataset` provides a batched
-   * element collecting all of the incoming values for that key.  Incoming
-   * strings are grouped into a string[].  Incoming Tensors are grouped into a
-   * new Tensor where the 0'th axis is the batch dimension.  These columnar
-   * representations for each key can be zipped together to reconstruct the
-   * original dataset elements.
+   * structure-- i.e. the same set of keys at each location in an object
+   * hierarchy.  For each key, the resulting `Dataset` provides a batched
+   * element collecting all of the incoming values for that key.
+   *
+   *  * Incoming primitives are grouped into a 1-D Tensor.
+   *  * Incoming Tensors are grouped into a new Tensor where the 0'th axis is
+   *    the batch dimension.
+   *  * Incoming arrays are converted to Tensor and then batched.
+   *  * A nested array is interpreted as an n-D Tensor, so the batched result
+   *    has n+1 dimensions.
+   *  * An array that cannot be converted to Tensor produces an error.
+   *
+   * If an array should not be batched as a unit, it should first be converted
+   * to an object with integer keys.
+   *
+   * Here are a few examples:
    *
    * Batch a dataset of numbers:
    * ```js
@@ -115,10 +128,26 @@ export abstract class Dataset<T extends DataElement> {
   /** @doc {heading: 'Data', subheading: 'Classes'} */
   batch(batchSize: number, smallLastBatch = true): Dataset<DataElement> {
     const base = this;
+    tf.util.assert(batchSize > 0, `batchSize needs to be positive, but it is
+      ${batchSize}`);
+    let size;
+    if (this.size === Infinity || this.size == null) {
+      // If the size of this dataset is infinity or null, the new size keeps the
+      // same.
+      size = this.size;
+    } else if (smallLastBatch) {
+      // If the size of this dataset is known and include small last batch, the
+      // new size is full batch count plus last batch.
+      size = Math.ceil(this.size / batchSize);
+    } else {
+      // If the size of this dataset is known and not include small last batch,
+      // the new size is full batch count.
+      size = Math.floor(this.size / batchSize);
+    }
     return datasetFromIteratorFn(async () => {
       return (await base.iterator())
           .columnMajorBatch(batchSize, smallLastBatch, deepBatchConcat);
-    });
+    }, size);
   }
 
   /**
@@ -137,9 +166,24 @@ export abstract class Dataset<T extends DataElement> {
   /** @doc {heading: 'Data', subheading: 'Classes'} */
   concatenate(dataset: Dataset<T>): Dataset<T> {
     const base = this;
+    let size;
+    if (this.size === Infinity || dataset.size === Infinity) {
+      // If the size of any of these two dataset is infinity, new size is
+      // infinity.
+      size = Infinity;
+    } else if (this.size != null && dataset.size != null) {
+      // If the size of both datasets are known and not infinity, new size is
+      // sum the size of these two datasets.
+      size = this.size + dataset.size;
+    } else {
+      // If neither of these two datasets has infinity size and any of these two
+      // datasets' size is null, the new size is null.
+      size = null;
+    }
     return datasetFromIteratorFn(
         async () =>
-            (await base.iterator()).concatenate(await dataset.iterator()));
+            (await base.iterator()).concatenate(await dataset.iterator()),
+        size);
   }
 
   /**
@@ -159,9 +203,18 @@ export abstract class Dataset<T extends DataElement> {
   /** @doc {heading: 'Data', subheading: 'Classes'} */
   filter(predicate: (value: T) => boolean): Dataset<T> {
     const base = this;
+    let size;
+    if (this.size === Infinity) {
+      // If the size of this dataset is infinity, new size is infinity
+      size = Infinity;
+    } else {
+      // If this dataset has limited elements, new size is null because it might
+      // exhausted randomly.
+      size = null;
+    }
     return datasetFromIteratorFn(async () => {
       return (await base.iterator()).filter(x => tf.tidy(() => predicate(x)));
-    });
+    }, size);
   }
 
   /**
@@ -201,7 +254,7 @@ export abstract class Dataset<T extends DataElement> {
     const base = this;
     return datasetFromIteratorFn(async () => {
       return (await base.iterator()).map(x => tf.tidy(() => transform(x)));
-    });
+    }, this.size);
   }
 
   /**
@@ -230,7 +283,7 @@ export abstract class Dataset<T extends DataElement> {
     const base = this;
     return datasetFromIteratorFn(async () => {
       return (await base.iterator()).mapAsync(transform);
-    });
+    }, this.size);
   }
 
   /**
@@ -241,11 +294,15 @@ export abstract class Dataset<T extends DataElement> {
    * @returns A `Dataset`.
    */
   /** @doc {heading: 'Data', subheading: 'Classes'} */
-  // TODO: Document this function once tfjs-data supports streaming.
   prefetch(bufferSize: number): Dataset<T> {
+    if (bufferSize == null) {
+      throw new RangeError(
+          '`Dataset.prefetch()` requires bufferSize to be specified.');
+    }
+
     const base = this;
     return datasetFromIteratorFn(
-        async () => (await base.iterator()).prefetch(bufferSize));
+        async () => (await base.iterator()).prefetch(bufferSize), this.size);
   }
 
   /**
@@ -267,11 +324,28 @@ export abstract class Dataset<T extends DataElement> {
   /** @doc {heading: 'Data', subheading: 'Classes'} */
   repeat(count?: number): Dataset<T> {
     const base = this;
+    let size;
+    if (this.size != null && count > 0) {
+      // If this dataset has size and count is positive, new size is current
+      // size multiply count. This also covers the case that current size is
+      // infinity.
+      size = this.size * count;
+    } else if (count === 0) {
+      // If count is 0, new size is 0.
+      size = 0;
+    } else if (this.size != null && (count === undefined || count < 0)) {
+      // If this dataset has size and count is undefined or negative, the
+      // dataset will be repeated indefinitely and new size is infinity.
+      size = Infinity;
+    } else {
+      // If the size of this dataset is null, the new dataset's size is null.
+      size = null;
+    }
     return datasetFromIteratorFn(async () => {
       const iteratorIterator = iteratorFromFunction(
           async () => ({value: await base.iterator(), done: false}));
       return iteratorFromConcatenated(iteratorIterator.take(count));
-    });
+    }, size);
   }
 
   /**
@@ -292,11 +366,29 @@ export abstract class Dataset<T extends DataElement> {
   /** @doc {heading: 'Data', subheading: 'Classes'} */
   skip(count: number): Dataset<T> {
     const base = this;
+    let size;
+    if (this.size != null && count >= 0 && this.size >= count) {
+      // If the size of this dataset is greater than count, the new dataset's
+      // size is current size minus skipped size.This also covers the case that
+      // current size is infinity.
+      size = this.size - count;
+    } else if (
+        this.size != null &&
+        (this.size < count || count === undefined || count < 0)) {
+      // If the size of this dataset is smaller than count, or count is
+      // undefined or negative, skips the entire dataset and the new size is 0.
+      size = 0;
+    } else {
+      // If the size of this dataset is null, the new dataset's size is null.
+      size = null;
+    }
     return datasetFromIteratorFn(
-        async () => (await base.iterator()).skip(count));
+        async () => (await base.iterator()).skip(count), size);
   }
 
   // TODO(soergel): deep sharded shuffle, where supported
+
+  static readonly MAX_BUFFER_SIZE = 10000;
 
   /**
    * Pseudorandomly shuffles the elements of this dataset. This is done in a
@@ -320,6 +412,18 @@ export abstract class Dataset<T extends DataElement> {
   /** @doc {heading: 'Data', subheading: 'Classes'} */
   shuffle(bufferSize: number, seed?: string, reshuffleEachIteration = true):
       Dataset<T> {
+    if (bufferSize == null || bufferSize < 0) {
+      if (this.size == null) {
+        throw new RangeError(
+            '`Dataset.shuffle()` requires bufferSize to be specified.');
+      } else {
+        throw new RangeError(
+            '`Dataset.shuffle()` requires bufferSize to be specified.  ' +
+            'If your data fits in main memory (for regular JS objects), ' +
+            'and/or GPU memory (for `tf.Tensor`s), consider setting ' +
+            `bufferSize to the dataset size (${this.size} elements)`);
+      }
+    }
     const base = this;
     const random = seedrandom.alea(seed || tf.util.now().toString());
     return datasetFromIteratorFn(async () => {
@@ -328,7 +432,7 @@ export abstract class Dataset<T extends DataElement> {
         seed2 += random.int32();
       }
       return (await base.iterator()).shuffle(bufferSize, seed2.toString());
-    });
+    }, this.size);
   }
 
   /**
@@ -349,8 +453,21 @@ export abstract class Dataset<T extends DataElement> {
   /** @doc {heading: 'Data', subheading: 'Classes'} */
   take(count: number): Dataset<T> {
     const base = this;
+    let size;
+    if (this.size != null && this.size > count) {
+      // If the size of this dataset is greater than count, the new dataset's
+      // size is count.
+      size = count;
+    } else if (this.size != null && this.size <= count) {
+      // If the size of this dataset is equal or smaller than count, the new
+      // dataset's size is the size of this dataset.
+      size = this.size;
+    } else {
+      // If the size of this dataset is null, the new dataset's size is null.
+      size = null;
+    }
     return datasetFromIteratorFn(
-        async () => (await base.iterator()).take(count));
+        async () => (await base.iterator()).take(count), size);
   }
 
   /**
@@ -371,13 +488,6 @@ export abstract class Dataset<T extends DataElement> {
   async toArray() {
     return (await this.iterator()).collect();
   }
-
-  /* TODO(soergel): for parity with tf.data:
-  Dataset.flat_map()
-  Dataset.dense_to_sparse_batch()
-  Dataset.group_by_window()
-  Dataset.padded_batch()
-  */
 }
 
 /**
@@ -393,8 +503,11 @@ export abstract class Dataset<T extends DataElement> {
  * ```
  */
 export function datasetFromIteratorFn<T extends DataElement>(
-    iteratorFn: () => Promise<LazyIterator<T>>): Dataset<T> {
+    iteratorFn: () => Promise<LazyIterator<T>>,
+    size: number = null): Dataset<T> {
   return new class extends Dataset<T> {
+    size = size;
+
     /*
      * Provide a new stream of elements.  Note this will also start new streams
      * from any underlying `Dataset`s.
@@ -424,7 +537,8 @@ export function datasetFromIteratorFn<T extends DataElement>(
  */
 /** @doc {heading: 'Data', subheading: 'Creation', namespace: 'data'} */
 export function array<T extends DataElement>(items: T[]): Dataset<T> {
-  return datasetFromIteratorFn(async () => iteratorFromItems(items));
+  return datasetFromIteratorFn(
+      async () => iteratorFromItems(items), items.length);
 }
 
 /**
@@ -473,6 +587,18 @@ export function zip<O extends DataElement>(datasets: DatasetContainer):
   if (!isIterable(datasets)) {
     throw new Error('The argument to zip() must be an object or array.');
   }
+  let size;
+  if (Array.isArray(datasets)) {
+    for (let i = 0; i < datasets.length; i++) {
+      size = size == null ? (datasets[i] as Dataset<O>).size :
+                            Math.min(size, (datasets[i] as Dataset<O>).size);
+    }
+  } else if (datasets instanceof Object) {
+    for (const ds in datasets) {
+      size = size == null ? (datasets[ds] as Dataset<O>).size :
+                            Math.min(size, (datasets[ds] as Dataset<O>).size);
+    }
+  }
   return datasetFromIteratorFn<O>(async () => {
     const streams = await deepMapAndAwaitAll(datasets, d => {
       if (d instanceof Dataset) {
@@ -486,7 +612,7 @@ export function zip<O extends DataElement>(datasets: DatasetContainer):
       }
     });
     return iteratorFromZipped<O>(streams, ZipMismatchMode.SHORTEST);
-  });
+  }, size);
 }
 
 /**
@@ -505,25 +631,13 @@ function deepBatchConcat(rows: any[]): DeepMapResult {
   // use the first item to decide whether to recurse or batch here.
   const exampleRow = rows[0];
 
-  if (typeof (exampleRow) === 'string') {
-    // rows is an array of strings, so it's already 'batched'.
-    // TODO(soergel): clean up the string special case when Tensor supports it.
-    return {value: rows, recurse: false};
-  }
-
-  if (!isIterable(exampleRow)) {
-    // rows is an array of non-string primitives or Tensors, so batch them.
+  if (canTensorify(exampleRow)) {
+    // rows is an array of primitives, Tensors, or arrays.  Batch them.
     const value = batchConcat(rows);
     return {value, recurse: false};
   }
 
-  if (isNumericArray(exampleRow)) {
-    // interpret an array of numbers as a leaf, so batching produces a 2d Tensor
-    const value = batchConcat(rows);
-    return {value, recurse: false};
-  }
-
-  // the example row is itself iterable, but not numeric, so recurse into it.
+  // the example row is an object, so recurse into it.
   return {value: null, recurse: true};
 }
 
@@ -531,7 +645,7 @@ function deepBatchConcat(rows: any[]): DeepMapResult {
  * Assembles a list of same-shaped numbers, number arrays, or Tensors
  * into a single new Tensor where axis 0 is the batch dimension.
  */
-function batchConcat<T extends(number | number[] | tf.Tensor)>(arrays: T[]):
+function batchConcat<T extends(TensorLike | tf.Tensor)>(arrays: T[]):
     tf.Tensor {
   if (arrays.length === 0) {
     // We can't return an empty Tensor because we don't know the element shape.
@@ -541,32 +655,8 @@ function batchConcat<T extends(number | number[] | tf.Tensor)>(arrays: T[]):
   if (arrays[0] instanceof tf.Tensor) {
     // Input is an array of Tensors
     return tf.stack(arrays as tf.Tensor[]);
-  } else if (Array.isArray(arrays[0])) {
-    // Input is an array of arrays of numbers
-    return batchConcatArrays(arrays as number[][]);
   } else {
-    // Input is a simple array of numbers
-    const numbers = arrays as number[];
-    return tf.Tensor.make(
-        [numbers.length], {values: new Float32Array(numbers)});
+    // Input is a possibly-nested array of numbers.
+    return tf.tensor(arrays as TensorLike);
   }
-}
-
-function batchConcatArrays(arrays: number[][]) {
-  // Should we first make row Tensors and then use tf.stack() here too?
-  // Probably not: the extra Tensor allocations would outweigh any benefit.
-
-  const rowLength = arrays[0].length;
-  const batchShape = [arrays.length, arrays[0].length];
-  const values = new Float32Array(arrays.length * rowLength);
-
-  let offset = 0;
-  for (const a of arrays) {
-    if (a.length !== rowLength) {
-      throw new Error('Elements must have the same shape to be batched');
-    }
-    values.set(a, offset);
-    offset += rowLength;
-  }
-  return tf.Tensor.make(batchShape, {values});
 }

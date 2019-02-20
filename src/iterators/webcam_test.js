@@ -10,6 +10,8 @@ async function run() {
   const webcam = tf.data.webcam(videoElement, {width:500, height:500});
   const iter = await webcam.iterator();
   for(let i =0;i<100;i++){
+    const t = (await iter.next());
+    t.print();
     console.log(await iter.next());
   }
 }

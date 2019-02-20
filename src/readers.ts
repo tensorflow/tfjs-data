@@ -20,8 +20,7 @@ import {Dataset, datasetFromIteratorFn} from './dataset';
 import {CSVDataset} from './datasets/csv_dataset';
 import {iteratorFromFunction} from './iterators/lazy_iterator';
 import {URLDataSource} from './sources/url_data_source';
-import {CSVConfig, DataElement, WebcamConfig} from './types';
-import {WebcamDataset} from './datasets/webcam_dataset';
+import {CSVConfig, DataElement} from './types';
 
 /**
  * Create a `CSVDataset` by reading and decoding CSV file(s) from provided URL
@@ -93,7 +92,8 @@ import {WebcamDataset} from './datasets/webcam_dataset';
  *   configParamIndices: [1]
  *  }
  */
-export function csv(source: string, csvConfig: CSVConfig = {}): CSVDataset {
+export function csv(
+    source: RequestInfo, csvConfig: CSVConfig = {}): CSVDataset {
   return new CSVDataset(new URLDataSource(source), csvConfig);
 }
 
@@ -129,7 +129,11 @@ export function func<T extends DataElement>(
 
 /**
  * Create a `Dataset` that produces each element from provided JavaScript
- * generator, which is a function*, or a function that returns iterators.
+ * generator, which is a function*
+ * (https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Iterators_and_Generators#Generator_functions),
+ * or a function that returns an
+ * iterator
+ * (https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Iterators_and_Generators#Generator_functions).
  *
  * The returned iterator should have `.next()` function that returns element in
  * format of `{value: DataElement, done:boolean}`.
@@ -185,11 +189,9 @@ export function func<T extends DataElement>(
  *  }
  */
 export function generator<T extends DataElement>(
-    generator: () => Iterator<T>): Dataset<T> {
-  return datasetFromIteratorFn(
-    async () => iteratorFromFunction(generator().next));
-}
-
-export function webcam<T extends DataElement>(webcamVideoElement: HTMLVideoElement, webcamConfig?:WebcamConfig) {
-  return new WebcamDataset(webcamVideoElement, webcamConfig);
+    generator: () => Iterator<T>| Promise<Iterator<T>>): Dataset<T> {
+  return datasetFromIteratorFn(async () => {
+    const gen = await generator();
+    return iteratorFromFunction(() => gen.next());
+  });
 }
