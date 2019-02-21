@@ -1,10 +1,10 @@
 
 import {Tensor3D} from '@tensorflow/tfjs-core';
-
-import {LazyIterator} from '../iterators/lazy_iterator';
 import {Dataset} from '../dataset';
-import {WebcamConfig} from '../types';
+import {LazyIterator} from '../iterators/lazy_iterator';
 import {WebcamIterator} from '../iterators/webcam_iterator';
+import {WebcamConfig} from '../types';
+
 
 /**
  * @license

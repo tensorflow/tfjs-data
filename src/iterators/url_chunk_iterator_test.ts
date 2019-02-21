@@ -18,8 +18,8 @@
 
 import * as fetchMock from 'fetch-mock';
 import * as nock from 'nock';
-
 import {urlChunkIterator} from './url_chunk_iterator';
+
 
 const testString = 'abcdefghijklmnopqrstuvwxyz';
 

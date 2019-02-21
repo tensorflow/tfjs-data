@@ -1,4 +1,5 @@
-import {fromPixels, Tensor3D} from '@tensorflow/tfjs-core';
+import {browser, Tensor3D} from '@tensorflow/tfjs-core';
+import {assert} from '@tensorflow/tfjs-core/dist/util';
 import {WebcamConfig} from '../types';
 import {LazyIterator} from './lazy_iterator';
 import {RateLimitingIterator} from './rate_limiting_iterator';
@@ -27,23 +28,32 @@ export class WebcamIterator extends LazyIterator<Tensor3D> {
     super();
   }
 
-  summary(){
+  summary() {
     return `Endless data stream from webcam`;
   }
 
-  static async create(webcamVideoElement: HTMLVideoElement, webcamConfig:WebcamConfig={}):
-      Promise<LazyIterator<Tensor3D>> {
+  static async create(webcamVideoElement: HTMLVideoElement, webcamConfig: WebcamConfig = {}):
+    Promise<LazyIterator<Tensor3D>> {
 
     const stream = new WebcamIterator(webcamVideoElement);
     await stream.setupCameraInput(webcamConfig);
-    return new RateLimitingIterator(stream, webcamConfig.frameRate?webcamConfig.frameRate:30);
+    return new RateLimitingIterator(stream, webcamConfig.frameRate ? webcamConfig.frameRate : 30);
   }
 
-  private async setupCameraInput(webcamConfig:WebcamConfig): Promise<void> {
-    const stream = await navigator.mediaDevices.getUserMedia({video: {
-      facingMode: 'user', width:webcamConfig.width, height:webcamConfig.height}});
+  private async setupCameraInput(webcamConfig: WebcamConfig): Promise<void> {
+    if (webcamConfig.facingMode) {
+      assert((webcamConfig.facingMode === 'user') || (webcamConfig.facingMode === 'environment'), 'Invalid wecam facing model: ' + webcamConfig.facingMode);
+    }
 
-    // TODO(soergel): polyfills to get the stream
+    const stream = await navigator.mediaDevices.getUserMedia({
+      video: {
+        deviceId: webcamConfig.deviceId,
+        facingMode: webcamConfig.facingMode ? webcamConfig.facingMode : 'user',
+        width: webcamConfig.width,
+        height: webcamConfig.height
+      }
+    });
+
     if (!stream) {
       throw new Error('Could not obtain video from webcam.');
     }
@@ -64,59 +74,6 @@ export class WebcamIterator extends LazyIterator<Tensor3D> {
   }
 
   async next(): Promise<IteratorResult<Tensor3D>> {
-    return {value: fromPixels(this.webcamVideoElement), done: false};
+    return {value: browser.fromPixels(this.webcamVideoElement), done: false};
   }
 }
-
-
-/**
- * Loads a the camera to be used in the demo
- *
- */
-// async function setupCamera() {
-//   if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
-//     throw new Error(
-//         'Browser API navigator.mediaDevices.getUserMedia not available');
-//   }
-
-//   const video = document.getElementById('video');
-//   video.width = videoWidth;
-//   video.height = videoHeight;
-
-//   const mobile = isMobile();
-//   const stream = await navigator.mediaDevices.getUserMedia({
-//     'audio': false,
-//     'video': {
-//       facingMode: 'user',
-//       width: mobile ? undefined : videoWidth,
-//       height: mobile ? undefined : videoHeight,
-//     },
-//   });
-//   video.srcObject = stream;
-
-//   return new Promise((resolve) => {
-//     video.onloadedmetadata = () => {
-//       resolve(video);
-//     };
-//   });
-// }
-
-// async function loadVideo() {
-//   const video = await setupCamera();
-//   video.play();
-
-//   return video;
-// }
-
-// export async function webcam() {
-//   let video;
-//   try {
-//     video = await loadVideo();
-//   } catch (e) {
-//     let info = document.getElementById('info');
-//     info.textContent = 'this browser does not support video capture,' +
-//         'or this device does not have a camera';
-//     info.style.display = 'block';
-//     throw e;
-//   }
-// }

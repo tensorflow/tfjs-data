@@ -18,9 +18,10 @@
 
 import {Dataset, datasetFromIteratorFn} from './dataset';
 import {CSVDataset} from './datasets/csv_dataset';
+import {WebcamDataset} from './datasets/webcam_dataset';
 import {iteratorFromFunction} from './iterators/lazy_iterator';
 import {URLDataSource} from './sources/url_data_source';
-import {CSVConfig, DataElement} from './types';
+import {CSVConfig, DataElement, WebcamConfig} from './types';
 
 /**
  * Create a `CSVDataset` by reading and decoding CSV file(s) from provided URL
@@ -194,4 +195,9 @@ export function generator<T extends DataElement>(
     const gen = await generator();
     return iteratorFromFunction(() => gen.next());
   });
+}
+
+export function webcam<T extends DataElement>(
+  webcamVideoElement: HTMLVideoElement, webcamConfig?:WebcamConfig) {
+  return new WebcamDataset(webcamVideoElement, webcamConfig);
 }
