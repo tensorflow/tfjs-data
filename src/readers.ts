@@ -116,8 +116,8 @@ export function csv(
  * let i = -1;
  * const func = () =>
  *    ++i < 5 ? {value: i, done: false} : {value: null, done: true};
- * const ds = tf.data.fromFunction(func);
- * await ds.forEach(e => console.log(e));
+ * const ds = tf.data.func(func);
+ * await ds.forEachAsync(e => console.log(e));
  * ```
  *
  * @param f A function that produces one data element on each call.
@@ -159,7 +159,7 @@ export function func<T extends DataElement>(
  *   return iterator;
  * }
  * const ds = tfd.generator(makeIterator);
- * ds.forEach(e => console.log(e));
+ * ds.forEachAsync(e => console.log(e));
  * ```
  *
  * Example of creating a dataset from a generator:
@@ -175,7 +175,7 @@ export function func<T extends DataElement>(
  * }
  *
  * const ds = tfd.generator(dataGenerator);
- * ds.forEach(e => console.log(e));
+ * ds.forEachAsync(e => console.log(e));
  * ```
  *
  * @param generator A Javascript generator function that returns a JavaScript
