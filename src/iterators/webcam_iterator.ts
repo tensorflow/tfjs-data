@@ -32,17 +32,21 @@ export class WebcamIterator extends LazyIterator<Tensor3D> {
     return `Endless data stream from webcam`;
   }
 
-  static async create(webcamVideoElement: HTMLVideoElement, webcamConfig: WebcamConfig = {}):
-    Promise<LazyIterator<Tensor3D>> {
-
+  static async create(
+      webcamVideoElement: HTMLVideoElement,
+      webcamConfig: WebcamConfig = {}): Promise<LazyIterator<Tensor3D>> {
     const stream = new WebcamIterator(webcamVideoElement);
     await stream.setupCameraInput(webcamConfig);
-    return new RateLimitingIterator(stream, webcamConfig.frameRate ? webcamConfig.frameRate : 30);
+    return new RateLimitingIterator(
+        stream, webcamConfig.frameRate ? webcamConfig.frameRate : 30);
   }
 
   private async setupCameraInput(webcamConfig: WebcamConfig): Promise<void> {
     if (webcamConfig.facingMode) {
-      assert((webcamConfig.facingMode === 'user') || (webcamConfig.facingMode === 'environment'), 'Invalid wecam facing model: ' + webcamConfig.facingMode);
+      assert(
+          (webcamConfig.facingMode === 'user') ||
+              (webcamConfig.facingMode === 'environment'),
+          'Invalid wecam facing model: ' + webcamConfig.facingMode);
     }
 
     const stream = await navigator.mediaDevices.getUserMedia({

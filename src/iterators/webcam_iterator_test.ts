@@ -26,16 +26,17 @@ describe('WebcamIterator', () => {
     //   media.navigator.streams.fake = true;
     // }
     // if(isChrome){
-      // navigator.mediaDevices.getUserMedia = async () => {
-      //   return new MediaStream();
-      // }
+    // navigator.mediaDevices.getUserMedia = async () => {
+    //   return new MediaStream();
     // }
-    if(isChrome) {
+    // }
+    if (isChrome) {
       const videoElement = document.createElement('video');
-      const webcamIterator = await WebcamIterator.create(videoElement, {width:500, height:500, frameRate:1});
+      const webcamIterator = await WebcamIterator.create(
+          videoElement, {width: 500, height: 500, frameRate: 1});
       const result = await webcamIterator.next();
       console.log(result);
     }
-    console.log(':::::'+isFirefox+isChrome+':::::');
+    console.log(':::::' + isFirefox + isChrome + ':::::');
   });
 });
