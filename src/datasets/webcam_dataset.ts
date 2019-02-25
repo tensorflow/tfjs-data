@@ -19,6 +19,7 @@ import {Tensor3D} from '@tensorflow/tfjs-core';
  */
 
 import {Tensor} from '@tensorflow/tfjs-core';
+import {isInt} from '@tensorflow/tfjs-core/dist/util';
 
 import {Dataset} from '../dataset';
 import {LazyIterator} from '../iterators/lazy_iterator';
@@ -29,6 +30,8 @@ export class WebcamDataset extends Dataset<Tensor3D> {
   size = Infinity;
 
   private webcamConfig: WebcamConfig;
+
+  private iter: LazyIterator<Tensor3D>;
 
   constructor(
       protected readonly webcamVideoElement: HTMLVideoElement,
@@ -41,13 +44,26 @@ export class WebcamDataset extends Dataset<Tensor3D> {
     }
   }
 
+  async init() {
+    this.iter =
+        await WebcamIterator.create(this.webcamVideoElement, this.webcamConfig);
+  }
+
   async iterator(): Promise<LazyIterator<Tensor3D>> {
-    return WebcamIterator.create(this.webcamVideoElement, this.webcamConfig);
+    if (this.iter) {
+      return this.iter;
+    } else {
+      await this.init();
+      return this.iter;
+    }
   }
 
   async capture(): Promise<Tensor> {
-    const iter =
-        await WebcamIterator.create(this.webcamVideoElement, this.webcamConfig);
-    return (await iter.next()).value;
+    if (this.iter) {
+      return (await this.iter.next()).value;
+    } else {
+      await this.init();
+      return (await this.iter.next()).value;
+    }
   }
 }
