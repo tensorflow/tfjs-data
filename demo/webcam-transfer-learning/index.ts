@@ -29,8 +29,7 @@ const NUM_CLASSES = 4;
 
 // A webcam class that generates Tensors from the images from the webcam.
 // const webcam = new Webcam(document.getElementById('webcam'));
-const webcamDataset = webcam(
-    document.getElementById('webcam') as HTMLVideoElement, {frameRate: 10});
+let webcamDataset;
 
 // The dataset object where we will store activations.
 const controllerDataset = new ControllerDataset(NUM_CLASSES);
@@ -52,16 +51,19 @@ async function loadTruncatedMobileNet() {
 // When the UI buttons are pressed, read a frame from the webcam and associate
 // it with the class label given by the button. up, down, left, right are
 // labels 0, 1, 2, 3 respectively.
-ui.setExampleHandler(label => {
-  tf.tidy(() => {
-    const iter = await webcamDataset.iterator();
-    // const img = webcam.capture();
-    const img = await iter.next();
-    controllerDataset.addExample(truncatedMobileNet.predict(img), label);
+ui.setExampleHandler(async label => {
+  let img = (await webcamDataset.capture())
+                .expandDims(0)
+                .toFloat()
+                .div(tf.scalar(127))
+                .sub(tf.scalar(1));
 
-    // Draw the preview thumbnail.
-    ui.drawThumb(img, label);
-  });
+
+  controllerDataset.addExample(truncatedMobileNet.predict(img), label);
+
+  // Draw the preview thumbnail.
+  ui.drawThumb(img, label);
+  img.dispose();
 });
 
 /**
@@ -135,24 +137,26 @@ let isPredicting = false;
 async function predict() {
   ui.isPredicting();
   while (isPredicting) {
-    const predictedClass = tf.tidy(() => {
-      // Capture the frame from the webcam.
-      // const img = webcam.capture();
-      const iter = await webcamDataset.iterator();
-      const img = await iter.next();
+    // Capture the frame from the webcam.
+    // const img = webcam.capture();
+    const img = (await webcamDataset.capture())
+                    .expandDims(0)
+                    .toFloat()
+                    .div(tf.scalar(127))
+                    .sub(tf.scalar(1));
 
-      // Make a prediction through mobilenet, getting the internal activation of
-      // the mobilenet model, i.e., "embeddings" of the input images.
-      const embeddings = truncatedMobileNet.predict(img);
+    // Make a prediction through mobilenet, getting the internal activation of
+    // the mobilenet model, i.e., "embeddings" of the input images.
+    const embeddings = truncatedMobileNet.predict(img);
 
-      // Make a prediction through our newly-trained model using the embeddings
-      // from mobilenet as input.
-      const predictions = model.predict(embeddings);
+    // Make a prediction through our newly-trained model using the embeddings
+    // from mobilenet as input.
+    const predictions = model.predict(embeddings);
 
-      // Returns the index with the maximum probability. This number corresponds
-      // to the class the model thinks is the most probable given the input.
-      return predictions.as1D().argMax();
-    });
+    // Returns the index with the maximum probability. This number corresponds
+    // to the class the model thinks is the most probable given the input.
+    const predictedClass = predictions.as1D().argMax();
+    img.dispose();
 
     const classId = (await predictedClass.data())[0];
     predictedClass.dispose();
@@ -178,7 +182,11 @@ document.getElementById('predict').addEventListener('click', () => {
 
 async function init() {
   try {
-    await webcam.setup();
+    // await webcam.setup();
+    webcamDataset = webcam(
+        document.getElementById('webcam') as HTMLVideoElement,
+        {frameRate: 10, width: 224, height: 224});
+    await webcamDataset.init();
   } catch (e) {
     document.getElementById('no-webcam').style.display = 'block';
   }
@@ -187,7 +195,9 @@ async function init() {
   // Warm up the model. This uploads weights to the GPU and compiles the WebGL
   // programs so the first time we collect data from the webcam it will be
   // quick.
-  tf.tidy(() => truncatedMobileNet.predict(webcam.capture()));
+  const screenShot = await webcamDataset.capture();
+  truncatedMobileNet.predict(screenShot.expandDims(0));
+  screenShot.dispose();
 
   ui.init();
 }
