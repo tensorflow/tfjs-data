@@ -19,6 +19,7 @@
 import * as tf from '@tensorflow/tfjs-core';
 import {describeWithFlags} from '@tensorflow/tfjs-core/dist/jasmine_util';
 import {TensorContainerObject} from '@tensorflow/tfjs-core/dist/tensor_types';
+import {expectArraysClose} from '@tensorflow/tfjs-core/dist/test_util';
 
 import {array} from './dataset';
 import * as tfd from './index';
@@ -312,6 +313,42 @@ describeWithFlags(
         });
         tf.dispose(result);
         expect(tf.ENV.engine.memory().numTensors).toBe(0);
+      });
+
+      it('batches a list of Float32Array', async () => {
+        // @ts-ignore
+        const ds = tfd.array([
+                        new Float32Array([1, 2]), new Float32Array([3, 4]),
+                        new Float32Array([5, 6]), new Float32Array([7, 8])
+                      ])
+                       .batch(2);
+        const elems = await ds.toArray();
+        const [a, b] = elems as tf.Tensor[];
+
+        expect(a.dtype).toBe('float32');
+        expect(a.shape).toEqual([2, 2]);
+        expectArraysClose(a, [1, 2, 3, 4]);
+        expect(b.dtype).toBe('float32');
+        expect(b.shape).toEqual([2, 2]);
+        expectArraysClose(a, [1, 2, 3, 4]);
+      });
+
+      it('batches a list of Int32Array', async () => {
+        // @ts-ignore
+        const ds = tfd.array([
+                        new Int32Array([1, 2]), new Int32Array([3, 4]),
+                        new Int32Array([5, 6]), new Int32Array([7, 8])
+                      ])
+                       .batch(3);
+        const elems = await ds.toArray();
+        const [a, b] = elems as tf.Tensor[];
+
+        expect(a.dtype).toBe('int32');
+        expect(a.shape).toEqual([3, 2]);
+        expectArraysClose(a, [1, 2, 3, 4, 5, 6]);
+        expect(b.dtype).toBe('int32');
+        expect(b.shape).toEqual([1, 2]);
+        expectArraysClose(b, [7, 8]);
       });
 
       it('batches entries without leaking Tensors', async () => {
