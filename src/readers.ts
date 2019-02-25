@@ -197,7 +197,7 @@ export function generator<T extends DataElement>(
   });
 }
 
-export function webcam<T extends DataElement>(
-  webcamVideoElement: HTMLVideoElement, webcamConfig?:WebcamConfig) {
+export function webcam(
+    webcamVideoElement: HTMLVideoElement, webcamConfig?: WebcamConfig) {
   return new WebcamDataset(webcamVideoElement, webcamConfig);
 }

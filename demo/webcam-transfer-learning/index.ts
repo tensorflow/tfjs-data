@@ -17,16 +17,20 @@
 
 import * as tf from '@tensorflow/tfjs';
 
+import {webcam} from '../../src/readers';
+
 import {ControllerDataset} from './controller_dataset';
 import * as ui from './ui';
-import {Webcam} from './webcam';
+// import {Webcam} from './webcam';
 
 // The number of classes we want to predict. In this example, we will be
 // predicting 4 classes for up, down, left, and right.
 const NUM_CLASSES = 4;
 
 // A webcam class that generates Tensors from the images from the webcam.
-const webcam = new Webcam(document.getElementById('webcam'));
+// const webcam = new Webcam(document.getElementById('webcam'));
+const webcamDataset = webcam(
+    document.getElementById('webcam') as HTMLVideoElement, {frameRate: 10});
 
 // The dataset object where we will store activations.
 const controllerDataset = new ControllerDataset(NUM_CLASSES);
@@ -50,7 +54,9 @@ async function loadTruncatedMobileNet() {
 // labels 0, 1, 2, 3 respectively.
 ui.setExampleHandler(label => {
   tf.tidy(() => {
-    const img = webcam.capture();
+    const iter = await webcamDataset.iterator();
+    // const img = webcam.capture();
+    const img = await iter.next();
     controllerDataset.addExample(truncatedMobileNet.predict(img), label);
 
     // Draw the preview thumbnail.
@@ -131,7 +137,9 @@ async function predict() {
   while (isPredicting) {
     const predictedClass = tf.tidy(() => {
       // Capture the frame from the webcam.
-      const img = webcam.capture();
+      // const img = webcam.capture();
+      const iter = await webcamDataset.iterator();
+      const img = await iter.next();
 
       // Make a prediction through mobilenet, getting the internal activation of
       // the mobilenet model, i.e., "embeddings" of the input images.

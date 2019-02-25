@@ -1,11 +1,5 @@
 
 import {Tensor3D} from '@tensorflow/tfjs-core';
-import {Dataset} from '../dataset';
-import {LazyIterator} from '../iterators/lazy_iterator';
-import {WebcamIterator} from '../iterators/webcam_iterator';
-import {WebcamConfig} from '../types';
-
-
 /**
  * @license
  * Copyright 2018 Google LLC. All Rights Reserved.
@@ -23,6 +17,13 @@ import {WebcamConfig} from '../types';
  *
  * =============================================================================
  */
+
+import {Tensor} from '@tensorflow/tfjs-core';
+
+import {Dataset} from '../dataset';
+import {LazyIterator} from '../iterators/lazy_iterator';
+import {WebcamIterator} from '../iterators/webcam_iterator';
+import {WebcamConfig} from '../types';
 
 export class WebcamDataset extends Dataset<Tensor3D> {
   size = Infinity;
@@ -42,5 +43,11 @@ export class WebcamDataset extends Dataset<Tensor3D> {
 
   async iterator(): Promise<LazyIterator<Tensor3D>> {
     return WebcamIterator.create(this.webcamVideoElement, this.webcamConfig);
+  }
+
+  async capture(): Promise<Tensor> {
+    const iter =
+        await WebcamIterator.create(this.webcamVideoElement, this.webcamConfig);
+    return (await iter.next()).value;
   }
 }

@@ -142,6 +142,13 @@ export interface CSVConfig {
  * Interface for configuring dataset when reading from webcam.
  */
 export interface WebcamConfig {
-  width?: number, height?: number, frameRate?: number, facingMode?: string,
-      deviceId?: string
+  width?: number;
+
+  height?: number;
+
+  frameRate?: number;
+
+  facingMode?: string;
+
+  deviceId?: string;
 }

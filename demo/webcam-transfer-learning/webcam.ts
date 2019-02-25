@@ -20,8 +20,11 @@ import * as tf from '@tensorflow/tfjs';
  * A class that wraps webcam video elements to capture Tensor4Ds.
  */
 export class Webcam {
+  webcamElement: HTMLVideoElement;
+
   /**
-   * @param {HTMLVideoElement} webcamElement A HTMLVideoElement representing the webcam feed.
+   * @param {HTMLVideoElement} webcamElement A HTMLVideoElement representing the
+   *     webcam feed.
    */
   constructor(webcamElement) {
     this.webcamElement = webcamElement;
@@ -80,9 +83,7 @@ export class Webcam {
   async setup() {
     return new Promise((resolve, reject) => {
       const navigatorAny = navigator;
-      navigator.getUserMedia = navigator.getUserMedia ||
-          navigatorAny.webkitGetUserMedia || navigatorAny.mozGetUserMedia ||
-          navigatorAny.msGetUserMedia;
+      navigator.getUserMedia = navigator.getUserMedia;
       if (navigator.getUserMedia) {
         navigator.getUserMedia(
             {video: true},

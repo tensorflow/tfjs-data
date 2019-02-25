@@ -27,16 +27,20 @@ export function init() {
 const trainStatusElement = document.getElementById('train-status');
 
 // Set hyper params from UI values.
-const learningRateElement = document.getElementById('learningRate');
+const learningRateElement: HTMLSelectElement =
+    document.getElementById('learningRate') as HTMLSelectElement;
 export const getLearningRate = () => +learningRateElement.value;
 
-const batchSizeFractionElement = document.getElementById('batchSizeFraction');
+const batchSizeFractionElement: HTMLSelectElement =
+    document.getElementById('batchSizeFraction') as HTMLSelectElement;
 export const getBatchSizeFraction = () => +batchSizeFractionElement.value;
 
-const epochsElement = document.getElementById('epochs');
+const epochsElement: HTMLSelectElement =
+    document.getElementById('epochs') as HTMLSelectElement;
 export const getEpochs = () => +epochsElement.value;
 
-const denseUnitsElement = document.getElementById('dense-units');
+const denseUnitsElement: HTMLSelectElement =
+    document.getElementById('dense-units') as HTMLSelectElement;
 export const getDenseUnits = () => +denseUnitsElement.value;
 const statusElement = document.getElementById('status');
 
@@ -81,7 +85,7 @@ async function handler(label) {
   while (mouseDown) {
     addExampleHandler(label);
     document.body.setAttribute('data-active', CONTROLS[label]);
-    total.innerText = ++totals[label];
+    total.innerText = String(++totals[label]);
     await tf.nextFrame();
   }
   document.body.removeAttribute('data-active');
