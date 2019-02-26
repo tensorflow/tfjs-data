@@ -26,7 +26,8 @@ import {isTypedArray} from '@tensorflow/tfjs-core/dist/util';
  * This is equivalant to node util.isPrimitive
  */
 function isPrimitive(value: any): boolean {
-  return (typeof value !== 'object' && typeof value !== 'function') || value === null
+  return ((typeof value !== 'object' && typeof value !== 'function') || 
+          value === null)
 }
 
 /**
