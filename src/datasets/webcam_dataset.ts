@@ -19,7 +19,6 @@ import {Tensor3D} from '@tensorflow/tfjs-core';
  */
 
 import {Tensor} from '@tensorflow/tfjs-core';
-import {isInt} from '@tensorflow/tfjs-core/dist/util';
 
 import {Dataset} from '../dataset';
 import {LazyIterator} from '../iterators/lazy_iterator';
@@ -50,12 +49,8 @@ export class WebcamDataset extends Dataset<Tensor3D> {
   }
 
   async iterator(): Promise<LazyIterator<Tensor3D>> {
-    if (this.iter) {
-      return this.iter;
-    } else {
-      await this.init();
-      return this.iter;
-    }
+    return await WebcamIterator.create(
+        this.webcamVideoElement, this.webcamConfig);
   }
 
   async capture(): Promise<Tensor> {

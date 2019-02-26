@@ -58,7 +58,6 @@ ui.setExampleHandler(async label => {
                 .div(tf.scalar(127))
                 .sub(tf.scalar(1));
 
-
   controllerDataset.addExample(truncatedMobileNet.predict(img), label);
 
   // Draw the preview thumbnail.
