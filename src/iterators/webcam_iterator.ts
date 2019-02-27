@@ -49,14 +49,22 @@ export class WebcamIterator extends LazyIterator<Tensor3D> {
           'Invalid wecam facing model: ' + webcamConfig.facingMode);
     }
 
-    const stream = await navigator.mediaDevices.getUserMedia({
-      video: {
-        deviceId: webcamConfig.deviceId,
-        facingMode: webcamConfig.facingMode ? webcamConfig.facingMode : 'user',
-        width: webcamConfig.width,
-        height: webcamConfig.height
-      }
-    });
+    let stream;
+    try {
+      stream = await navigator.mediaDevices.getUserMedia({
+        video: {
+          deviceId: webcamConfig.deviceId,
+          facingMode: webcamConfig.facingMode ? webcamConfig.facingMode :
+                                                'user',
+          width: webcamConfig.width,
+          height: webcamConfig.height
+        }
+      });
+    } catch (e) {
+      // Modify the error message but leave the stack trace intact
+      e.message = `Error thrown while initialing video stream: ${e.message}`;
+      throw e;
+    }
 
     if (!stream) {
       throw new Error('Could not obtain video from webcam.');
