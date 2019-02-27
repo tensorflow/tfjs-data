@@ -4,7 +4,7 @@ demo/
 scripts/
 src/
 coverage/
-**/node_modules/
+node_modules/
 karma.conf.js
 dist/**/*_test.js
 dist/**/*_test.d.ts

@@ -18,17 +18,9 @@
 
 import * as tf from '@tensorflow/tfjs-core';
 import {isTypedArray} from '@tensorflow/tfjs-core/dist/util';
+import {isPrimitive} from 'util';
 
 // tslint:disable:no-any
-/**
- * Returns true if the given `value` is a primitive type. Otherwise returns
- * false. This is equivalant to node util.isPrimitive
- */
-function isPrimitive(value: any): boolean {
-  return (
-      (typeof value !== 'object' && typeof value !== 'function') ||
-      value === null)
-}
 
 /**
  * A return value for a mapping function that can be applied via deepMap.

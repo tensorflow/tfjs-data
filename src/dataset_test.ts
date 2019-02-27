@@ -19,11 +19,11 @@
 import * as tf from '@tensorflow/tfjs-core';
 import {describeWithFlags} from '@tensorflow/tfjs-core/dist/jasmine_util';
 import {TensorContainerObject} from '@tensorflow/tfjs-core/dist/tensor_types';
+
 import {array} from './dataset';
 import * as tfd from './index';
 import {iteratorFromItems, LazyIterator} from './iterators/lazy_iterator';
 import {DataElementObject, DatasetContainer} from './types';
-
 
 class TestObjectIterator extends LazyIterator<{}> {
   data = Array.from({length: 100}, (v, k) => k);
