@@ -56,8 +56,8 @@ export class WebcamIterator extends LazyIterator<Tensor3D> {
           deviceId: webcamConfig.deviceId,
           facingMode: webcamConfig.facingMode ? webcamConfig.facingMode :
                                                 'user',
-          width: webcamConfig.width,
-          height: webcamConfig.height
+          width: this.webcamVideoElement.width,
+          height: this.webcamVideoElement.height
         }
       });
     } catch (e) {
