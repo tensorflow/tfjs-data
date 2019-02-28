@@ -21,8 +21,8 @@ import {WebcamIterator} from './webcam_iterator';
 describe('WebcamIterator', () => {
   it('Reads the entire file and then closes the stream', async () => {
     const videoElement = document.createElement('video');
-    const webcamIterator = await WebcamIterator.create(
-        videoElement, {width: 500, height: 500, frameRate: 1});
+    const webcamIterator =
+        await WebcamIterator.create(videoElement, {frameRate: 1});
     const result = await webcamIterator.next();
     console.log(result);
   });

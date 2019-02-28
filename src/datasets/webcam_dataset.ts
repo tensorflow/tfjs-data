@@ -43,11 +43,6 @@ export class WebcamDataset extends Dataset<Tensor3D> {
     }
   }
 
-  async init() {
-    this.iter =
-        await WebcamIterator.create(this.webcamVideoElement, this.webcamConfig);
-  }
-
   async iterator(): Promise<LazyIterator<Tensor3D>> {
     return await WebcamIterator.create(
         this.webcamVideoElement, this.webcamConfig);
@@ -57,7 +52,8 @@ export class WebcamDataset extends Dataset<Tensor3D> {
     if (this.iter) {
       return (await this.iter.next()).value;
     } else {
-      await this.init();
+      this.iter = await WebcamIterator.create(
+          this.webcamVideoElement, this.webcamConfig);
       return (await this.iter.next()).value;
     }
   }

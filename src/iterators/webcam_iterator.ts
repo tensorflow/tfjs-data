@@ -24,6 +24,8 @@ import {RateLimitingIterator} from './rate_limiting_iterator';
  */
 
 export class WebcamIterator extends LazyIterator<Tensor3D> {
+  private isStreamStarted: boolean;
+
   private constructor(protected readonly webcamVideoElement: HTMLVideoElement) {
     super();
   }
@@ -37,6 +39,7 @@ export class WebcamIterator extends LazyIterator<Tensor3D> {
       webcamConfig: WebcamConfig = {}): Promise<LazyIterator<Tensor3D>> {
     const stream = new WebcamIterator(webcamVideoElement);
     await stream.setupCameraInput(webcamConfig);
+    // return stream;
     return new RateLimitingIterator(
         stream, webcamConfig.frameRate ? webcamConfig.frameRate : 30);
   }
@@ -46,7 +49,7 @@ export class WebcamIterator extends LazyIterator<Tensor3D> {
       assert(
           (webcamConfig.facingMode === 'user') ||
               (webcamConfig.facingMode === 'environment'),
-          'Invalid wecam facing model: ' + webcamConfig.facingMode);
+          () => 'Invalid wecam facing model: ' + webcamConfig.facingMode);
     }
 
     let stream;
@@ -62,7 +65,7 @@ export class WebcamIterator extends LazyIterator<Tensor3D> {
       });
     } catch (e) {
       // Modify the error message but leave the stack trace intact
-      e.message = `Error thrown while initialing video stream: ${e.message}`;
+      e.message = `Error thrown while initializing video stream: ${e.message}`;
       throw e;
     }
 
@@ -86,6 +89,18 @@ export class WebcamIterator extends LazyIterator<Tensor3D> {
   }
 
   async next(): Promise<IteratorResult<Tensor3D>> {
-    return {value: browser.fromPixels(this.webcamVideoElement), done: false};
+    const img = browser.fromPixels(this.webcamVideoElement);
+    if (this.isStreamStarted) {
+      return {value: img, done: false};
+    } else {
+      const maxValue = img.max().dataSync()[0];
+      if (maxValue > 0) {
+        this.isStreamStarted = true;
+        return {value: img, done: false};
+      } else {
+        await new Promise(resolve => setTimeout(resolve, 200));
+        return this.next();
+      }
+    }
   }
 }
