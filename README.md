@@ -49,9 +49,10 @@ async function run() {
   // Prepare the Dataset for training.
   const flattenedDataset =
     csvDataset
-    .map(([rawFeatures, rawLabel]) =>
+    .map(({xs, ys}) => {
       // Convert rows from object form (keyed by column name) to array form.
-      [Object.values(rawFeatures), Object.values(rawLabel)])
+      return {xs: Object.values(xs), ys: Object.values(ys)};
+    })
     .batch(10);
 
   // Define the model.

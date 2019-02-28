@@ -50,9 +50,12 @@ import {CSVConfig, DataElement, WebcamConfig} from './types';
  *   // Prepare the Dataset for training.
  *   const flattenedDataset =
  *     csvDataset
- *     .map(([rawFeatures, rawLabel]) =>
- *       // Convert rows from object form (keyed by column name) to array form.
- *       [Object.values(rawFeatures), Object.values(rawLabel)])
+ *     .map(({xs, ys}) =>
+ *       {
+ *         // Convert rows from object form (keyed by column name) to array
+ *         // form.
+ *         return {xs:Object.values(xs), ys:Object.values(ys)};
+ *       })
  *     .batch(10);
  *
  *   // Define the model.
