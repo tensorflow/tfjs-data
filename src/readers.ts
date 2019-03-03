@@ -18,8 +18,8 @@
 
 import {Dataset, datasetFromIteratorFn} from './dataset';
 import {CSVDataset} from './datasets/csv_dataset';
-import {WebcamDataset} from './datasets/webcam_dataset';
 import {iteratorFromFunction} from './iterators/lazy_iterator';
+import {WebcamIterator} from './iterators/webcam_iterator';
 import {URLDataSource} from './sources/url_data_source';
 import {CSVConfig, DataElement, WebcamConfig} from './types';
 
@@ -200,7 +200,9 @@ export function generator<T extends DataElement>(
   });
 }
 
-export function webcam(
+export async function webcam(
     webcamVideoElement: HTMLVideoElement, webcamConfig?: WebcamConfig) {
-  return new WebcamDataset(webcamVideoElement, webcamConfig);
+  const webcamIterator = new WebcamIterator(webcamVideoElement, webcamConfig);
+  await webcamIterator.setupCameraInput();
+  return webcamIterator;
 }

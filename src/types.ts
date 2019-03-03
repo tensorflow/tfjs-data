@@ -142,8 +142,6 @@ export interface CSVConfig {
  * Interface for configuring dataset when reading from webcam.
  */
 export interface WebcamConfig {
-  frameRate?: number;
-
   facingMode?: string;
 
   deviceId?: string;

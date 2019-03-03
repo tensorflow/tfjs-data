@@ -2,7 +2,6 @@ import {browser, Tensor3D} from '@tensorflow/tfjs-core';
 import {assert} from '@tensorflow/tfjs-core/dist/util';
 import {WebcamConfig} from '../types';
 import {LazyIterator} from './lazy_iterator';
-import {RateLimitingIterator} from './rate_limiting_iterator';
 
 
 /**
@@ -26,7 +25,9 @@ import {RateLimitingIterator} from './rate_limiting_iterator';
 export class WebcamIterator extends LazyIterator<Tensor3D> {
   private isStreamStarted: boolean;
 
-  private constructor(protected readonly webcamVideoElement: HTMLVideoElement) {
+  constructor(
+      protected readonly webcamVideoElement: HTMLVideoElement,
+      protected readonly webcamConfig: WebcamConfig = {}) {
     super();
   }
 
@@ -34,31 +35,22 @@ export class WebcamIterator extends LazyIterator<Tensor3D> {
     return `Endless data stream from webcam`;
   }
 
-  static async create(
-      webcamVideoElement: HTMLVideoElement,
-      webcamConfig: WebcamConfig = {}): Promise<LazyIterator<Tensor3D>> {
-    const stream = new WebcamIterator(webcamVideoElement);
-    await stream.setupCameraInput(webcamConfig);
-    // return stream;
-    return new RateLimitingIterator(
-        stream, webcamConfig.frameRate ? webcamConfig.frameRate : 30);
-  }
-
-  private async setupCameraInput(webcamConfig: WebcamConfig): Promise<void> {
-    if (webcamConfig.facingMode) {
+  async setupCameraInput(): Promise<void> {
+    if (this.webcamConfig.facingMode) {
       assert(
-          (webcamConfig.facingMode === 'user') ||
-              (webcamConfig.facingMode === 'environment'),
-          () => 'Invalid wecam facing model: ' + webcamConfig.facingMode);
+          (this.webcamConfig.facingMode === 'user') ||
+              (this.webcamConfig.facingMode === 'environment'),
+          () => 'Invalid wecam facing model: ' + this.webcamConfig.facingMode);
     }
 
     let stream;
     try {
       stream = await navigator.mediaDevices.getUserMedia({
         video: {
-          deviceId: webcamConfig.deviceId,
-          facingMode: webcamConfig.facingMode ? webcamConfig.facingMode :
-                                                'user',
+          deviceId: this.webcamConfig.deviceId,
+          facingMode: this.webcamConfig.facingMode ?
+              this.webcamConfig.facingMode :
+              'user',
           width: this.webcamVideoElement.width,
           height: this.webcamVideoElement.height
         }
@@ -102,5 +94,9 @@ export class WebcamIterator extends LazyIterator<Tensor3D> {
         return this.next();
       }
     }
+  }
+
+  async capture(): Promise<Tensor3D> {
+    return (await this.next()).value;
   }
 }
