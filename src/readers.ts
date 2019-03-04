@@ -202,7 +202,5 @@ export function generator<T extends DataElement>(
 
 export async function webcam(
     webcamVideoElement: HTMLVideoElement, webcamConfig?: WebcamConfig) {
-  const webcamIterator = new WebcamIterator(webcamVideoElement, webcamConfig);
-  await webcamIterator.setupCameraInput();
-  return webcamIterator;
+  return await WebcamIterator.create(webcamVideoElement, webcamConfig);
 }

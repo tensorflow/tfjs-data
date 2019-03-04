@@ -24,11 +24,12 @@ import {LazyIterator} from './lazy_iterator';
 
 export class WebcamIterator extends LazyIterator<Tensor3D> {
   private isStreamStarted: boolean;
+  private isClosed = true;
   private stream: MediaStream;
 
-  constructor(
+  private constructor(
       protected readonly webcamVideoElement: HTMLVideoElement,
-      protected readonly webcamConfig: WebcamConfig = {}) {
+      protected readonly webcamConfig: WebcamConfig) {
     super();
   }
 
@@ -36,7 +37,14 @@ export class WebcamIterator extends LazyIterator<Tensor3D> {
     return `Endless data stream from webcam`;
   }
 
-  async setupCameraInput(): Promise<void> {
+  static async create(
+      webcamVideoElement: HTMLVideoElement, webcamConfig: WebcamConfig = {}) {
+    const webcamIterator = new WebcamIterator(webcamVideoElement, webcamConfig);
+    await webcamIterator.start();
+    return webcamIterator;
+  }
+
+  async start(): Promise<void> {
     if (this.webcamConfig.facingMode) {
       assert(
           (this.webcamConfig.facingMode === 'user') ||
@@ -72,6 +80,7 @@ export class WebcamIterator extends LazyIterator<Tensor3D> {
       console.log(error);
       this.webcamVideoElement.src = window.URL.createObjectURL(this.stream);
     }
+    this.isClosed = false;
 
     return await new Promise<void>(resolve => {
       this.webcamVideoElement.addEventListener('loadeddata', () => {
@@ -81,6 +90,9 @@ export class WebcamIterator extends LazyIterator<Tensor3D> {
   }
 
   async next(): Promise<IteratorResult<Tensor3D>> {
+    if (this.isClosed) {
+      return {value: null, done: true};
+    }
     const img = browser.fromPixels(this.webcamVideoElement);
     if (this.isStreamStarted) {
       return {value: img, done: false};
@@ -100,7 +112,7 @@ export class WebcamIterator extends LazyIterator<Tensor3D> {
     return (await this.next()).value;
   }
 
-  close(): void {
+  stop(): void {
     const tracks = this.stream.getTracks();
 
     tracks.forEach(function(track) {
@@ -113,5 +125,7 @@ export class WebcamIterator extends LazyIterator<Tensor3D> {
       console.log(error);
       this.webcamVideoElement.src = null;
     }
+    this.isStreamStarted = false;
+    this.isClosed = true;
   }
 }

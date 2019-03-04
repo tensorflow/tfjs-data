@@ -16,13 +16,14 @@
  * =============================================================================
  */
 
-import {WebcamIterator} from './webcam_iterator';
+// import {WebcamIterator} from './webcam_iterator';
 
 describe('WebcamIterator', () => {
-  it('Reads the entire file and then closes the stream', async () => {
-    const videoElement = document.createElement('video');
-    const webcamIterator = new WebcamIterator(videoElement);
-    const result = await webcamIterator.next();
-    console.log(result);
-  });
+  it('Reads the entire file and then closes the stream',
+     async () => {
+         // const videoElement = document.createElement('video');
+         // const webcamIterator = WebcamIterator(videoElement);
+         // const result = await webcamIterator.next();
+         // console.log(result);
+     });
 });
