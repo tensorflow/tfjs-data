@@ -24,6 +24,7 @@ import {LazyIterator} from './lazy_iterator';
 
 export class WebcamIterator extends LazyIterator<Tensor3D> {
   private isStreamStarted: boolean;
+  private stream: MediaStream;
 
   constructor(
       protected readonly webcamVideoElement: HTMLVideoElement,
@@ -43,9 +44,8 @@ export class WebcamIterator extends LazyIterator<Tensor3D> {
           () => 'Invalid wecam facing model: ' + this.webcamConfig.facingMode);
     }
 
-    let stream;
     try {
-      stream = await navigator.mediaDevices.getUserMedia({
+      this.stream = await navigator.mediaDevices.getUserMedia({
         video: {
           deviceId: this.webcamConfig.deviceId,
           facingMode: this.webcamConfig.facingMode ?
@@ -61,16 +61,16 @@ export class WebcamIterator extends LazyIterator<Tensor3D> {
       throw e;
     }
 
-    if (!stream) {
+    if (!this.stream) {
       throw new Error('Could not obtain video from webcam.');
     }
 
     // Older browsers may not have srcObject
     try {
-      this.webcamVideoElement.srcObject = stream;
+      this.webcamVideoElement.srcObject = this.stream;
     } catch (error) {
       console.log(error);
-      this.webcamVideoElement.src = window.URL.createObjectURL(stream);
+      this.webcamVideoElement.src = window.URL.createObjectURL(this.stream);
     }
 
     return await new Promise<void>(resolve => {
@@ -98,5 +98,20 @@ export class WebcamIterator extends LazyIterator<Tensor3D> {
 
   async capture(): Promise<Tensor3D> {
     return (await this.next()).value;
+  }
+
+  close(): void {
+    const tracks = this.stream.getTracks();
+
+    tracks.forEach(function(track) {
+      track.stop();
+    });
+
+    try {
+      this.webcamVideoElement.srcObject = null;
+    } catch (error) {
+      console.log(error);
+      this.webcamVideoElement.src = null;
+    }
   }
 }
