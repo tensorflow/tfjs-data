@@ -3,7 +3,6 @@ import {assert} from '@tensorflow/tfjs-core/dist/util';
 import {WebcamConfig} from '../types';
 import {LazyIterator} from './lazy_iterator';
 
-
 /**
  * @license
  * Copyright 2018 Google LLC. All Rights Reserved.
@@ -115,9 +114,7 @@ export class WebcamIterator extends LazyIterator<Tensor3D> {
   stop(): void {
     const tracks = this.stream.getTracks();
 
-    tracks.forEach(function(track) {
-      track.stop();
-    });
+    tracks.forEach(track => track.stop());
 
     try {
       this.webcamVideoElement.srcObject = null;

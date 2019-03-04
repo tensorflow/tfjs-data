@@ -137,7 +137,6 @@ export interface CSVConfig {
   delimiter?: string;
 }
 
-
 /**
  * Interface for configuring dataset when reading from webcam.
  */
