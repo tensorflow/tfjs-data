@@ -895,4 +895,18 @@ describeWithFlags(
            const result = await tfd.zip({'a': a, 'b': b});
            expect(result.size).toEqual(3);
          });
+
+      it('converting dataset with infinity elements to array throws error',
+         async done => {
+           try {
+             const ds = tfd.array([1, 2, 3, 4, 5]).repeat();
+             expect(ds.size).toEqual(Infinity);
+             await ds.toArray();
+             done.fail();
+           } catch (e) {
+             expect(e.message).toEqual(
+                 'Can not convert infinity data stream to array.');
+             done();
+           }
+         });
     });
