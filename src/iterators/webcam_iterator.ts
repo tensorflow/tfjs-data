@@ -1,6 +1,8 @@
 import {browser, Tensor3D} from '@tensorflow/tfjs-core';
 import {assert} from '@tensorflow/tfjs-core/dist/util';
+
 import {WebcamConfig} from '../types';
+
 import {LazyIterator} from './lazy_iterator';
 
 /**
@@ -124,5 +126,11 @@ export class WebcamIterator extends LazyIterator<Tensor3D> {
     }
     this.isStreamStarted = false;
     this.isClosed = true;
+  }
+
+  // (TODO:kangyizhang) Update this method name to toArray() once
+  // https://github.com/tensorflow/tfjs-data/pull/155 is merged.
+  collect(maxItems?: number, prefetch?: number): Promise<Tensor3D[]> {
+    throw new Error('Can not convert infinity video stream to array.');
   }
 }
