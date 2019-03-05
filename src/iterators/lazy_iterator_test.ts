@@ -52,13 +52,13 @@ export class TestIntegerIterator extends LazyIterator<number> {
 describe('LazyIterator', () => {
   it('collects all stream elements into an array', async () => {
     const readIterator = new TestIntegerIterator();
-    const result = await readIterator.collect();
+    const result = await readIterator.prefetch(100).collect();
     expect(result.length).toEqual(100);
   });
 
   it('reads chunks in order', async () => {
     const readIterator = new TestIntegerIterator();
-    const result = await readIterator.collect();
+    const result = await readIterator.prefetch(100).collect();
     expect(result.length).toEqual(100);
     for (let i = 0; i < 100; i++) {
       expect(result[i]).toEqual(i);
@@ -67,7 +67,7 @@ describe('LazyIterator', () => {
 
   it('filters elements', async () => {
     const readIterator = new TestIntegerIterator().filter(x => x % 2 === 0);
-    const result = await readIterator.collect();
+    const result = await readIterator.prefetch(100).collect();
     expect(result.length).toEqual(50);
     for (let i = 0; i < 50; i++) {
       expect(result[i]).toEqual(2 * i);
@@ -76,7 +76,7 @@ describe('LazyIterator', () => {
 
   it('maps elements', async () => {
     const readIterator = new TestIntegerIterator().map(x => `item ${x}`);
-    const result = await readIterator.collect();
+    const result = await readIterator.prefetch(100).collect();
     expect(result.length).toEqual(100);
     for (let i = 0; i < 100; i++) {
       expect(result[i]).toEqual(`item ${i}`);
@@ -107,7 +107,7 @@ describe('LazyIterator', () => {
   it('flatmaps simple elements', async () => {
     const readStream = new TestIntegerIterator().flatmap(
         x => [`item ${x} A`, `item ${x} B`, `item ${x} C`]);
-    const result = await readStream.collect();
+    const result = await readStream.prefetch(100).collect();
     expect(result.length).toEqual(300);
     for (let i = 0; i < 100; i++) {
       expect(result[3 * i + 0]).toEqual(`item ${i} A`);
@@ -123,7 +123,7 @@ describe('LazyIterator', () => {
              {foo: `foo ${x} B`, bar: `bar ${x} B`},
              {foo: `foo ${x} C`, bar: `bar ${x} C`},
     ]);
-    const result = await readStream.collect();
+    const result = await readStream.prefetch(100).collect();
     expect(result.length).toEqual(300);
     for (let i = 0; i < 100; i++) {
       expect(result[3 * i + 0]).toEqual({foo: `foo ${i} A`, bar: `bar ${i} A`});
@@ -139,7 +139,7 @@ describe('LazyIterator', () => {
             [`foo ${x} B`, `bar ${x} B`],
             [`foo ${x} C`, `bar ${x} C`],
     ]);
-    const result = await readStream.collect();
+    const result = await readStream.prefetch(100).collect();
     expect(result.length).toEqual(300);
     for (let i = 0; i < 100; i++) {
       expect(result[3 * i + 0]).toEqual([`foo ${i} A`, `bar ${i} A`]);
@@ -150,7 +150,7 @@ describe('LazyIterator', () => {
 
   it('batches elements to a row-major representation', async () => {
     const readIterator = new TestIntegerIterator().rowMajorBatch(8);
-    const result = await readIterator.collect();
+    const result = await readIterator.prefetch(100).collect();
     expect(result.length).toEqual(13);
     for (let i = 0; i < 12; i++) {
       expect(result[i]).toEqual(Array.from({length: 8}, (v, k) => (i * 8) + k));
@@ -160,7 +160,7 @@ describe('LazyIterator', () => {
 
   it('batches elements to a column-major representation', async () => {
     const readIterator = new TestIntegerIterator().columnMajorBatch(8);
-    const result = await readIterator.collect();
+    const result = await readIterator.prefetch(100).collect();
     expect(result.length).toEqual(13);
     for (let i = 0; i < 12; i++) {
       expect(result[i]).toEqual(Array.from({length: 8}, (v, k) => (i * 8) + k));
@@ -170,35 +170,35 @@ describe('LazyIterator', () => {
 
   it('can be limited to a certain number of elements', async () => {
     const readIterator = new TestIntegerIterator().take(8);
-    const result = await readIterator.collect();
+    const result = await readIterator.prefetch(100).collect();
     expect(result).toEqual([0, 1, 2, 3, 4, 5, 6, 7]);
   });
 
   it('is unaltered by a negative or undefined take() count.', async () => {
     const baseIterator = new TestIntegerIterator();
     const readIterator = baseIterator.take(-1);
-    const result = await readIterator.collect();
+    const result = await readIterator.prefetch(100).collect();
     expect(result).toEqual(baseIterator.data);
     const baseIterator2 = new TestIntegerIterator();
     const readIterator2 = baseIterator2.take(undefined);
-    const result2 = await readIterator2.collect();
+    const result2 = await readIterator2.prefetch(100).collect();
     expect(result2).toEqual(baseIterator2.data);
   });
 
   it('can skip a certain number of elements', async () => {
     const readIterator = new TestIntegerIterator().skip(88).take(8);
-    const result = await readIterator.collect();
+    const result = await readIterator.prefetch(100).collect();
     expect(result).toEqual([88, 89, 90, 91, 92, 93, 94, 95]);
   });
 
   it('is unaltered by a negative or undefined skip() count.', async () => {
     const baseIterator = new TestIntegerIterator();
     const readIterator = baseIterator.skip(-1);
-    const result = await readIterator.collect();
+    const result = await readIterator.prefetch(100).collect();
     expect(result).toEqual(baseIterator.data);
     const baseIterator2 = new TestIntegerIterator();
     const readIterator2 = baseIterator2.skip(undefined);
-    const result2 = await readIterator2.collect();
+    const result2 = await readIterator2.prefetch(100).collect();
     expect(result2).toEqual(baseIterator2.data);
   });
 
@@ -211,7 +211,7 @@ describe('LazyIterator', () => {
     });
     // The 'true' response means the iterator should continue.
     const errorIgnoringIterator = readIterator.handleErrors((e) => true);
-    const result = await errorIgnoringIterator.collect();
+    const result = await errorIgnoringIterator.prefetch(100).collect();
     expect(result).toEqual([1, 3, 5, 7, 9]);
   });
 
@@ -226,7 +226,7 @@ describe('LazyIterator', () => {
     // But in the case of 10, return false, terminating the stream.
     const errorHandlingIterator = readIterator.handleErrors(
         (e) => e.message !== 'Oh no, an even number: 10');
-    const result = await errorHandlingIterator.collect();
+    const result = await errorHandlingIterator.prefetch(100).collect();
     expect(result).toEqual([1, 3, 5, 7, 9]);
   });
 
@@ -244,7 +244,7 @@ describe('LazyIterator', () => {
       return true;
     });
     try {
-      await errorHandlingIterator.collect(1000, 0);
+      await errorHandlingIterator.collect();
       done.fail();
     } catch (e) {
       expect(e.message).toEqual('Oh no, an even number: 2');
@@ -283,17 +283,17 @@ describe('LazyIterator', () => {
 
     // Without enforcing serial execution, order gets scrambled; consequently
     // the done signal arrives before any of the accepted elements!
-    const badResult = await newReadIterator().collect();
+    const badResult = await newReadIterator().prefetch(100).collect();
     expect(badResult).toEqual([0]);
 
     // But with serial execution, everything is fine.
-    const goodResult = await newReadIterator().serial().collect();
+    const goodResult = await newReadIterator().serial().prefetch(100).collect();
     expect(goodResult).toEqual([0, 2, 4, 6, 8]);
   });
 
   it('can be created from an array', async () => {
     const readIterator = iteratorFromItems([1, 2, 3, 4, 5, 6]);
-    const result = await readIterator.collect();
+    const result = await readIterator.prefetch(100).collect();
     expect(result).toEqual([1, 2, 3, 4, 5, 6]);
   });
 
@@ -303,13 +303,13 @@ describe('LazyIterator', () => {
         ++i < 7 ? {value: i, done: false} : {value: null, done: true};
 
     const readIterator = iteratorFromFunction(func);
-    const result = await readIterator.collect();
+    const result = await readIterator.prefetch(100).collect();
     expect(result).toEqual([0, 1, 2, 3, 4, 5, 6]);
   });
 
   it('can be created with incrementing integers', async () => {
     const readIterator = iteratorFromIncrementing(0).take(7);
-    const result = await readIterator.collect();
+    const result = await readIterator.prefetch(100).collect();
     expect(result).toEqual([0, 1, 2, 3, 4, 5, 6]);
   });
 
@@ -317,7 +317,7 @@ describe('LazyIterator', () => {
     const a = iteratorFromItems([1, 2, 3]);
     const b = iteratorFromItems([4, 5, 6]);
     const readIterator = a.concatenate(b);
-    const result = await readIterator.collect();
+    const result = await readIterator.prefetch(100).collect();
     expect(result).toEqual([1, 2, 3, 4, 5, 6]);
   });
 
@@ -325,7 +325,7 @@ describe('LazyIterator', () => {
     const a = new TestIntegerIterator();
     const b = new TestIntegerIterator();
     const readIterator = iteratorFromConcatenated(iteratorFromItems([a, b]));
-    const result = await readIterator.collect();
+    const result = await readIterator.prefetch(100).collect();
     expect(result.length).toEqual(200);
   });
 
@@ -339,7 +339,7 @@ describe('LazyIterator', () => {
       }
     }
 
-    const result = await readIterator.collect();
+    const result = await readIterator.prefetch(100).collect();
     expect(result).toEqual(expectedResult);
   });
 
@@ -348,7 +348,7 @@ describe('LazyIterator', () => {
     const b = new TestIntegerIterator().map(x => x * 10);
     const c = new TestIntegerIterator().map(x => `string ${x}`);
     const readStream = iteratorFromZipped([a, b, c]);
-    const result = await readStream.collect();
+    const result = await readStream.prefetch(100).collect();
     expect(result.length).toEqual(100);
 
     // each result has the form [x, x * 10, 'string ' + x]
@@ -365,7 +365,7 @@ describe('LazyIterator', () => {
     const b = new TestIntegerIterator().map(x => x * 10);
     const c = new TestIntegerIterator().map(x => `string ${x}`);
     const readStream = iteratorFromZipped({a, b, c});
-    const result = await readStream.collect();
+    const result = await readStream.prefetch(100).collect();
     expect(result.length).toEqual(100);
 
     // each result has the form {a: x, b: x * 10, c: 'string ' + x}
@@ -383,7 +383,7 @@ describe('LazyIterator', () => {
         x => ({'b': x * 10, 'array': [x * 100, x * 200]}));
     const c = new TestIntegerIterator().map(x => ({'c': `string ${x}`}));
     const readStream = iteratorFromZipped([a, b, c]);
-    const result = await readStream.collect();
+    const result = await readStream.prefetch(100).collect();
     expect(result.length).toEqual(100);
 
     // each result has the form
@@ -413,7 +413,7 @@ describe('LazyIterator', () => {
       const b = new TestIntegerIterator(3);
       const c = new TestIntegerIterator(2);
       const readStream = iteratorFromZipped([a, b, c]);
-      await readStream.collect(1000, 0);
+      await readStream.collect();
       done.fail();
     } catch (error) {
       expect(error.message)
@@ -431,7 +431,7 @@ describe('LazyIterator', () => {
        const c = new TestIntegerIterator(2);
        const readStream =
            iteratorFromZipped([a, b, c], ZipMismatchMode.SHORTEST);
-       const result = await readStream.collect();
+       const result = await readStream.prefetch(100).collect();
        expect(result.length).toEqual(2);
      });
 
@@ -442,7 +442,7 @@ describe('LazyIterator', () => {
        const c = new TestIntegerIterator(2);
        const readStream =
            iteratorFromZipped([a, b, c], ZipMismatchMode.LONGEST);
-       const result = await readStream.collect();
+       const result = await readStream.prefetch(100).collect();
        expect(result.length).toEqual(10);
        expect(result[9]).toEqual([9, null, null]);
      });
@@ -472,7 +472,7 @@ describe('LazyIterator', () => {
     const readStream = zippedStream.map(e => naiveMerge(e as DataElementArray));
     // Now each result has the form {a: x, b: x * 10, c: 'string ' + x}
 
-    const result = await readStream.collect();
+    const result = await readStream.prefetch(100).collect();
     expect(result.length).toEqual(100);
 
     for (const e of result) {

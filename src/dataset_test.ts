@@ -94,7 +94,7 @@ describeWithFlags(
       it('can be concatenated', async () => {
         const a = tfd.array([{'item': 1}, {'item': 2}, {'item': 3}]);
         const b = tfd.array([{'item': 4}, {'item': 5}, {'item': 6}]);
-        const result = await a.concatenate(b).toArray();
+        const result = await a.concatenate(b).prefetch(100).toArray();
         expect(result).toEqual([
           {'item': 1}, {'item': 2}, {'item': 3}, {'item': 4}, {'item': 5},
           {'item': 6}
@@ -108,7 +108,7 @@ describeWithFlags(
            const b = tfd.array([{'item': 3}, {'item': 4}]);
            const c = tfd.array([{'item': 5}, {'item': 6}]);
            const concatenated = [a, b, c].reduce((a, b) => a.concatenate(b));
-           const result = await concatenated.toArray();
+           const result = await concatenated.prefetch(100).toArray();
            expect(result).toEqual([
              {'item': 1}, {'item': 2}, {'item': 3}, {'item': 4}, {'item': 5},
              {'item': 6}
@@ -120,7 +120,7 @@ describeWithFlags(
          async () => {
            const a = tfd.array([1, 2, 3]);
            const b = tfd.array([4, 5, 6]);
-           const result = await tfd.zip([a, b]).toArray();
+           const result = await tfd.zip([a, b]).prefetch(100).toArray();
            expect(result).toEqual([[1, 4], [2, 5], [3, 6]]);
          });
 
@@ -128,7 +128,7 @@ describeWithFlags(
          async () => {
            const a = tfd.array([{a: 1}, {a: 2}, {a: 3}]);
            const b = tfd.array([{b: 4}, {b: 5}, {b: 6}]);
-           const result = await tfd.zip([a, b]).toArray();
+           const result = await tfd.zip([a, b]).prefetch(100).toArray();
            expect(result).toEqual(
                [[{a: 1}, {b: 4}], [{a: 2}, {b: 5}], [{a: 3}, {b: 6}]]);
          });
@@ -136,7 +136,7 @@ describeWithFlags(
       it('can be created by zipping a dict of datasets', async () => {
         const a = tfd.array([{a: 1}, {a: 2}, {a: 3}]);
         const b = tfd.array([{b: 4}, {b: 5}, {b: 6}]);
-        const result = await tfd.zip({c: a, d: b}).toArray();
+        const result = await tfd.zip({c: a, d: b}).prefetch(100).toArray();
         expect(result).toEqual([
           {c: {a: 1}, d: {b: 4}}, {c: {a: 2}, d: {b: 5}}, {c: {a: 3}, d: {b: 6}}
         ]);
@@ -148,7 +148,8 @@ describeWithFlags(
            const b = tfd.array([4, 5, 6]);
            const c = tfd.array([7, 8, 9]);
            const d = tfd.array([10, 11, 12]);
-           const result = await tfd.zip({a, bcd: [b, {c, d}]}).toArray();
+           const result =
+               await tfd.zip({a, bcd: [b, {c, d}]}).prefetch(100).toArray();
 
            expect(result).toEqual([
              {a: 1, bcd: [4, {c: 7, d: 10}]},
@@ -160,7 +161,7 @@ describeWithFlags(
       it('can be created by zipping datasets of different sizes', async () => {
         const a = tfd.array([1, 2]);
         const b = tfd.array([3, 4, 5, 6]);
-        const result = await tfd.zip([a, b]).toArray();
+        const result = await tfd.zip([a, b]).prefetch(100).toArray();
         expect(result).toEqual([[1, 3], [2, 4]]);
       });
 
@@ -199,7 +200,9 @@ describeWithFlags(
         const b = tfd.array([4, 5, 6]);
         const c = tfd.array([7, 8, 9]);
         const d = tfd.array([10, 11, 12]);
-        const result = await tfd.zip({a, abacd: [a, b, {a, c, d}]}).toArray();
+        const result = await tfd.zip({a, abacd: [a, b, {a, c, d}]})
+                           .prefetch(100)
+                           .toArray();
 
         expect(result).toEqual([
           {a: 1, abacd: [1, 4, {a: 1, c: 7, d: 10}]},
@@ -236,7 +239,7 @@ describeWithFlags(
              });
              const b = tfd.array([3, 4, 5, 6]);
              // tslint:disable-next-line:no-any
-             await (await tfd.zip([a, b]).iterator()).collect(1000, 0);
+             await (await tfd.zip([a, b]).iterator()).collect();
              done.fail();
            } catch (e) {
              expect(e.message).toEqual('propagate me!');
@@ -246,7 +249,7 @@ describeWithFlags(
 
       it('can be repeated a fixed number of times', async () => {
         const a = tfd.array([{'item': 1}, {'item': 2}, {'item': 3}]);
-        const result = await a.repeat(4).toArray();
+        const result = await a.repeat(4).prefetch(100).toArray();
         expect(result).toEqual([
           {'item': 1},
           {'item': 2},
@@ -265,7 +268,7 @@ describeWithFlags(
 
       it('can be repeated indefinitely', async () => {
         const a = tfd.array([{'item': 1}, {'item': 2}, {'item': 3}]);
-        await a.repeat().take(234).toArray();
+        await a.repeat().take(234).prefetch(100).toArray();
       });
 
       it('can be repeated with state in a closure', async () => {
@@ -284,12 +287,12 @@ describeWithFlags(
           }
         }
         const a = new CustomDataset();
-        await a.repeat().take(1234).toArray();
+        await a.repeat().take(1234).prefetch(100).toArray();
       });
 
       it('can collect all items into memory', async () => {
         const ds = new TestDataset();
-        const items = await ds.toArray();
+        const items = await ds.prefetch(100).toArray();
         expect(items.length).toEqual(100);
         // The test dataset has 100 elements, each containing 2 Tensors.
         expect(tf.memory().numTensors).toEqual(200);
@@ -299,7 +302,7 @@ describeWithFlags(
         const ds = new TestDataset();
         const bds = ds.batch(8);
         const batchIterator = await bds.iterator();
-        const result = await batchIterator.collect();
+        const result = await batchIterator.prefetch(100).collect();
 
         expect(result.length).toEqual(13);
         result.slice(0, 12).forEach(batch => {
@@ -352,7 +355,8 @@ describeWithFlags(
 
            const compareDataset = tfd.zip({complexThenBatch, batchThenComplex});
 
-           const result = await (await compareDataset.iterator()).collect();
+           const result =
+               await (await compareDataset.iterator()).prefetch(100).collect();
 
            expect(result.length).toEqual(13);
            // tslint:disable-next-line:no-any
@@ -396,7 +400,7 @@ describeWithFlags(
                 })
                 .batch(8);
 
-        const result = await (await dataset.iterator()).collect();
+        const result = await (await dataset.iterator()).prefetch(100).collect();
         expect(result.length).toEqual(13);
 
         // tslint:disable-next-line:no-any
@@ -447,7 +451,7 @@ describeWithFlags(
         const ds = new TestDataset();
         const bds = ds.batch(8);
         const batchIterator = await bds.iterator();
-        const result = await batchIterator.collect();
+        const result = await batchIterator.prefetch(100).collect();
         const lastBatch = result[result.length - 1] as TensorContainerObject;
         expect((lastBatch['number'] as tf.Tensor).shape).toEqual([4]);
         expect((lastBatch['numberArray'] as tf.Tensor).shape).toEqual([4, 3]);
@@ -508,7 +512,7 @@ describeWithFlags(
         try {
           const ds = new TestDataset();
           expect(tf.memory().numTensors).toEqual(0);
-          const result = await ds.skip(15).toArray();
+          const result = await ds.skip(15).prefetch(100).toArray();
           // The test dataset had 100 elements; we skipped 15; 85 remain.
           expect(result.length).toEqual(85);
           // Each element of the test dataset contains 2 Tensors;
@@ -523,7 +527,9 @@ describeWithFlags(
       it('filter does not leak Tensors', async () => {
         const ds = new TestDataset();
         expect(tf.memory().numTensors).toEqual(0);
-        await ds.filter(x => ((x['number'] as number) % 2 === 0)).toArray();
+        await ds.filter(x => ((x['number'] as number) % 2 === 0))
+            .prefetch(100)
+            .toArray();
         // Each element of the test dataset contains 2 Tensors.
         // There were 100 elements, but we filtered out half of them.
         // Thus 50 * 2 = 100 Tensors remain.
@@ -533,7 +539,7 @@ describeWithFlags(
       it('shuffle does not leak Tensors', async () => {
         const ds = new TestDataset();
         expect(tf.memory().numTensors).toEqual(0);
-        await ds.shuffle(1000).toArray();
+        await ds.shuffle(1000).prefetch(100).toArray();
         // The shuffle operation emitted all of the tensors.
         expect(tf.memory().numTensors).toEqual(200);
       });
@@ -582,7 +588,7 @@ describeWithFlags(
       it('map does not leak Tensors when none are returned', async () => {
         const ds = new TestDataset();
         expect(tf.memory().numTensors).toEqual(0);
-        await ds.map(x => ({'constant': 1})).toArray();
+        await ds.map(x => ({'constant': 1})).prefetch(100).toArray();
         // The map operation consumed all of the tensors and emitted none.
         expect(tf.memory().numTensors).toEqual(0);
       });
@@ -592,7 +598,9 @@ describeWithFlags(
          async () => {
            const ds = new TestDataset();
            expect(tf.memory().numTensors).toEqual(0);
-           await ds.map(x => ({'Tensor2': x['Tensor2']})).toArray();
+           await ds.map(x => ({'Tensor2': x['Tensor2']}))
+               .prefetch(100)
+               .toArray();
            // Each element of the test dataset contains 2 Tensors.
            // Our map operation retained one of the Tensors and discarded the
            // other. Thus the mapped data contains 100 elements with 1 Tensor
@@ -603,7 +611,9 @@ describeWithFlags(
       it('map does not leak Tensors when inputs are replaced', async () => {
         const ds = new TestDataset();
         expect(tf.memory().numTensors).toEqual(0);
-        await ds.map(x => ({'a': tf.tensor1d([1, 2, 3])})).toArray();
+        await ds.map(x => ({'a': tf.tensor1d([1, 2, 3])}))
+            .prefetch(100)
+            .toArray();
         // Each element of the test dataset contains 2 Tensors.
         // Our map operation discarded both Tensors and created one new one.
         // Thus the mapped data contains 100 elements with 1 Tensor each.

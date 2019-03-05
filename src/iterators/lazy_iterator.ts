@@ -161,28 +161,15 @@ export abstract class LazyIterator<T> {
    * Obviously this will succeed only for small streams that fit in memory.
    * Useful for testing.
    *
-   * @param maxItems the maximum number of items to return.  If the stream
-   *   terminates, fewer items will be returned.  (default 1000)
-   * @param prefetch the size of the prefetch buffer to use when collecting
-   *   items.  Some amount of prefetch is important to test parallel streams,
-   *   i.e. with multiple Promises outstanding.  Without prefetch, this method
-   *   makes purely serial next() calls.
-   *
    * @returns A Promise for an array of stream elements, which will resolve
    *   when the stream is exhausted.
    */
-  async collect(maxItems = 1000, prefetch = 100): Promise<T[]> {
-    const stream = prefetch > 0 ? this.prefetch(prefetch) : this;
+  async collect(): Promise<T[]> {
     const result: T[] = [];
-    let count = 0;
-    let x = await stream.next();
+    let x = await this.next();
     while (!x.done) {
       result.push(x.value);
-      count++;
-      if (count >= maxItems) {
-        return result;
-      }
-      x = await stream.next();
+      x = await this.next();
     }
     return result;
   }

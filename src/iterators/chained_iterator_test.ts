@@ -34,7 +34,7 @@ describe('ChainedIterator', () => {
       }
     }
 
-    const result = await chainedIterator.collect();
+    const result = await chainedIterator.prefetch(100).collect();
     expect(result).toEqual(expectedResult);
   });
   it('produces multiple underlying streams as expected', async () => {
@@ -51,7 +51,7 @@ describe('ChainedIterator', () => {
       }
     }
 
-    const result = await chainedIterator.collect();
+    const result = await chainedIterator.prefetch(100).collect();
     expect(result).toEqual(expectedResult);
   });
 });

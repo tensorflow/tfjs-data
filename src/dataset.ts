@@ -495,6 +495,9 @@ export abstract class Dataset<T extends DataElement> {
    */
   /** @doc {heading: 'Data', subheading: 'Classes'} */
   async toArray() {
+    if (this.size == Infinity) {
+      throw new Error('Can not convert infinity data stream to array.');
+    }
     return (await this.iterator()).collect();
   }
 }
