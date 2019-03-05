@@ -199,9 +199,8 @@ describeWithFlags(
         const b = tfd.array([4, 5, 6]);
         const c = tfd.array([7, 8, 9]);
         const d = tfd.array([10, 11, 12]);
-        const result = await tfd.zip({a, abacd: [a, b, {a, c, d}]})
-                           .prefetch(100)
-                           .toArray();
+        const result =
+            await tfd.zip({a, abacd: [a, b, {a, c, d}]}).toArrayForTest();
 
         expect(result).toEqual([
           {a: 1, abacd: [1, 4, {a: 1, c: 7, d: 10}]},
@@ -527,8 +526,7 @@ describeWithFlags(
         const ds = new TestDataset();
         expect(tf.memory().numTensors).toEqual(0);
         await ds.filter(x => ((x['number'] as number) % 2 === 0))
-            .prefetch(100)
-            .toArray();
+            .toArrayForTest();
         // Each element of the test dataset contains 2 Tensors.
         // There were 100 elements, but we filtered out half of them.
         // Thus 50 * 2 = 100 Tensors remain.
@@ -597,9 +595,7 @@ describeWithFlags(
          async () => {
            const ds = new TestDataset();
            expect(tf.memory().numTensors).toEqual(0);
-           await ds.map(x => ({'Tensor2': x['Tensor2']}))
-               .prefetch(100)
-               .toArray();
+           await ds.map(x => ({'Tensor2': x['Tensor2']})).toArrayForTest();
            // Each element of the test dataset contains 2 Tensors.
            // Our map operation retained one of the Tensors and discarded the
            // other. Thus the mapped data contains 100 elements with 1 Tensor
@@ -610,9 +606,7 @@ describeWithFlags(
       it('map does not leak Tensors when inputs are replaced', async () => {
         const ds = new TestDataset();
         expect(tf.memory().numTensors).toEqual(0);
-        await ds.map(x => ({'a': tf.tensor1d([1, 2, 3])}))
-            .prefetch(100)
-            .toArray();
+        await ds.map(x => ({'a': tf.tensor1d([1, 2, 3])})).toArrayForTest();
         // Each element of the test dataset contains 2 Tensors.
         // Our map operation discarded both Tensors and created one new one.
         // Thus the mapped data contains 100 elements with 1 Tensor each.
@@ -742,7 +736,7 @@ describeWithFlags(
         expect(ds.size).toEqual(15);
       });
 
-      it('repeat dataset forever has infinity size', async () => {
+      it('repeat dataset forever has infinite size', async () => {
         const ds = tfd.array([1, 2, 3, 4, 5]).repeat();
         expect(ds.size).toEqual(Infinity);
       });
@@ -773,7 +767,7 @@ describeWithFlags(
         expect(ds.size).toBeNull();
       });
 
-      it('take dataset with infinity elements has correct size', async () => {
+      it('take dataset with infinite elements has correct size', async () => {
         const ds = tfd.array([1, 2, 3, 4, 5]).repeat().take(10);
         expect(ds.size).toEqual(10);
       });
@@ -796,7 +790,7 @@ describeWithFlags(
         expect(ds.size).toBeNull();
       });
 
-      it('skip dataset with infinity elements has infinity size', async () => {
+      it('skip dataset with infinite elements has infinity size', async () => {
         const ds = tfd.array([1, 2, 3, 4, 5]).repeat().skip(10);
         expect(ds.size).toEqual(Infinity);
       });
@@ -820,7 +814,7 @@ describeWithFlags(
         expect(ds.size).toBeNull();
       });
 
-      it('batch dataset with infinity elements has infinity size', async () => {
+      it('batch dataset with infinite elements has infinity size', async () => {
         const ds = tfd.array([1, 2, 3, 4, 5]).repeat().batch(2);
         expect(ds.size).toEqual(Infinity);
       });
@@ -895,7 +889,7 @@ describeWithFlags(
            expect(result.size).toEqual(3);
          });
 
-      it('converting dataset with infinity elements to array throws error',
+      it('converting dataset with infinite elements to array throws error',
          async done => {
            try {
              const ds = tfd.array([1, 2, 3, 4, 5]).repeat();
@@ -904,7 +898,7 @@ describeWithFlags(
              done.fail();
            } catch (e) {
              expect(e.message).toEqual(
-                 'Can not convert infinity data stream to array.');
+                 'Can not convert infinite data stream to array.');
              done();
            }
          });

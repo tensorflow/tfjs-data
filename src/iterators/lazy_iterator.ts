@@ -175,9 +175,11 @@ export abstract class LazyIterator<T> {
   }
 
   /**
-   * Collect all remaining elements of a bounded stream into an array with
-   * prefetching 100 elements. This is only used for testing with potential
-   * async scheduling.
+   * This is useful for testing, because the prefetch changes the order in which
+   * the Promises are resolved along the processing pipeline. This may help
+   * expose bugs where results are dependent on the order of Promise resolution
+   * rather than on the logical order of the stream (i.e., due to hidden mutable
+   * state).
    *
    * @returns A Promise for an array of stream elements, which will resolve
    *   when the stream is exhausted.
