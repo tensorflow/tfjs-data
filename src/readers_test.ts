@@ -25,7 +25,7 @@ describeWithFlags('readers', tf.test_util.ALL_ENVS, () => {
     const f = () =>
         ++i < 5 ? {value: i, done: false} : {value: null, done: true};
     const ds = tfd.func(f);
-    const result = await ds.prefetch(100).toArray();
+    const result = await ds.toArrayForTest();
     expect(result).toEqual([0, 1, 2, 3, 4]);
   });
 
@@ -40,7 +40,7 @@ describeWithFlags('readers', tf.test_util.ALL_ENVS, () => {
       }
     }
     const ds = tfd.generator(dataGenerator);
-    const result = await ds.prefetch(100).toArray();
+    const result = await ds.toArrayForTest();
     expect(result).toEqual([0, 1, 2, 3, 4]);
   });
 
@@ -55,9 +55,9 @@ describeWithFlags('readers', tf.test_util.ALL_ENVS, () => {
       }
     }
     const ds = tfd.generator(dataGenerator);
-    const result1 = await ds.prefetch(100).toArray();
+    const result1 = await ds.toArrayForTest();
     expect(result1).toEqual([0, 1, 2, 3, 4]);
-    const result2 = await ds.prefetch(100).toArray();
+    const result2 = await ds.toArrayForTest();
     expect(result2).toEqual([0, 1, 2, 3, 4]);
   });
 
@@ -78,7 +78,7 @@ describeWithFlags('readers', tf.test_util.ALL_ENVS, () => {
       return iterator;
     }
     const ds = tfd.generator(makeIterator);
-    const result = await ds.prefetch(100).toArray();
+    const result = await ds.toArrayForTest();
     expect(result).toEqual([0, 1, 2, 3, 4]);
   });
 
@@ -100,9 +100,9 @@ describeWithFlags('readers', tf.test_util.ALL_ENVS, () => {
          return iterator;
        }
        const ds = tfd.generator(makeIterator);
-       const result1 = await ds.prefetch(100).toArray();
+       const result1 = await ds.toArrayForTest();
        expect(result1).toEqual([0, 1, 2, 3, 4]);
-       const result2 = await ds.prefetch(100).toArray();
+       const result2 = await ds.toArrayForTest();
        expect(result2).toEqual([0, 1, 2, 3, 4]);
      });
 
@@ -130,7 +130,7 @@ describeWithFlags('readers', tf.test_util.ALL_ENVS, () => {
       return iterator;
     }
     const ds = tfd.generator(makeIterator);
-    const result = await ds.prefetch(100).toArray();
+    const result = await ds.toArrayForTest();
     expect(result).toEqual([3, 4, 5]);
   });
 });

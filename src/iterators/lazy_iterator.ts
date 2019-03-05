@@ -164,12 +164,31 @@ export abstract class LazyIterator<T> {
    * @returns A Promise for an array of stream elements, which will resolve
    *   when the stream is exhausted.
    */
-  async collect(): Promise<T[]> {
+  async toArray(): Promise<T[]> {
     const result: T[] = [];
     let x = await this.next();
     while (!x.done) {
       result.push(x.value);
       x = await this.next();
+    }
+    return result;
+  }
+
+  /**
+   * Collect all remaining elements of a bounded stream into an array with
+   * prefetching 100 elements. This is only used for testing with potential
+   * async scheduling.
+   *
+   * @returns A Promise for an array of stream elements, which will resolve
+   *   when the stream is exhausted.
+   */
+  async toArrayForTest(): Promise<T[]> {
+    const stream = this.prefetch(100);
+    const result: T[] = [];
+    let x = await stream.next();
+    while (!x.done) {
+      result.push(x.value);
+      x = await stream.next();
     }
     return result;
   }

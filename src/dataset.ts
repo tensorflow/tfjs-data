@@ -498,7 +498,22 @@ export abstract class Dataset<T extends DataElement> {
     if (this.size === Infinity) {
       throw new Error('Can not convert infinity data stream to array.');
     }
-    return (await this.iterator()).collect();
+    return (await this.iterator()).toArray();
+  }
+
+  /**
+   * Collect all elements of this dataset into an array with prefetching 100
+   * elements. This is only used for testing with potential async scheduling,
+   * and generally should be avoided if possible.
+   *
+   * @returns A Promise for an array of elements, which will resolve
+   *   when a new stream has been obtained and fully consumed.
+   */
+  async toArrayForTest() {
+    if (this.size === Infinity) {
+      throw new Error('Can not convert infinity data stream to array.');
+    }
+    return (await this.iterator()).toArrayForTest();
   }
 }
 
