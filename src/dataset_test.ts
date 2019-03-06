@@ -901,11 +901,7 @@ describeWithFlags(
            try {
              const ds = tfd.array([1, 2, 3, 4, 5]).repeat();
              expect(ds.size).toEqual(Infinity);
-             // Using toArray() rather than toArrayForTest().  The prefetch in
-             // the latter, in combination with expecting an exception, causes
-             // unrelated tests to fail (See
-             // https://github.com/tensorflow/tfjs/issues/1330.
-             await ds.toArray();
+             await ds.toArrayForTest();
              done.fail();
            } catch (e) {
              expect(e.message).toEqual(
