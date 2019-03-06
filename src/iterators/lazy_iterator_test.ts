@@ -244,6 +244,10 @@ describe('LazyIterator', () => {
       return true;
     });
     try {
+      // Using toArray() rather than toArrayForTest().  The prefetch in
+      // the latter, in combination with expecting an exception, causes
+      // unrelated tests to fail (See
+      // https://github.com/tensorflow/tfjs/issues/1330.
       await errorHandlingIterator.toArray();
       done.fail();
     } catch (e) {
@@ -413,6 +417,10 @@ describe('LazyIterator', () => {
       const b = new TestIntegerIterator(3);
       const c = new TestIntegerIterator(2);
       const readStream = iteratorFromZipped([a, b, c]);
+      // Using toArray() rather than toArrayForTest().  The prefetch in
+      // the latter, in combination with expecting an exception, causes
+      // unrelated tests to fail (See
+      // https://github.com/tensorflow/tfjs/issues/1330.
       await readStream.toArray();
       done.fail();
     } catch (error) {

@@ -236,7 +236,10 @@ describeWithFlags(
                return {value: count++, done: false};
              });
              const b = tfd.array([3, 4, 5, 6]);
-             // tslint:disable-next-line:no-any
+             // Using toArray() rather than toArrayForTest().  The prefetch in
+             // the latter, in combination with expecting an exception, causes
+             // unrelated tests to fail (See
+             // https://github.com/tensorflow/tfjs/issues/1330.
              await (await tfd.zip([a, b]).iterator()).toArray();
              done.fail();
            } catch (e) {
@@ -434,6 +437,10 @@ describeWithFlags(
          async done => {
            const dataset = array([[[1, 2], [3]], [[4, 5], [6]]]).batch(2);
            try {
+             // Using toArray() rather than toArrayForTest().  The prefetch in
+             // the latter, in combination with expecting an exception, causes
+             // unrelated tests to fail (See
+             // https://github.com/tensorflow/tfjs/issues/1330.
              await (await dataset.iterator()).toArray();
              done.fail();
            } catch (e) {
@@ -894,6 +901,10 @@ describeWithFlags(
            try {
              const ds = tfd.array([1, 2, 3, 4, 5]).repeat();
              expect(ds.size).toEqual(Infinity);
+             // Using toArray() rather than toArrayForTest().  The prefetch in
+             // the latter, in combination with expecting an exception, causes
+             // unrelated tests to fail (See
+             // https://github.com/tensorflow/tfjs/issues/1330.
              await ds.toArray();
              done.fail();
            } catch (e) {

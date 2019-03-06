@@ -175,11 +175,12 @@ export abstract class LazyIterator<T> {
   }
 
   /**
-   * This is useful for testing, because the prefetch changes the order in which
-   * the Promises are resolved along the processing pipeline. This may help
-   * expose bugs where results are dependent on the order of Promise resolution
-   * rather than on the logical order of the stream (i.e., due to hidden mutable
-   * state).
+   * Collect all elements of this dataset into an array with prefetching 100
+   * elements. This is useful for testing, because the prefetch changes the
+   * order in which the Promises are resolved along the processing pipeline.
+   * This may help expose bugs where results are dependent on the order of
+   * Promise resolution rather than on the logical order of the stream (i.e.,
+   * due to hidden mutable state).
    *
    * @returns A Promise for an array of stream elements, which will resolve
    *   when the stream is exhausted.

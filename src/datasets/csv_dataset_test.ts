@@ -336,6 +336,10 @@ describe('CSVDataset', () => {
           new CSVDataset(source, {columnConfigs: {'baz': {isLabel: true}}});
       expect(await dataset.columnNames()).toEqual(['foo', 'bar', 'baz']);
       const iter = await dataset.iterator();
+      // Using toArray() rather than toArrayForTest().  The prefetch in
+      // the latter, in combination with expecting an exception, causes
+      // unrelated tests to fail (See
+      // https://github.com/tensorflow/tfjs/issues/1330.
       await iter.toArray();
       done.fail();
     } catch (e) {
