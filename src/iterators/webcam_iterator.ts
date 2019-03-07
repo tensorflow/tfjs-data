@@ -24,7 +24,6 @@ import {LazyIterator} from './lazy_iterator';
  */
 
 export class WebcamIterator extends LazyIterator<Tensor3D> {
-  private isStreamStarted: boolean;
   private isClosed = true;
   private stream: MediaStream;
 
@@ -39,7 +38,17 @@ export class WebcamIterator extends LazyIterator<Tensor3D> {
   }
 
   static async create(
-      webcamVideoElement: HTMLVideoElement, webcamConfig: WebcamConfig = {}) {
+      webcamVideoElement?: HTMLVideoElement, webcamConfig: WebcamConfig = {}) {
+    if (!webcamVideoElement) {
+      // If webcam video element is not provided, create a hidden video element.
+      webcamVideoElement = document.createElement('video');
+      if (!webcamConfig.resizeWidth || !webcamConfig.resizeHeight) {
+        throw new Error(
+            'Please provide webcam video element, or resize width and height.');
+      }
+      webcamVideoElement.width = webcamConfig.resizeWidth;
+      webcamVideoElement.height = webcamConfig.resizeHeight;
+    }
     const webcamIterator = new WebcamIterator(webcamVideoElement, webcamConfig);
     await webcamIterator.start();
     return webcamIterator;
@@ -81,10 +90,12 @@ export class WebcamIterator extends LazyIterator<Tensor3D> {
       console.log(error);
       this.webcamVideoElement.src = window.URL.createObjectURL(this.stream);
     }
+    // Start webcam video
+    this.webcamVideoElement.play();
     this.isClosed = false;
 
     return await new Promise<void>(resolve => {
-      this.webcamVideoElement.addEventListener('loadeddata', () => {
+      this.webcamVideoElement.addEventListener('loadedmetadata', () => {
         resolve();
       });
     });
@@ -95,18 +106,7 @@ export class WebcamIterator extends LazyIterator<Tensor3D> {
       return {value: null, done: true};
     }
     const img = browser.fromPixels(this.webcamVideoElement);
-    if (this.isStreamStarted) {
-      return {value: img, done: false};
-    } else {
-      const maxValue = img.max().dataSync()[0];
-      if (maxValue > 0) {
-        this.isStreamStarted = true;
-        return {value: img, done: false};
-      } else {
-        await new Promise(resolve => setTimeout(resolve, 200));
-        return this.next();
-      }
-    }
+    return {value: img, done: false};
   }
 
   async capture(): Promise<Tensor3D> {
@@ -124,13 +124,10 @@ export class WebcamIterator extends LazyIterator<Tensor3D> {
       console.log(error);
       this.webcamVideoElement.src = null;
     }
-    this.isStreamStarted = false;
     this.isClosed = true;
   }
 
-  // (TODO:kangyizhang) Update this method name to toArray() once
-  // https://github.com/tensorflow/tfjs-data/pull/155 is merged.
-  collect(maxItems?: number, prefetch?: number): Promise<Tensor3D[]> {
-    throw new Error('Can not convert infinity video stream to array.');
+  toArray(): Promise<Tensor3D[]> {
+    throw new Error('Can not convert infinite video stream to array.');
   }
 }
