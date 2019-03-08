@@ -141,6 +141,12 @@ export interface CSVConfig {
  * Interface for configuring dataset when reading from webcam.
  */
 export interface WebcamConfig {
+  resizeWidth?: number;
+
+  resizeHeight?: number;
+
+  centerCropSize?: [number, number];
+
   facingMode?: string;
 
   deviceId?: string;
