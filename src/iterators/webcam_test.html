@@ -1,0 +1,23 @@
+<html>
+  <head>
+    <script src="../../dist/tf-data.min.js"></script>
+    <script src="https://unpkg.com/@tensorflow/tfjs-core"></script>
+    <!-- <script src="webcam_test.js"></script> -->
+
+  </head>
+  <body>
+    <div id="console"></div>
+    <!-- Add an image that we will use to test -->
+    <video id="webcam" autoplay playsinline muted width="300" height="300" style="background-color:lightblue"></video>
+
+    <canvas id="canvas"></canvas>
+    <canvas id="canvas1"></canvas>
+
+   <div style="display:none;">
+     <img id="source" src="https://mdn.mozillademos.org/files/5397/rhino.jpg" width="300" height="227">
+     <img id="frame" src="https://mdn.mozillademos.org/files/242/Canvas_picture_frame.png" width="132" height="150">
+   </div>
+
+    <script src="webcam_test.js"></script>
+  </body>
+  </html>

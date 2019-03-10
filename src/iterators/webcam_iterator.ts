@@ -1,4 +1,4 @@
-import {browser, Tensor3D} from '@tensorflow/tfjs-core';
+import {browser, image, Tensor1D, tensor2d, Tensor3D} from '@tensorflow/tfjs-core';
 import {assert} from '@tensorflow/tfjs-core/dist/util';
 
 import {WebcamConfig} from '../types';
@@ -90,7 +90,7 @@ export class WebcamIterator extends LazyIterator<Tensor3D> {
       console.log(error);
       this.webcamVideoElement.src = window.URL.createObjectURL(this.stream);
     }
-    // Start webcam video
+    // Start to play the webcam video
     this.webcamVideoElement.play();
     this.isClosed = false;
 
@@ -106,7 +106,26 @@ export class WebcamIterator extends LazyIterator<Tensor3D> {
       return {value: null, done: true};
     }
     const img = browser.fromPixels(this.webcamVideoElement);
-    return {value: img, done: false};
+
+    img.print();
+    if (this.webcamConfig.centerCropSize && this.webcamConfig.cropBox) {
+      (this.webcamConfig.cropBox as Tensor1D).expandDims(0).print();
+      (this.webcamConfig.cropBoxInd as Tensor1D).print();
+      console.log(this.webcamConfig.centerCropSize);
+      const croppedImg = image.cropAndResize(
+          img.toFloat().expandDims(0),
+          // (this.webcamConfig.cropBox as Tensor1D).expandDims(0),
+          tensor2d([1, 1, 0, 0], [1, 4]), this.webcamConfig.cropBoxInd,
+          this.webcamConfig.centerCropSize, 'nearest', 0);
+      croppedImg.print();
+      const shape = croppedImg.shape;
+      return {
+        value: croppedImg.reshape(shape.slice(1) as [number, number, number]),
+        done: false
+      };
+    } else {
+      return {value: img, done: false};
+    }
   }
 
   async capture(): Promise<Tensor3D> {

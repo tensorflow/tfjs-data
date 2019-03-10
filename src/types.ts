@@ -16,8 +16,10 @@
  * =============================================================================
  */
 
-import {DataType} from '@tensorflow/tfjs-core';
+import {DataType, Tensor1D} from '@tensorflow/tfjs-core';
 import {TensorContainer, TensorContainerArray, TensorContainerObject} from '@tensorflow/tfjs-core/dist/tensor_types';
+import {TensorLike} from '@tensorflow/tfjs-core/dist/types';
+
 import {Dataset} from './dataset';
 import {LazyIterator} from './iterators/lazy_iterator';
 
@@ -146,6 +148,14 @@ export interface WebcamConfig {
   resizeHeight?: number;
 
   centerCropSize?: [number, number];
+
+  cropBox?: Tensor1D|TensorLike;
+
+  cropBoxInd?: Tensor1D|TensorLike;
+
+  cropMethod?: string;
+
+  extrapolationValue?: number;
 
   facingMode?: string;
 
