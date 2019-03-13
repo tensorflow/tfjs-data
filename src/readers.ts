@@ -16,6 +16,7 @@
  * =============================================================================
  */
 
+import {ENV} from '@tensorflow/tfjs-core';
 import {Dataset, datasetFromIteratorFn} from './dataset';
 import {CSVDataset} from './datasets/csv_dataset';
 import {iteratorFromFunction} from './iterators/lazy_iterator';
@@ -202,5 +203,9 @@ export function generator<T extends DataElement>(
 
 export async function webcam(
     webcamVideoElement?: HTMLVideoElement, webcamConfig?: WebcamConfig) {
-  return await WebcamIterator.create(webcamVideoElement, webcamConfig);
+  if (ENV.get('IS_NODE')) {
+    throw new Error(
+        'tf.data.webcam is only supported in browser environment now.');
+  }
+  return WebcamIterator.create(webcamVideoElement, webcamConfig);
 }

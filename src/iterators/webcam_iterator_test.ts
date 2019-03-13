@@ -16,14 +16,91 @@
  * =============================================================================
  */
 
-// import {WebcamIterator} from './webcam_iterator';
+import {WebcamIterator} from './webcam_iterator';
+
+// const trackFactories = {
+//   // Share a single context between tests to avoid exceeding resource limits
+//   // without requiring explicit destruction.
+//   audioContext: null,
+
+//   /**
+//    * Given a set of requested media types, determine if the user agent is
+//    * capable of procedurally generating a suitable media stream.
+//    *
+//    * @param {object} requested
+//    * @param {boolean} [requested.audio] - flag indicating whether the desired
+//    *                                      stream should include an audio
+//    track
+//    * @param {boolean} [requested.video] - flag indicating whether the desired
+//    *                                      stream should include a video track
+//    *
+//    * @returns {boolean}
+//    */
+//   canCreate(requested: {audio: boolean, video: boolean}) {
+//     const supported = {
+//       audio: !!window.MediaStreamAudioDestinationNode,
+//       video: !!HTMLCanvasElement.prototype.captureStream
+//     };
+
+//     return (!requested.audio || supported.audio) &&
+//         (!requested.video || supported.video);
+//   },
+
+//   audio() {
+//     const ctx = trackFactories.audioContext =
+//         trackFactories.audioContext || new AudioContext();
+//     const oscillator = ctx.createOscillator();
+//     const dst = oscillator.connect(ctx.createMediaStreamDestination());
+//     oscillator.start();
+//     return dst.stream.getAudioTracks()[0];
+//   },
+
+//   video({width = 640, height = 480} = {}) {
+//     const canvas =
+//         Object.assign(document.createElement('canvas'), {width, height});
+//     const ctx = canvas.getContext('2d');
+//     const stream = canvas.captureStream();
+
+//     let count = 0;
+//     setInterval(() => {
+//       ctx.fillStyle =
+//           `rgb(${count % 255}, ${count * count % 255}, ${count % 255})`;
+//       count += 1;
+
+//       ctx.fillRect(0, 0, width, height);
+//     }, 100);
+
+//     if (document.body) {
+//       document.body.appendChild(canvas);
+//     } else {
+//       document.addEventListener('DOMContentLoaded', () => {
+//         document.body.appendChild(canvas);
+//       });
+//     }
+
+//     return stream.getVideoTracks()[0];
+//   }
+// };
 
 describe('WebcamIterator', () => {
-  it('Reads the entire file and then closes the stream',
-     async () => {
-         // const videoElement = document.createElement('video');
-         // const webcamIterator = WebcamIterator(videoElement);
-         // const result = await webcamIterator.next();
-         // console.log(result);
-     });
+  fit('creates webcamIterator', async () => {
+    const image = document.createElement('img');
+    image.src = 'tf_logo_social.png';
+    const canvas = document.createElement('canvas');
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(image, 0, 0);
+    navigator.mediaDevices.getUserMedia = async () => {
+      // tslint:disable-next-line
+      return canvas.captureStream(10);
+      // const stream = new MediaStream([new MediaStreamTrack()]);
+      // // stream.addTrack(new MediaStreamTrack());
+      // return stream;
+    };
+    const videoElement = document.createElement('video');
+    videoElement.width = 100;
+    videoElement.height = 100;
+    const webcamIterator = await WebcamIterator.create(videoElement);
+    const result = await webcamIterator.capture();
+    console.log(result);
+  });
 });

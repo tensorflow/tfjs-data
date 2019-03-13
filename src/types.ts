@@ -19,9 +19,9 @@
 import {DataType, Tensor1D} from '@tensorflow/tfjs-core';
 import {TensorContainer, TensorContainerArray, TensorContainerObject} from '@tensorflow/tfjs-core/dist/tensor_types';
 import {TensorLike} from '@tensorflow/tfjs-core/dist/types';
-
 import {Dataset} from './dataset';
 import {LazyIterator} from './iterators/lazy_iterator';
+
 
 /**
  * JSON-like type representing a nested structure of primitives or Tensors.
@@ -143,6 +143,10 @@ export interface CSVConfig {
  * Interface for configuring dataset when reading from webcam.
  */
 export interface WebcamConfig {
+  facingMode?: string;
+
+  deviceId?: string;
+
   resizeWidth?: number;
 
   resizeHeight?: number;
@@ -156,8 +160,4 @@ export interface WebcamConfig {
   cropMethod?: string;
 
   extrapolationValue?: number;
-
-  facingMode?: string;
-
-  deviceId?: string;
 }

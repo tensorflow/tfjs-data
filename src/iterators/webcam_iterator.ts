@@ -1,10 +1,3 @@
-import {browser, image, Tensor1D, tensor2d, Tensor3D} from '@tensorflow/tfjs-core';
-import {assert} from '@tensorflow/tfjs-core/dist/util';
-
-import {WebcamConfig} from '../types';
-
-import {LazyIterator} from './lazy_iterator';
-
 /**
  * @license
  * Copyright 2018 Google LLC. All Rights Reserved.
@@ -22,6 +15,11 @@ import {LazyIterator} from './lazy_iterator';
  *
  * =============================================================================
  */
+
+import {browser, image, Tensor1D, tensor2d, Tensor3D} from '@tensorflow/tfjs-core';
+import {assert} from '@tensorflow/tfjs-core/dist/util';
+import {WebcamConfig} from '../types';
+import {LazyIterator} from './lazy_iterator';
 
 export class WebcamIterator extends LazyIterator<Tensor3D> {
   private isClosed = true;
@@ -75,8 +73,8 @@ export class WebcamIterator extends LazyIterator<Tensor3D> {
       });
     } catch (e) {
       // Modify the error message but leave the stack trace intact
-      e.message = `Error thrown while initializing video stream: ${e.message}`;
-      throw e;
+      throw new Error(
+          `Error thrown while initializing video stream: ${e.message}`);
     }
 
     if (!this.stream) {
@@ -94,7 +92,7 @@ export class WebcamIterator extends LazyIterator<Tensor3D> {
     this.webcamVideoElement.play();
     this.isClosed = false;
 
-    return await new Promise<void>(resolve => {
+    return new Promise<void>(resolve => {
       this.webcamVideoElement.addEventListener('loadedmetadata', () => {
         resolve();
       });
