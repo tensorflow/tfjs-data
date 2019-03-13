@@ -93,9 +93,10 @@ export class WebcamIterator extends LazyIterator<Tensor3D> {
     this.isClosed = false;
 
     return new Promise<void>(resolve => {
-      this.webcamVideoElement.addEventListener('loadedmetadata', () => {
-        resolve();
-      });
+      // this.webcamVideoElement.addEventListener('loadedmetadata', () => {
+      //   console.log('loadedmetadat');
+      resolve();
+      // });
     });
   }
 
@@ -105,7 +106,6 @@ export class WebcamIterator extends LazyIterator<Tensor3D> {
     }
     const img = browser.fromPixels(this.webcamVideoElement);
 
-    img.print();
     if (this.webcamConfig.centerCropSize && this.webcamConfig.cropBox) {
       (this.webcamConfig.cropBox as Tensor1D).expandDims(0).print();
       (this.webcamConfig.cropBoxInd as Tensor1D).print();

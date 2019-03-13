@@ -22,7 +22,6 @@ import {TensorLike} from '@tensorflow/tfjs-core/dist/types';
 import {Dataset} from './dataset';
 import {LazyIterator} from './iterators/lazy_iterator';
 
-
 /**
  * JSON-like type representing a nested structure of primitives or Tensors.
  */

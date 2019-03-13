@@ -85,22 +85,32 @@ import {WebcamIterator} from './webcam_iterator';
 describe('WebcamIterator', () => {
   fit('creates webcamIterator', async () => {
     const image = document.createElement('img');
-    image.src = 'tf_logo_social.png';
+    image.src = 'image.jpeg';
     const canvas = document.createElement('canvas');
     const ctx = canvas.getContext('2d');
     ctx.drawImage(image, 0, 0);
+
+    const videoElement = document.createElement('video');
+    videoElement.width = 100;
+    videoElement.height = 100;
+
     navigator.mediaDevices.getUserMedia = async () => {
-      // tslint:disable-next-line
-      return canvas.captureStream(10);
+      // await new Promise(resolve => setTimeout(() => {
+      //                     videoElement.dispatchEvent(
+      //                         new Event('loadedmetadata'));
+      //                     resolve();
+      //                   }, 2000));
+      // tslint:disable-next-line:no-any
+      return (canvas as any).captureStream() as MediaStream;
       // const stream = new MediaStream([new MediaStreamTrack()]);
       // // stream.addTrack(new MediaStreamTrack());
       // return stream;
     };
-    const videoElement = document.createElement('video');
-    videoElement.width = 100;
-    videoElement.height = 100;
+
+    await new Promise(resolve => setTimeout(resolve, 2000));
     const webcamIterator = await WebcamIterator.create(videoElement);
     const result = await webcamIterator.capture();
-    console.log(result);
+    console.log(result.shape);
+    // console.log(result);
   });
 });
