@@ -57,8 +57,8 @@ import {CSVConfig, DataElement} from './types';
  *     csvDataset
  *     .map(({xs, ys}) =>
  *       {
- *         // Convert feature and labels from object form (keyed by column name)
- *         // to array form.
+ *         // Convert xs(features) and ys(labels) from object form (keyed by
+ *         // column name) to array form.
  *         return {xs:Object.values(xs), ys:Object.values(ys)};
  *       })
  *     .batch(10);
