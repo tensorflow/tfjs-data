@@ -83,7 +83,7 @@ import {WebcamIterator} from './webcam_iterator';
 // };
 
 describe('WebcamIterator', () => {
-  it('creates webcamIterator', async () => {
+  fit('creates webcamIterator', async () => {
     const image = document.createElement('img');
     image.src = 'image.jpeg';
     const canvas = document.createElement('canvas');
@@ -114,10 +114,11 @@ describe('WebcamIterator', () => {
     // console.log(result);
   });
 
-  it('creates webcamIterator with no html element', async () => {
+  fit('creates webcamIterator with no html element', async () => {
     const webcamIterator =
         await WebcamIterator.create(null, {width: 300, height: 300});
     const result = await webcamIterator.capture();
+    console.log(result);
     expect(result.shape).toEqual([300, 300, 3]);
   });
 });
