@@ -50,7 +50,7 @@ export class TestIntegerIterator extends LazyIterator<number> {
 }
 
 describe('LazyIterator', () => {
-  fit('collects all stream elements into an array', async () => {
+  it('collects all stream elements into an array', async () => {
     const readIterator = new TestIntegerIterator();
     const result = await readIterator.toArrayForTest();
     const a = document.createElement('img');
