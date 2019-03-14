@@ -146,9 +146,9 @@ export interface WebcamConfig {
 
   deviceId?: string;
 
-  resizeWidth?: number;
+  width?: number;
 
-  resizeHeight?: number;
+  height?: number;
 
   centerCropSize?: [number, number];
 

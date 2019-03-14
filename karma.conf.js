@@ -54,6 +54,17 @@ module.exports = function (config) {
         os: 'OS X',
         os_version: 'Sierra'
       },
+      chrome_with_fake_device: {
+        base: 'Chrome',
+        flags: ['--use-fake-device-for-media-stream', '--use-fake-ui-for-media-stream']
+      },
+      firefox_with_fake_device: {
+        base: 'Firefox',
+        prefs: {
+          'media.navigator.streams.fake': true,
+          'media.navigator.permission.disabled': true
+        },
+      },
     },
     client: {
       jasmine: {

@@ -40,12 +40,12 @@ export class WebcamIterator extends LazyIterator<Tensor3D> {
     if (!webcamVideoElement) {
       // If webcam video element is not provided, create a hidden video element.
       webcamVideoElement = document.createElement('video');
-      if (!webcamConfig.resizeWidth || !webcamConfig.resizeHeight) {
+      if (!webcamConfig.width || !webcamConfig.height) {
         throw new Error(
             'Please provide webcam video element, or resize width and height.');
       }
-      webcamVideoElement.width = webcamConfig.resizeWidth;
-      webcamVideoElement.height = webcamConfig.resizeHeight;
+      webcamVideoElement.width = webcamConfig.width;
+      webcamVideoElement.height = webcamConfig.height;
     }
     const webcamIterator = new WebcamIterator(webcamVideoElement, webcamConfig);
     await webcamIterator.start();
@@ -93,10 +93,9 @@ export class WebcamIterator extends LazyIterator<Tensor3D> {
     this.isClosed = false;
 
     return new Promise<void>(resolve => {
-      // this.webcamVideoElement.addEventListener('loadedmetadata', () => {
-      //   console.log('loadedmetadat');
-      resolve();
-      // });
+      this.webcamVideoElement.addEventListener('loadedmetadata', () => {
+        resolve();
+      });
     });
   }
 
