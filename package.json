@@ -46,7 +46,7 @@
     "publish-npm": "./scripts/publish-npm.sh",
     "link-local": "yalc link",
     "publish-local": "rimraf dist/ && yarn build-npm && yalc push",
-    "test": "karma start --browsers='chrome_with_fake_device,firefox_with_fake_device'",
+    "test": "karma start --browsers='bs_firefox_mac,bs_chrome_mac' --singleRun",
     "test-node": "ts-node src/test_node.ts",
     "test-travis": "karma start --browsers='chrome_with_fake_device,firefox_with_fake_device' --singleRun",
     "lint": "tslint -p . -t verbose"
