@@ -16,7 +16,7 @@
  * =============================================================================
  */
 
-import {browser, image, Tensor1D, tensor2d, Tensor3D} from '@tensorflow/tfjs-core';
+import {browser, ENV, image, Tensor1D, tensor2d, Tensor3D} from '@tensorflow/tfjs-core';
 import {assert} from '@tensorflow/tfjs-core/dist/util';
 import {WebcamConfig} from '../types';
 import {LazyIterator} from './lazy_iterator';
@@ -37,6 +37,11 @@ export class WebcamIterator extends LazyIterator<Tensor3D> {
 
   static async create(
       webcamVideoElement?: HTMLVideoElement, webcamConfig: WebcamConfig = {}) {
+    if (ENV.get('IS_NODE')) {
+      throw new Error(
+          'tf.data.webcam is only supported in browser environment now.');
+    }
+
     if (!webcamVideoElement) {
       // If webcam video element is not provided, create a hidden video element.
       webcamVideoElement = window.document.createElement('video');

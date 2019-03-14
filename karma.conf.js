@@ -32,7 +32,7 @@ module.exports = function (config) {
       }
     },
     reporters: ['progress', 'karma-typescript'],
-    browsers: ['chrome_with_fake_device', 'firefox_with_fake_device'],
+    browsers: ['Chrome', 'Firefox'],
     browserStack: {
       username: process.env.BROWSERSTACK_USERNAME,
       accessKey: process.env.BROWSERSTACK_KEY
@@ -53,18 +53,19 @@ module.exports = function (config) {
         browser_version: 'latest',
         os: 'OS X',
         os_version: 'Sierra'
-      },
-      chrome_with_fake_device: {
-        base: 'Chrome',
-        flags: ['--use-fake-device-for-media-stream', '--use-fake-ui-for-media-stream']
-      },
-      firefox_with_fake_device: {
-        base: 'Firefox',
-        prefs: {
-          'media.navigator.streams.fake': true,
-          'media.navigator.permission.disabled': true
-        },
-      },
+      }
+      // ,
+      // chrome_with_fake_device: {
+      //   base: 'Chrome',
+      //   flags: ['--use-fake-device-for-media-stream', '--use-fake-ui-for-media-stream']
+      // },
+      // firefox_with_fake_device: {
+      //   base: 'Firefox',
+      //   prefs: {
+      //     'media.navigator.streams.fake': true,
+      //     'media.navigator.permission.disabled': true
+      //   },
+      // },
     },
     client: {
       jasmine: {
