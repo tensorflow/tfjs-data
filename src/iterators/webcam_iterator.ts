@@ -92,8 +92,10 @@ export class WebcamIterator extends LazyIterator<Tensor3D> {
     this.webcamVideoElement.play();
     this.isClosed = false;
 
+    console.log('waiting metadata');
     return new Promise<void>(resolve => {
       this.webcamVideoElement.addEventListener('loadedmetadata', () => {
+        console.log('metadata loaded');
         resolve();
       });
     });
