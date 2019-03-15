@@ -17,7 +17,7 @@
  */
 
 import {describeWithFlags} from '@tensorflow/tfjs-core/dist/jasmine_util';
-import {BROWSER_ENVS} from '@tensorflow/tfjs-core/dist/test_util';
+import {WEBGL_ENVS} from '@tensorflow/tfjs-core/dist/test_util';
 import {WebcamIterator} from './webcam_iterator';
 
 // const trackFactories = {
@@ -84,14 +84,8 @@ import {WebcamIterator} from './webcam_iterator';
 //   }
 // };
 
-describeWithFlags('WebcamIterator', BROWSER_ENVS, () => {
-  fit('creates webcamIterator', async () => {
-    const image = document.createElement('img');
-    image.src = 'image.jpeg';
-    const canvas = document.createElement('canvas');
-    const ctx = canvas.getContext('2d');
-    ctx.drawImage(image, 0, 0);
-
+describeWithFlags('WebcamIterator', WEBGL_ENVS, () => {
+  it('creates webcamIterator', async () => {
     const videoElement = document.createElement('video');
     videoElement.width = 100;
     videoElement.height = 100;
@@ -138,7 +132,7 @@ describeWithFlags('WebcamIterator', BROWSER_ENVS, () => {
     const webcamIterator =
         await WebcamIterator.create(null, {width: 300, height: 300});
     const result = await webcamIterator.capture();
-    console.log(result.shape);
+    // console.log(result.shape);
     expect(result.shape).toEqual([300, 300, 3]);
   });
 });
