@@ -42,6 +42,7 @@ module.exports = function (config) {
     customLaunchers: {
       bs_chrome_mac: {
         base: 'BrowserStack',
+        flags: ['--use-fake-device-for-media-stream', '--use-fake-ui-for-media-stream'],
         browser: 'chrome',
         browser_version: 'latest',
         os: 'OS X',
@@ -49,6 +50,10 @@ module.exports = function (config) {
       },
       bs_firefox_mac: {
         base: 'BrowserStack',
+        prefs: {
+          'media.navigator.streams.fake': true,
+          'media.navigator.permission.disabled': true
+        },
         browser: 'firefox',
         browser_version: 'latest',
         os: 'OS X',
