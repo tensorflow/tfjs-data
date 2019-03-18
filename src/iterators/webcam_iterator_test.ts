@@ -25,22 +25,29 @@ let stream: MediaStream;
 describeWithFlags('WebcamIterator', WEBGL_ENVS, () => {
   beforeEach(async () => {
     if (!stream) {
-      const imageElement = document.createElement('img');
-      imageElement.id = 'img';
-      imageElement.src = 'image.jpeg';
-      const canvasElement = document.createElement('canvas');
-      document.body.appendChild(canvasElement);
+      const canvasElement = Object.assign(
+          document.createElement('canvas'), {width: 640, height: 480});
+      // const canvasElement = document.createElement('canvas');
+      // document.body.appendChild(canvasElement);
       const ctx = canvasElement.getContext('2d');
-      ctx.drawImage(imageElement, 0, 0);
       // tslint:disable-next-line:no-any
       stream = (canvasElement as any).captureStream();
+
+      let count = 0;
+      setInterval(() => {
+        ctx.fillStyle =
+            `rgb(${count % 255}, ${count * count % 255}, ${count % 255})`;
+        count += 1;
+        ctx.fillRect(0, 0, 640, 480);
+      }, 100);
+
       navigator.mediaDevices.getUserMedia = async () => {
         return stream;
       };
     }
   });
 
-  it('creates webcamIterator', async () => {
+  fit('creates webcamIterator', async () => {
     const videoElement = document.createElement('video');
     videoElement.width = 100;
     videoElement.height = 100;
@@ -50,7 +57,7 @@ describeWithFlags('WebcamIterator', WEBGL_ENVS, () => {
     expect(result.shape).toEqual([100, 100, 3]);
   });
 
-  it('creates webcamIterator with no html element', async () => {
+  fit('creates webcamIterator with no html element', async () => {
     const webcamIterator =
         await WebcamIterator.create(null, {width: 300, height: 300});
     const result = await webcamIterator.capture();

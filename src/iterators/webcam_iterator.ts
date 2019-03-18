@@ -60,26 +60,6 @@ export class WebcamIterator extends LazyIterator<Tensor3D> {
           () => 'Invalid wecam facing model: ' + this.webcamConfig.facingMode);
     }
 
-    this.webcamVideoElement.onloadstart = () => {
-      console.log('1111 loaded');
-    };
-
-    this.webcamVideoElement.ondurationchange = () => {
-      console.log('2222 loaded');
-    };
-
-    this.webcamVideoElement.onloadedmetadata = () => {
-      console.log('3333 loaded');
-    };
-
-    this.webcamVideoElement.onloadeddata = () => {
-      console.log('4444 loaded');
-    };
-
-    this.webcamVideoElement.oncanplay = () => {
-      console.log('5555 loaded');
-    };
-
     try {
       this.stream = await navigator.mediaDevices.getUserMedia({
         video: {
@@ -112,12 +92,10 @@ export class WebcamIterator extends LazyIterator<Tensor3D> {
     this.webcamVideoElement.play();
     this.isClosed = false;
 
-    console.log('waiting metadata');
     return new Promise<void>(resolve => {
-      // this.webcamVideoElement.addEventListener('loadedmetadata', () => {
-      console.log('metadata loaded');
-      resolve();
-      // });
+      this.webcamVideoElement.addEventListener('canplay', () => {
+        resolve();
+      });
     });
   }
 
