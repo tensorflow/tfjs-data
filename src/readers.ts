@@ -28,6 +28,12 @@ import {CSVConfig, DataElement, WebcamConfig} from './types';
  * Create a `CSVDataset` by reading and decoding CSV file(s) from provided URL
  * or local path if it's in Node environment.
  *
+ * Note: If isLabel in columnConfigs is `true` for at least one column, the
+ * element in returned `CSVDataset` will be an object of
+ * `{xs:features, ys:labels}`: xs is a dict of features key/value pairs, ys
+ * is a dict of labels key/value pairs. If no column is marked as label,
+ * returns a dict of features only.
+ *
  * ```js
  * const csvUrl =
  * 'https://storage.googleapis.com/tfjs-examples/multivariate-linear-regression/data/boston-housing-train.csv';
@@ -53,8 +59,8 @@ import {CSVConfig, DataElement, WebcamConfig} from './types';
  *     csvDataset
  *     .map(({xs, ys}) =>
  *       {
- *         // Convert rows from object form (keyed by column name) to array
- *         // form.
+ *         // Convert xs(features) and ys(labels) from object form (keyed by
+ *         // column name) to array form.
  *         return {xs:Object.values(xs), ys:Object.values(ys)};
  *       })
  *     .batch(10);
@@ -162,7 +168,7 @@ export function func<T extends DataElement>(
  *   };
  *   return iterator;
  * }
- * const ds = tfd.generator(makeIterator);
+ * const ds = tf.data.generator(makeIterator);
  * ds.forEachAsync(e => console.log(e));
  * ```
  *
@@ -178,7 +184,7 @@ export function func<T extends DataElement>(
  *   }
  * }
  *
- * const ds = tfd.generator(dataGenerator);
+ * const ds = tf.data.generator(dataGenerator);
  * ds.forEachAsync(e => console.log(e));
  * ```
  *
