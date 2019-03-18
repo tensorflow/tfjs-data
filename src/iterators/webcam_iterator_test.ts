@@ -47,7 +47,7 @@ describeWithFlags('WebcamIterator', WEBGL_ENVS, () => {
     }
   });
 
-  fit('creates webcamIterator', async () => {
+  it('creates webcamIterator', async () => {
     const videoElement = document.createElement('video');
     videoElement.width = 100;
     videoElement.height = 100;
@@ -57,7 +57,7 @@ describeWithFlags('WebcamIterator', WEBGL_ENVS, () => {
     expect(result.shape).toEqual([100, 100, 3]);
   });
 
-  fit('creates webcamIterator with no html element', async () => {
+  it('creates webcamIterator with no html element', async () => {
     const webcamIterator =
         await WebcamIterator.create(null, {width: 300, height: 300});
     const result = await webcamIterator.capture();
