@@ -89,13 +89,13 @@ export class WebcamIterator extends LazyIterator<Tensor3D> {
       this.webcamVideoElement.src = window.URL.createObjectURL(this.stream);
     }
     // Start to play the webcam video
-    this.webcamVideoElement.play();
+    // this.webcamVideoElement.play();
     this.isClosed = false;
 
     return new Promise<void>(resolve => {
-      this.webcamVideoElement.addEventListener('canplay', () => {
+      this.webcamVideoElement.oncanplaythrough = () => {
         resolve();
-      });
+      };
     });
   }
 

@@ -20,31 +20,43 @@ import {describeWithFlags} from '@tensorflow/tfjs-core/dist/jasmine_util';
 import {WEBGL_ENVS} from '@tensorflow/tfjs-core/dist/test_util';
 import {WebcamIterator} from './webcam_iterator';
 
-let stream: MediaStream;
+// let stream: MediaStream;
+// let count = 2;
 
 describeWithFlags('WebcamIterator', WEBGL_ENVS, () => {
-  beforeEach(async () => {
-    if (!stream) {
-      const canvasElement = Object.assign(
-          document.createElement('canvas'), {width: 640, height: 480});
-      // const canvasElement = document.createElement('canvas');
-      // document.body.appendChild(canvasElement);
-      const ctx = canvasElement.getContext('2d');
-      // tslint:disable-next-line:no-any
-      stream = (canvasElement as any).captureStream();
+  beforeAll(async () => {
+    const width = 500;
+    const height = 500;
+    // if (!stream) {
+    // const imageElement = document.createElement('img');
+    // imageElement.id = 'img';
+    // imageElement.src = 'image.jpeg';
+    // const canvasElement =
+    //     Object.assign(document.createElement('canvas'), {width, height});
+    const canvasElement = document.createElement('canvas');
+    canvasElement.id = 'canvas';
+    document.body.appendChild(canvasElement);
 
-      let count = 0;
-      setInterval(() => {
-        ctx.fillStyle =
-            `rgb(${count % 255}, ${count * count % 255}, ${count % 255})`;
-        count += 1;
-        ctx.fillRect(0, 0, 640, 480);
-      }, 100);
+    // const element = document.getElementById('canvas') as HTMLCanvasElement;
+    const ctx = canvasElement.getContext('2d');
+    // ctx.drawImage(imageElement, 0, 0, width, height);
 
-      navigator.mediaDevices.getUserMedia = async () => {
-        return stream;
-      };
-    }
+    // setInterval(() => {
+    // ctx.beginPath();
+    // ctx.strokeStyle = 'green';
+    ctx.fillStyle = 'rgb(120, 140, 160)';
+    // count += 1;
+    ctx.fillRect(0, 0, width, height);
+    // ctx.strokeRect(0, 0, width, height);
+    // ctx.stroke();
+    // }, 100);
+
+    // tslint:disable-next-line:no-any
+    const stream = (canvasElement as any).captureStream();
+    navigator.mediaDevices.getUserMedia = async () => {
+      return stream;
+    };
+    // }
   });
 
   it('creates webcamIterator', async () => {
@@ -55,6 +67,7 @@ describeWithFlags('WebcamIterator', WEBGL_ENVS, () => {
     const webcamIterator = await WebcamIterator.create(videoElement);
     const result = await webcamIterator.capture();
     expect(result.shape).toEqual([100, 100, 3]);
+    result.print();
   });
 
   it('creates webcamIterator with no html element', async () => {
@@ -62,5 +75,7 @@ describeWithFlags('WebcamIterator', WEBGL_ENVS, () => {
         await WebcamIterator.create(null, {width: 300, height: 300});
     const result = await webcamIterator.capture();
     expect(result.shape).toEqual([300, 300, 3]);
+
+    // const element = document.getElementById('canvas') as HTMLCanvasElement;
   });
 });
