@@ -20,43 +20,43 @@ import {describeWithFlags} from '@tensorflow/tfjs-core/dist/jasmine_util';
 import {WEBGL_ENVS} from '@tensorflow/tfjs-core/dist/test_util';
 import {WebcamIterator} from './webcam_iterator';
 
-// let stream: MediaStream;
+let stream: MediaStream;
 // let count = 2;
 
 describeWithFlags('WebcamIterator', WEBGL_ENVS, () => {
-  beforeAll(async () => {
+  beforeEach(async () => {
     const width = 500;
     const height = 500;
-    // if (!stream) {
-    // const imageElement = document.createElement('img');
-    // imageElement.id = 'img';
-    // imageElement.src = 'image.jpeg';
-    // const canvasElement =
-    //     Object.assign(document.createElement('canvas'), {width, height});
-    const canvasElement = document.createElement('canvas');
-    canvasElement.id = 'canvas';
-    document.body.appendChild(canvasElement);
+    if (!stream) {
+      // const imageElement = document.createElement('img');
+      // imageElement.id = 'img';
+      // imageElement.src = 'image.jpeg';
+      // const canvasElement =
+      //     Object.assign(document.createElement('canvas'), {width, height});
+      const canvasElement = document.createElement('canvas');
+      canvasElement.id = 'canvas';
+      document.body.appendChild(canvasElement);
 
-    // const element = document.getElementById('canvas') as HTMLCanvasElement;
-    const ctx = canvasElement.getContext('2d');
-    // ctx.drawImage(imageElement, 0, 0, width, height);
+      // const element = document.getElementById('canvas') as HTMLCanvasElement;
+      const ctx = canvasElement.getContext('2d');
+      // ctx.drawImage(imageElement, 0, 0, width, height);
 
-    // setInterval(() => {
-    // ctx.beginPath();
-    // ctx.strokeStyle = 'green';
-    ctx.fillStyle = 'rgb(120, 140, 160)';
-    // count += 1;
-    ctx.fillRect(0, 0, width, height);
-    // ctx.strokeRect(0, 0, width, height);
-    // ctx.stroke();
-    // }, 100);
+      // setInterval(() => {
+      // ctx.beginPath();
+      // ctx.strokeStyle = 'green';
+      ctx.fillStyle = 'rgb(120, 140, 160)';
+      // count += 1;
+      ctx.fillRect(0, 0, width, height);
+      // ctx.strokeRect(0, 0, width, height);
+      // ctx.stroke();
+      // }, 100);
 
-    // tslint:disable-next-line:no-any
-    const stream = (canvasElement as any).captureStream();
+      // tslint:disable-next-line:no-any
+      stream = (canvasElement as any).captureStream();
+    }
     navigator.mediaDevices.getUserMedia = async () => {
       return stream;
     };
-    // }
   });
 
   it('creates webcamIterator', async () => {
