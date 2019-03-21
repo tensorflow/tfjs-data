@@ -107,36 +107,6 @@ export function csv(
 }
 
 /**
- * Create a `Dataset` that produces each element by calling a provided function.
- *
- * Note that repeated iterations over this `Dataset` may produce different
- * results, because the function will be called anew for each element of each
- * iteration.
- *
- * Also, beware that the sequence of calls to this function may be out of order
- * in time with respect to the logical order of the Dataset. This is due to the
- * asynchronous lazy nature of stream processing, and depends on downstream
- * transformations (e.g. .shuffle()). If the provided function is pure, this is
- * no problem, but if it is a closure over a mutable state (e.g., a traversal
- * pointer), then the order of the produced elements may be scrambled.
- *
- * ```js
- * let i = -1;
- * const func = () =>
- *    ++i < 5 ? {value: i, done: false} : {value: null, done: true};
- * const ds = tf.data.func(func);
- * await ds.forEachAsync(e => console.log(e));
- * ```
- *
- * @param f A function that produces one data element on each call.
- */
-export function func<T extends DataElement>(
-    f: () => IteratorResult<T>| Promise<IteratorResult<T>>): Dataset<T> {
-  const iter = iteratorFromFunction(f);
-  return datasetFromIteratorFn(async () => iter);
-}
-
-/**
  * Create a `Dataset` that produces each element from provided JavaScript
  * generator, which is a function*
  * (https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Iterators_and_Generators#Generator_functions),

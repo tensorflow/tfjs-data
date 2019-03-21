@@ -20,15 +20,6 @@ import {describeWithFlags} from '@tensorflow/tfjs-core/dist/jasmine_util';
 import * as tfd from './readers';
 
 describeWithFlags('readers', tf.test_util.ALL_ENVS, () => {
-  it('generate dataset from function', async () => {
-    let i = -1;
-    const f = () =>
-        ++i < 5 ? {value: i, done: false} : {value: null, done: true};
-    const ds = tfd.func(f);
-    const result = await ds.toArrayForTest();
-    expect(result).toEqual([0, 1, 2, 3, 4]);
-  });
-
   it('generate dataset from JavaScript generator', async () => {
     function* dataGenerator() {
       const numElements = 5;
