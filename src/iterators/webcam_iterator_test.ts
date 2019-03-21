@@ -58,7 +58,7 @@ describeWithFlags('WebcamIterator', test_util.BROWSER_ENVS, () => {
   //   };
   // });
 
-  fit('creates webcamIterator with html element', async () => {
+  it('creates webcamIterator with html element', async () => {
     // const videoElement = document.createElement('video');
     // videoElement.width = 5;
     // videoElement.height = 5;
