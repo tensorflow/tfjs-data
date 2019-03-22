@@ -212,10 +212,11 @@ export function generator<T extends DataElement>(
  *
  * ```js
  * const videoElement = document.createElement('video');
- * videoElement.width = 100;
- * videoElement.height = 100;
+ * videoElement.width = 5;
+ * videoElement.height = 5;
  * const webcamIterator = await WebcamIterator.create(videoElement);
  * const result = await webcamIterator.capture();
+ * result.print()
  * ```
  *
  * @param webcamVideoElement A html video element used to play video from
