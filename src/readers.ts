@@ -207,6 +207,33 @@ export function generator<T extends DataElement>(
   });
 }
 
+/**
+ * Create a `LazyIterator` that generate `Tensor` from webcam video stream. Only
+ * works in Browser environment when the device has webcam.
+ *
+ * ```js
+ * const videoElement = document.createElement('video');
+ * videoElement.width = 100;
+ * videoElement.height = 100;
+ * const webcamIterator = await WebcamIterator.create(videoElement);
+ * const result = await webcamIterator.capture();
+ * ```
+ *
+ * @param webcamVideoElement A html video element used to play video from
+ *     webcam. If this element is not provided, a hidden HTMLVideoElement will
+ *     be created. width and height in WebcamConfig must be provided to set the
+ *     generated tensor shape.
+ * @param webcamConfig A WebcamConfig object that contains configurations of
+ *     reading and manipulating data from webcam video stream.
+ */
+/**
+ * @doc {
+ *   heading: 'Data',
+ *   subheading: 'Creation',
+ *   namespace: 'data',
+ *   configParamIndices: [1]
+ *  }
+ */
 export async function webcam(
     webcamVideoElement?: HTMLVideoElement, webcamConfig?: WebcamConfig) {
   if (ENV.get('IS_NODE')) {

@@ -16,7 +16,8 @@
  * =============================================================================
  */
 
-import {browser, image, tensor2d, Tensor3D} from '@tensorflow/tfjs-core';
+import {browser, image, Tensor, tensor1d, Tensor3D} from '@tensorflow/tfjs-core';
+import {TensorLike} from '@tensorflow/tfjs-core/dist/types';
 import {assert} from '@tensorflow/tfjs-core/dist/util';
 import {WebcamConfig} from '../types';
 import {LazyIterator} from './lazy_iterator';
@@ -105,15 +106,17 @@ export class WebcamIterator extends LazyIterator<Tensor3D> {
     }
     const img = browser.fromPixels(this.webcamVideoElement);
 
-    if (this.webcamConfig.centerCropSize && this.webcamConfig.cropBox) {
-      // (this.webcamConfig.cropBox as Tensor1D).expandDims(0).print();
-      // (this.webcamConfig.cropBoxInd as Tensor1D).print();
+    if (this.webcamConfig.cropAndResizeConfig) {
+      // Expand image dimension because tf.image.cropAndResize is expecting
+      // image batch. So does cropBox and boxInt.
       const croppedImg = image.cropAndResize(
           img.toFloat().expandDims(0),
-          // (this.webcamConfig.cropBox as Tensor1D).expandDims(0),
-          tensor2d([1, 1, 0, 0], [1, 4]), this.webcamConfig.cropBoxInd,
-          this.webcamConfig.centerCropSize, 'nearest', 0);
-      // croppedImg.print();
+          this.webcamConfig.cropAndResizeConfig.cropBox instanceof Tensor ?
+              this.webcamConfig.cropAndResizeConfig.cropBox.expandDims(0) :
+              [this.webcamConfig.cropAndResizeConfig.cropBox] as TensorLike,
+          tensor1d([0], 'int32'),
+          this.webcamConfig.cropAndResizeConfig.cropSize,
+          this.webcamConfig.cropAndResizeConfig.cropMethod, 0);
       const shape = croppedImg.shape;
       return {
         value: croppedImg.reshape(shape.slice(1) as [number, number, number]),
