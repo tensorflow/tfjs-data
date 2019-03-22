@@ -248,9 +248,7 @@ describeWithFlags(
              await (await tfd.zip([a, b]).iterator()).toArray();
              done.fail();
            } catch (e) {
-             expect(e.message).toEqual(
-                 'Error thrown while iterating through ' +
-                 'a dataset: propagate me!');
+             expect(e.message).toMatch(/propagate me!/);
              done();
            }
          });
@@ -737,7 +735,7 @@ describeWithFlags(
         expect(ds.size).toEqual(0);
       });
 
-      it('size is undefined if dataset may exhausted randomly', async () => {
+      it('size is null if dataset may exhausted randomly', async () => {
         const makeIterator = () => {
           let i = -1;
           const iterator = {
@@ -760,7 +758,7 @@ describeWithFlags(
         expect(ds.size).toEqual(Infinity);
       });
 
-      it('repeat undefined size dataset has undefined size', async () => {
+      it('repeat unknown size dataset has null size', async () => {
         const makeIterator = () => {
           let i = -1;
           const iterator = {
@@ -783,7 +781,7 @@ describeWithFlags(
         expect(ds.size).toEqual(5);
       });
 
-      it('take dataset with undefined size has undefined size', async () => {
+      it('take dataset with unknown size has null size', async () => {
         const makeIterator = () => {
           let i = -1;
           const iterator = {
@@ -811,7 +809,7 @@ describeWithFlags(
         expect(ds.size).toEqual(0);
       });
 
-      it('skip dataset with undefined size has undefined size', async () => {
+      it('skip dataset with unknown size has null size', async () => {
         const makeIterator = () => {
           let i = -1;
           const iterator = {
@@ -840,7 +838,7 @@ describeWithFlags(
            expect(ds.size).toEqual(3);
          });
 
-      it('batch dataset with undefined size has undefined size', async () => {
+      it('batch dataset with unknown size has null size', async () => {
         const makeIterator = () => {
           let i = -1;
           const iterator = {
