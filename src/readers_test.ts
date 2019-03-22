@@ -134,3 +134,16 @@ describeWithFlags('readers', tf.test_util.ALL_ENVS, () => {
     expect(result).toEqual([3, 4, 5]);
   });
 });
+
+describeWithFlags('readers in node', tf.test_util.NODE_ENVS, () => {
+  it('webcam only available in browser env', async done => {
+    try {
+      await tfd.webcam();
+      done.fail();
+    } catch (e) {
+      expect(e.message).toEqual(
+          'tf.data.webcam is only supported in browser environment.');
+      done();
+    }
+  });
+});

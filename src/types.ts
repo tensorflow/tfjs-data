@@ -16,7 +16,7 @@
  * =============================================================================
  */
 
-import {DataType} from '@tensorflow/tfjs-core';
+import {DataType, Tensor1D, TensorLike} from '@tensorflow/tfjs-core';
 import {TensorContainer, TensorContainerArray, TensorContainerObject} from '@tensorflow/tfjs-core/dist/tensor_types';
 import {Dataset} from './dataset';
 import {LazyIterator} from './iterators/lazy_iterator';
@@ -135,4 +135,75 @@ export interface CSVConfig {
    * The string used to parse each line of the input file.
    */
   delimiter?: string;
+}
+
+/**
+ * Interface configuring data from webcam video stream.
+ */
+export interface WebcamConfig {
+  /**
+   * A string specifying which camera to use on mobile device. If the value is
+   * 'user', it will use front camera. If the value is 'environment', it will
+   * use rear camera.
+   */
+  facingMode?: 'user'|'environment';
+
+  /**
+   * A string used to request a specific camera. The deviceId can be obtained by
+   * calling `mediaDevices.enumerateDevices()`.
+   */
+  deviceId?: string;
+
+  /**
+   * If webcamVideoElement is provided when calling `tf.data.webcam()`, this
+   * field is ignored. If webcamVideoElement is not provided, this field will be
+   * used as the width of the hidden HTMLVideoElement, which holds the webcam
+   * video stream.
+   */
+  width?: number;
+
+  /**
+   * If webcamVideoElement is provided when calling `tf.data.webcam()`, this
+   * field is ignored. If webcamVideoElement is not provided, this field will be
+   * used as the height of the hidden HTMLVideoElement, which holds the webcam
+   * video stream.
+   */
+  height?: number;
+
+  /**
+   * Croping and resizing configuration when reading data from
+   * webcam video stream. Please see
+   * https://js.tensorflow.org/api/latest/#image.cropAndResize for details.
+   */
+  cropAndResizeConfig?: CropAndResizeConfig;
+}
+
+/**
+ * Interface contains croping and resizing configuration when reading data from
+ * webcam video stream.
+ */
+export interface CropAndResizeConfig {
+  /**
+   * 1d float32 tensor of [y1, x1, y2, x2], where (y1, x1) and (y2, x2) are the
+   * normalized coordinates of the box in the image.
+   */
+  cropBox: Tensor1D|TensorLike;
+
+  /**
+   * 1d int32 tensor of 2 elements [cropHeigh, cropWidth] specifying the size to
+   * which all crops are resized to.
+   */
+  cropSize: [number, number];
+
+  /**
+   * A string from `'bilinear' | 'nearest'`, defaults to bilinear, which
+   * specifies the sampling method for resizing
+   */
+  cropMethod?: 'bilinear'|'nearest';
+
+  /**
+   * A threshold for deciding when to remove boxes based on score. Defaults to
+   * 0.
+   */
+  extrapolationValue?: number;
 }
