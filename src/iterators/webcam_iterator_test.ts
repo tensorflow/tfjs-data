@@ -20,10 +20,49 @@ import {/*browser, */ tensor1d, test_util} from '@tensorflow/tfjs-core';
 import {describeWithFlags} from '@tensorflow/tfjs-core/dist/jasmine_util';
 import {WebcamIterator} from './webcam_iterator';
 
-// let stream: MediaStream;
+let stream: MediaStream;
+
+const setupFakeMediaStream = () => {
+  const width = 500;
+  const height = 500;
+  // const imageElement = document.createElement('img');
+  // imageElement.id = 'img';
+  // imageElement.src = 'image.jpeg';
+  // const canvasElement =
+  //     Object.assign(document.createElement('canvas'), {width,
+  //   height
+  // });
+  const canvasElement = document.createElement('canvas');
+  canvasElement.id = 'canvas';
+  document.body.appendChild(canvasElement);
+
+  // const element = document.getElementById('canvas') as
+  // HTMLCanvasElement;
+  const ctx = canvasElement.getContext('2d');
+  // ctx.drawImage(imageElement, 0, 0, width, height);
+
+  // setInterval(() => {
+  // ctx.beginPath();
+  // ctx.strokeStyle = 'green';
+  ctx.fillStyle = 'rgb(120, 140, 160)';
+  // count += 1;
+  ctx.fillRect(0, 0, width, height);
+  // ctx.strokeRect(0, 0, width, height);
+  // ctx.stroke();
+  // }, 100);
+
+  // tslint:disable-next-line:no-any
+  stream = (canvasElement as any).captureStream(60);
+  navigator.mediaDevices.getUserMedia = async () => {
+    return stream;
+  };
+};
 
 describeWithFlags('WebcamIterator', test_util.BROWSER_ENVS, () => {
-  // beforeEach(async () => {
+  beforeEach(() => {
+    setupFakeMediaStream();
+  });
+  // beforeAll(async () => {
   //   const width = 500;
   //   const height = 500;
   //   if (!stream) {
@@ -32,12 +71,15 @@ describeWithFlags('WebcamIterator', test_util.BROWSER_ENVS, () => {
   //     // imageElement.src = 'image.jpeg';
   //     // const canvasElement =
   //     //     Object.assign(document.createElement('canvas'), {width,
-  //     height}); const canvasElement = document.createElement('canvas');
+  //     //   height
+  //     // });
+  //     const canvasElement = document.createElement('canvas');
   //     canvasElement.id = 'canvas';
   //     document.body.appendChild(canvasElement);
 
   //     // const element = document.getElementById('canvas') as
-  //     HTMLCanvasElement; const ctx = canvasElement.getContext('2d');
+  //     // HTMLCanvasElement;
+  //     const ctx = canvasElement.getContext('2d');
   //     // ctx.drawImage(imageElement, 0, 0, width, height);
 
   //     // setInterval(() => {
@@ -120,25 +162,26 @@ describeWithFlags('WebcamIterator', test_util.BROWSER_ENVS, () => {
   it('creates webcamIterator with html element and capture', async () => {
     const videoElement = document.createElement('video');
     videoElement.width = 100;
-    videoElement.height = 100;
+    videoElement.height = 200;
 
     const webcamIterator = await WebcamIterator.create(videoElement);
     const result = await webcamIterator.capture();
-    expect(result.shape).toEqual([100, 100, 3]);
+    expect(result.shape).toEqual([200, 100, 3]);
   });
 
   it('creates webcamIterator with no html element', async () => {
     const webcamIterator =
-        await WebcamIterator.create(null, {width: 300, height: 300});
+        await WebcamIterator.create(null, {width: 100, height: 200});
     const result = await webcamIterator.next();
-    expect(result.value.shape).toEqual([300, 300, 3]);
+    expect(result.done).toBeFalsy();
+    expect(result.value.shape).toEqual([200, 100, 3]);
   });
 
   it('creates webcamIterator with no html element and capture', async () => {
     const webcamIterator =
-        await WebcamIterator.create(null, {width: 300, height: 300});
+        await WebcamIterator.create(null, {width: 100, height: 200});
     const result = await webcamIterator.capture();
-    expect(result.shape).toEqual([300, 300, 3]);
+    expect(result.shape).toEqual([200, 100, 3]);
   });
 
   it('resize with html element', async () => {
@@ -147,25 +190,63 @@ describeWithFlags('WebcamIterator', test_util.BROWSER_ENVS, () => {
     videoElement.height = 300;
 
     const webcamIterator = await WebcamIterator.create(videoElement, {
-      width: 100,
-      height: 200,
-      centerCropSize: [100, 200],
-      cropBox: tensor1d([50, 50, 150, 250]),
-      cropBoxInd: tensor1d([0], 'int32'),
+      cropAndResizeConfig: {
+        cropSize: [100, 200],
+        cropBox: tensor1d([50, 50, 150, 250]),
+      }
     });
     const result = await webcamIterator.next();
+    expect(result.done).toBeFalsy();
     expect(result.value.shape).toEqual([100, 200, 3]);
   });
 
   it('resize with no html element', async () => {
-    const webcamIterator = await WebcamIterator.create(null, {
-      width: 100,
-      height: 200,
-      centerCropSize: [100, 200],
-      cropBox: tensor1d([50, 50, 150, 250]),
-      cropBoxInd: tensor1d([0], 'int32'),
-    });
-    const result = await webcamIterator.capture();
-    expect(result.shape).toEqual([100, 200, 3]);
+    const webcamIterator =
+        await WebcamIterator.create(null, {width: 100, height: 200});
+    const result = await webcamIterator.next();
+    expect(result.done).toBeFalsy();
+    expect(result.value.shape).toEqual([200, 100, 3]);
+  });
+
+  it('webcamIterator could stop', async () => {
+    const videoElement = document.createElement('video');
+    videoElement.width = 100;
+    videoElement.height = 100;
+
+    const webcamIterator = await WebcamIterator.create(videoElement);
+    const result1 = await webcamIterator.next();
+    expect(result1.done).toBeFalsy();
+    expect(result1.value.shape).toEqual([100, 100, 3]);
+
+    await webcamIterator.stop();
+    const result2 = await webcamIterator.next();
+    expect(result2.done).toBeTruthy();
+    expect(result2.value).toBeNull();
+  });
+
+  it('webcamIterator could restart', async () => {
+    const videoElement = document.createElement('video');
+    videoElement.width = 100;
+    videoElement.height = 100;
+
+    const webcamIterator = await WebcamIterator.create(videoElement);
+    const result1 = await webcamIterator.next();
+    expect(result1.done).toBeFalsy();
+    expect(result1.value.shape).toEqual([100, 100, 3]);
+    console.log('start');
+
+    await webcamIterator.stop();
+    const result2 = await webcamIterator.next();
+    expect(result2.done).toBeTruthy();
+    expect(result2.value).toBeNull();
+    console.log('stop');
+
+    setupFakeMediaStream();
+
+    await webcamIterator.start();
+    const result3 = await webcamIterator.next();
+    expect(result3.done).toBeFalsy();
+    expect(result3.value.shape).toEqual([100, 100, 3]);
+    console.log('restart');
   });
 });
