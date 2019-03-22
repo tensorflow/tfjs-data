@@ -19,7 +19,6 @@
 import * as tf from '@tensorflow/tfjs-core';
 import {describeWithFlags} from '@tensorflow/tfjs-core/dist/jasmine_util';
 import {TensorContainerObject} from '@tensorflow/tfjs-core/dist/tensor_types';
-
 import {array} from './dataset';
 import * as tfd from './index';
 import {iteratorFromItems, LazyIterator} from './iterators/lazy_iterator';
@@ -228,13 +227,19 @@ describeWithFlags(
       it('zip propagates errors thrown when iterating constituent datasets',
          async done => {
            try {
-             let count = 0;
-             const a = tfd.func(async () => {
-               if (count > 2) {
-                 throw new Error('propagate me!');
-               }
-               return {value: count++, done: false};
-             });
+             const makeIterator = () => {
+               let count = 0;
+               const iterator = {
+                 next: () => {
+                   if (count > 2) {
+                     throw new Error('propagate me!');
+                   }
+                   return {value: count++, done: false};
+                 }
+               };
+               return iterator;
+             };
+             const a = tfd.generator(makeIterator);
              const b = tfd.array([3, 4, 5, 6]);
              // Using toArray() rather than toArrayForTest().  The prefetch in
              // the latter, in combination with expecting an exception, causes
@@ -243,7 +248,7 @@ describeWithFlags(
              await (await tfd.zip([a, b]).iterator()).toArray();
              done.fail();
            } catch (e) {
-             expect(e.message).toEqual('propagate me!');
+             expect(e.message).toMatch(/propagate me!/);
              done();
            }
          });
@@ -730,11 +735,16 @@ describeWithFlags(
         expect(ds.size).toEqual(0);
       });
 
-      it('size is undefined if dataset may exhausted randomly', async () => {
-        let i = -1;
-        const func = () =>
-            ++i < 7 ? {value: i, done: false} : {value: null, done: true};
-        const ds = tfd.func(func);
+      it('size is null if dataset may exhausted randomly', async () => {
+        const makeIterator = () => {
+          let i = -1;
+          const iterator = {
+            next: () =>
+                ++i < 7 ? {value: i, done: false} : {value: null, done: true}
+          };
+          return iterator;
+        };
+        const ds = tfd.generator(makeIterator);
         expect(ds.size).toBeNull();
       });
 
@@ -748,11 +758,16 @@ describeWithFlags(
         expect(ds.size).toEqual(Infinity);
       });
 
-      it('repeat undefined size dataset has undefined size', async () => {
-        let i = -1;
-        const func = () =>
-            ++i < 7 ? {value: i, done: false} : {value: null, done: true};
-        const ds = tfd.func(func).repeat(3);
+      it('repeat unknown size dataset has null size', async () => {
+        const makeIterator = () => {
+          let i = -1;
+          const iterator = {
+            next: () =>
+                ++i < 7 ? {value: i, done: false} : {value: null, done: true}
+          };
+          return iterator;
+        };
+        const ds = tfd.generator(makeIterator).repeat(3);
         expect(ds.size).toBeNull();
       });
 
@@ -766,11 +781,16 @@ describeWithFlags(
         expect(ds.size).toEqual(5);
       });
 
-      it('take dataset with undefined size has undefined size', async () => {
-        let i = -1;
-        const func = () =>
-            ++i < 7 ? {value: i, done: false} : {value: null, done: true};
-        const ds = tfd.func(func).take(3);
+      it('take dataset with unknown size has null size', async () => {
+        const makeIterator = () => {
+          let i = -1;
+          const iterator = {
+            next: () =>
+                ++i < 7 ? {value: i, done: false} : {value: null, done: true}
+          };
+          return iterator;
+        };
+        const ds = tfd.generator(makeIterator).take(3);
         expect(ds.size).toBeNull();
       });
 
@@ -789,11 +809,16 @@ describeWithFlags(
         expect(ds.size).toEqual(0);
       });
 
-      it('skip dataset with undefined size has undefined size', async () => {
-        let i = -1;
-        const func = () =>
-            ++i < 7 ? {value: i, done: false} : {value: null, done: true};
-        const ds = tfd.func(func).skip(3);
+      it('skip dataset with unknown size has null size', async () => {
+        const makeIterator = () => {
+          let i = -1;
+          const iterator = {
+            next: () =>
+                ++i < 7 ? {value: i, done: false} : {value: null, done: true}
+          };
+          return iterator;
+        };
+        const ds = tfd.generator(makeIterator).skip(3);
         expect(ds.size).toBeNull();
       });
 
@@ -813,11 +838,16 @@ describeWithFlags(
            expect(ds.size).toEqual(3);
          });
 
-      it('batch dataset with undefined size has undefined size', async () => {
-        let i = -1;
-        const func = () =>
-            ++i < 7 ? {value: i, done: false} : {value: null, done: true};
-        const ds = tfd.func(func).batch(2);
+      it('batch dataset with unknown size has null size', async () => {
+        const makeIterator = () => {
+          let i = -1;
+          const iterator = {
+            next: () =>
+                ++i < 7 ? {value: i, done: false} : {value: null, done: true}
+          };
+          return iterator;
+        };
+        const ds = tfd.generator(makeIterator).batch(2);
         expect(ds.size).toBeNull();
       });
 
@@ -837,10 +867,15 @@ describeWithFlags(
       });
 
       it('map dataset preserves null size', async () => {
-        let i = -1;
-        const func = () =>
-            ++i < 7 ? {value: i, done: false} : {value: null, done: true};
-        const ds = tfd.func(func).map(e => e + 1);
+        const makeIterator = () => {
+          let i = -1;
+          const iterator = {
+            next: () =>
+                ++i < 7 ? {value: i, done: false} : {value: null, done: true}
+          };
+          return iterator;
+        };
+        const ds = tfd.generator(makeIterator).map(e => e + 1);
         expect(ds.size).toBeNull();
       });
 
@@ -855,10 +890,15 @@ describeWithFlags(
       });
 
       it('filter dataset with null size has null size', async () => {
-        let i = -1;
-        const func = () =>
-            ++i < 7 ? {value: i, done: false} : {value: null, done: true};
-        const ds = tfd.func(func).filter(e => e % 2 === 0);
+        const makeIterator = () => {
+          let i = -1;
+          const iterator = {
+            next: () =>
+                ++i < 7 ? {value: i, done: false} : {value: null, done: true}
+          };
+          return iterator;
+        };
+        const ds = tfd.generator(makeIterator).filter(e => e % 2 === 0);
         expect(ds.size).toBeNull();
       });
 
