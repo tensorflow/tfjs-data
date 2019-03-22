@@ -134,7 +134,8 @@ export class WebcamIterator extends LazyIterator<Tensor3D> {
                 [this.webcamConfig.cropAndResizeConfig.cropBox] as TensorLike,
             tensor1d([0], 'int32'),
             this.webcamConfig.cropAndResizeConfig.cropSize,
-            this.webcamConfig.cropAndResizeConfig.cropMethod, 0);
+            this.webcamConfig.cropAndResizeConfig.cropMethod,
+            this.webcamConfig.cropAndResizeConfig.extrapolationValue);
         const shape = croppedImg.shape;
         // Extract image from batch cropping.
         return {

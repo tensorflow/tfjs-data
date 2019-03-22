@@ -85,7 +85,7 @@ describeWithFlags('WebcamIterator', test_util.BROWSER_ENVS, () => {
     const webcamIterator = await WebcamIterator.create(videoElement, {
       cropAndResizeConfig: {
         cropSize: [100, 200],
-        cropBox: tensor1d([50, 50, 150, 250]),
+        cropBox: tensor1d([0, 0, 0.5, 1]),
       }
     });
     const result = await webcamIterator.next();
