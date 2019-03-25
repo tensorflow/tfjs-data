@@ -460,7 +460,7 @@ describe('LazyIterator', () => {
    * API, but that may not be what users ultimately want when zipping dicts.
    * This may merit a convenience function (e.g., maybe flatZip()).
    */
-  it('zipping DataElement streams requires manual merge', async () => {
+  it('zipping TensorContainer streams requires manual merge', async () => {
     function naiveMerge(xs: TensorContainer[]): TensorContainer {
       const result = {};
       for (const x of xs) {

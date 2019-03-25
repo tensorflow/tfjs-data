@@ -33,7 +33,7 @@ const STATE_WITHIN_QUOTE_IN_QUOTE = Symbol('quoteinquote');
 /**
  * Represents a potentially large collection of delimited text records.
  *
- * The produced `DataElement`s each contain one key-value pair for
+ * The produced `TensorContainer`s each contain one key-value pair for
  * every column of the table.  When a field is empty in the incoming data, the
  * resulting value is `undefined`, or throw error if it is required.  Values
  * that can be parsed as numbers are emitted as type `number`, other values

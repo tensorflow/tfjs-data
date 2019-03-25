@@ -146,7 +146,7 @@ export function func<T extends TensorContainer>(
  * (https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Iterators_and_Generators#Generator_functions).
  *
  * The returned iterator should have `.next()` function that returns element in
- * format of `{value: DataElement, done:boolean}`.
+ * format of `{value: TensorContainer, done:boolean}`.
  *
  * Example of creating a dataset from an iterator factory:
  * ```js
