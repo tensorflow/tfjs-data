@@ -229,7 +229,7 @@ describeWithFlags(
            try {
              const makeIterator = () => {
                let count = 0;
-               const iterator = {
+               return {
                  next: () => {
                    if (count > 2) {
                      throw new Error('propagate me!');
@@ -237,7 +237,6 @@ describeWithFlags(
                    return {value: count++, done: false};
                  }
                };
-               return iterator;
              };
              const a = tfd.generator(makeIterator);
              const b = tfd.array([3, 4, 5, 6]);
@@ -738,11 +737,10 @@ describeWithFlags(
       it('size is null if dataset may exhausted randomly', async () => {
         const makeIterator = () => {
           let i = -1;
-          const iterator = {
+          return {
             next: () =>
                 ++i < 7 ? {value: i, done: false} : {value: null, done: true}
           };
-          return iterator;
         };
         const ds = tfd.generator(makeIterator);
         expect(ds.size).toBeNull();
@@ -761,11 +759,10 @@ describeWithFlags(
       it('repeat unknown size dataset has null size', async () => {
         const makeIterator = () => {
           let i = -1;
-          const iterator = {
+          return {
             next: () =>
                 ++i < 7 ? {value: i, done: false} : {value: null, done: true}
           };
-          return iterator;
         };
         const ds = tfd.generator(makeIterator).repeat(3);
         expect(ds.size).toBeNull();
@@ -784,11 +781,10 @@ describeWithFlags(
       it('take dataset with unknown size has null size', async () => {
         const makeIterator = () => {
           let i = -1;
-          const iterator = {
+          return {
             next: () =>
                 ++i < 7 ? {value: i, done: false} : {value: null, done: true}
           };
-          return iterator;
         };
         const ds = tfd.generator(makeIterator).take(3);
         expect(ds.size).toBeNull();
@@ -812,11 +808,10 @@ describeWithFlags(
       it('skip dataset with unknown size has null size', async () => {
         const makeIterator = () => {
           let i = -1;
-          const iterator = {
+          return {
             next: () =>
                 ++i < 7 ? {value: i, done: false} : {value: null, done: true}
           };
-          return iterator;
         };
         const ds = tfd.generator(makeIterator).skip(3);
         expect(ds.size).toBeNull();
@@ -841,11 +836,10 @@ describeWithFlags(
       it('batch dataset with unknown size has null size', async () => {
         const makeIterator = () => {
           let i = -1;
-          const iterator = {
+          return {
             next: () =>
                 ++i < 7 ? {value: i, done: false} : {value: null, done: true}
           };
-          return iterator;
         };
         const ds = tfd.generator(makeIterator).batch(2);
         expect(ds.size).toBeNull();
@@ -869,11 +863,10 @@ describeWithFlags(
       it('map dataset preserves null size', async () => {
         const makeIterator = () => {
           let i = -1;
-          const iterator = {
+          return {
             next: () =>
                 ++i < 7 ? {value: i, done: false} : {value: null, done: true}
           };
-          return iterator;
         };
         const ds = tfd.generator(makeIterator).map(e => e + 1);
         expect(ds.size).toBeNull();
@@ -892,11 +885,10 @@ describeWithFlags(
       it('filter dataset with null size has null size', async () => {
         const makeIterator = () => {
           let i = -1;
-          const iterator = {
+          return {
             next: () =>
                 ++i < 7 ? {value: i, done: false} : {value: null, done: true}
           };
-          return iterator;
         };
         const ds = tfd.generator(makeIterator).filter(e => e % 2 === 0);
         expect(ds.size).toBeNull();
