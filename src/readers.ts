@@ -16,11 +16,12 @@
  * =============================================================================
  */
 
+import {TensorContainer} from '@tensorflow/tfjs-core';
 import {Dataset, datasetFromIteratorFn} from './dataset';
 import {CSVDataset} from './datasets/csv_dataset';
 import {iteratorFromFunction} from './iterators/lazy_iterator';
 import {URLDataSource} from './sources/url_data_source';
-import {CSVConfig, DataElement} from './types';
+import {CSVConfig} from './types';
 
 /**
  * Create a `CSVDataset` by reading and decoding CSV file(s) from provided URL
@@ -130,7 +131,7 @@ export function csv(
  *
  * @param f A function that produces one data element on each call.
  */
-export function func<T extends DataElement>(
+export function func<T extends TensorContainer>(
     f: () => IteratorResult<T>| Promise<IteratorResult<T>>): Dataset<T> {
   const iter = iteratorFromFunction(f);
   return datasetFromIteratorFn(async () => iter);
@@ -197,7 +198,7 @@ export function func<T extends DataElement>(
  *   configParamIndices: [1]
  *  }
  */
-export function generator<T extends DataElement>(
+export function generator<T extends TensorContainer>(
     generator: () => Iterator<T>| Promise<Iterator<T>>): Dataset<T> {
   return datasetFromIteratorFn(async () => {
     const gen = await generator();

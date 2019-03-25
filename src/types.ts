@@ -16,18 +16,9 @@
  * =============================================================================
  */
 
-import {DataType, TensorContainer, TensorContainerArray, TensorContainerObject} from '@tensorflow/tfjs-core';
+import {DataType, TensorContainer} from '@tensorflow/tfjs-core';
 import {Dataset} from './dataset';
 import {LazyIterator} from './iterators/lazy_iterator';
-
-/**
- * JSON-like type representing a nested structure of primitives or Tensors.
- */
-export type DataElement = TensorContainer;
-
-export type DataElementObject = TensorContainerObject;
-
-export type DataElementArray = TensorContainerArray;
 
 // Maybe this should be called 'NestedContainer'-- that's just a bit unwieldy.
 export type Container<T> = ContainerObject<T>|ContainerArray<T>;
@@ -42,12 +33,12 @@ export interface ContainerArray<T> extends Array<ContainerOrT<T>> {}
 /**
  * A nested structure of Datasets, used as the input to zip().
  */
-export type DatasetContainer = Container<Dataset<DataElement>>;
+export type DatasetContainer = Container<Dataset<TensorContainer>>;
 
 /**
  * A nested structure of LazyIterators, used as the input to zip().
  */
-export type IteratorContainer = Container<LazyIterator<DataElement>>;
+export type IteratorContainer = Container<LazyIterator<TensorContainer>>;
 
 /**
  * Types supported by FileChunkIterator in both Browser and Node Environment.
@@ -74,7 +65,7 @@ export type FileElement = File|Blob|Uint8Array;
 export interface ColumnConfig {
   required?: boolean;
   dtype?: DataType;
-  default?: DataElement;
+  default?: TensorContainer;
   isLabel?: boolean;
 }
 

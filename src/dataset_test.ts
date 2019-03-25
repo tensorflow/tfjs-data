@@ -22,7 +22,7 @@ import {describeWithFlags} from '@tensorflow/tfjs-core/dist/jasmine_util';
 import {array} from './dataset';
 import * as tfd from './index';
 import {iteratorFromItems, LazyIterator} from './iterators/lazy_iterator';
-import {DataElementObject, DatasetContainer} from './types';
+import {DatasetContainer} from './types';
 
 class TestObjectIterator extends LazyIterator<{}> {
   data = Array.from({length: 100}, (v, k) => k);
@@ -55,7 +55,7 @@ class TestObjectIterator extends LazyIterator<{}> {
   }
 }
 
-export class TestDataset extends tfd.Dataset<DataElementObject> {
+export class TestDataset extends tfd.Dataset<TensorContainerObject> {
   readonly size: number;
   constructor(setSize = false) {
     super();
