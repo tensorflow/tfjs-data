@@ -210,13 +210,17 @@ export function generator<T extends DataElement>(
  * Create an iterator that generate `Tensor` from webcam video stream. Only
  * works in Browser environment when the device has webcam.
  *
+ * Note: this code snippet only works when the device has a webcam ,and it will
+ * open the webcam when running.
+ *
  * ```js
  * const videoElement = document.createElement('video');
  * videoElement.width = 100;
  * videoElement.height = 100;
  * const webcamIterator = await tf.data.webcam(videoElement);
  * const img = await webcamIterator.capture();
- * img.print()
+ * img.print();
+ * webcamIterator.stop();
  * ```
  *
  * @param webcamVideoElement A `HTMLVideoElement` used to play video from
