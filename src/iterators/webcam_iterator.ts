@@ -16,7 +16,7 @@
  * =============================================================================
  */
 
-import {browser, ENV, image, Tensor, tensor1d, Tensor3D, TensorLike} from '@tensorflow/tfjs-core';
+import {browser, ENV, image, tensor1d, tensor2d, Tensor3D, Tensor4D} from '@tensorflow/tfjs-core';
 import {assert} from '@tensorflow/tfjs-core/dist/util';
 import {WebcamConfig} from '../types';
 import {LazyIterator} from './lazy_iterator';
@@ -51,13 +51,13 @@ export class WebcamIterator extends LazyIterator<Tensor3D> {
       // If webcam video element is not provided, create a hidden video element
       // with provided width and height.
       webcamVideoElement = document.createElement('video');
-      if (!webcamConfig.width || !webcamConfig.height) {
+      if (!webcamConfig.resizeWidth || !webcamConfig.resizeHeight) {
         throw new Error(
             'Please provide webcam video element, or width and height to ' +
             'create a hidden video element.');
       }
-      webcamVideoElement.width = webcamConfig.width;
-      webcamVideoElement.height = webcamConfig.height;
+      webcamVideoElement.width = webcamConfig.resizeWidth;
+      webcamVideoElement.height = webcamConfig.resizeHeight;
     }
     const webcamIterator = new WebcamIterator(webcamVideoElement, webcamConfig);
     // Call async function to initialize the video stream.
@@ -123,23 +123,33 @@ export class WebcamIterator extends LazyIterator<Tensor3D> {
     }
 
     const img = browser.fromPixels(this.webcamVideoElement);
-    if (this.webcamConfig.cropAndResizeConfig) {
+    if (this.needToResize()) {
       try {
         // Expand image dimension because tf.image.cropAndResize is expecting
         // a batch. So does cropBox and boxInt.
-        const croppedImg = image.cropAndResize(
-            img.toFloat().expandDims(0),
-            this.webcamConfig.cropAndResizeConfig.cropBox instanceof Tensor ?
-                this.webcamConfig.cropAndResizeConfig.cropBox.expandDims(0) :
-                [this.webcamConfig.cropAndResizeConfig.cropBox] as TensorLike,
-            tensor1d([0], 'int32'),
-            this.webcamConfig.cropAndResizeConfig.cropSize,
-            this.webcamConfig.cropAndResizeConfig.cropMethod,
-            this.webcamConfig.cropAndResizeConfig.extrapolationValue);
-        const shape = croppedImg.shape;
+        const expandedImage: Tensor4D = img.toFloat().expandDims(0);
+        const cropSize: [number, number] =
+            [this.webcamConfig.resizeHeight, this.webcamConfig.resizeWidth];
+        let resizedImage;
+        if (this.webcamConfig.centerCrop) {
+          const widthCroppingRatio = this.webcamConfig.resizeWidth * 1.0 /
+              this.webcamVideoElement.width;
+          const heightCroppingRatio = this.webcamConfig.resizeHeight * 1.0 /
+              this.webcamVideoElement.height;
+          resizedImage = image.cropAndResize(
+              expandedImage,
+              tensor2d([0, 0, heightCroppingRatio, widthCroppingRatio], [1, 4]),
+              tensor1d([0], 'int32'), cropSize, 'bilinear');
+        } else {
+          resizedImage = image.cropAndResize(
+              expandedImage, tensor2d([0, 0, 1, 1], [1, 4]),
+              tensor1d([0], 'int32'), cropSize, 'bilinear');
+        }
         // Extract image from batch cropping.
+        const shape = resizedImage.shape;
         return {
-          value: croppedImg.reshape(shape.slice(1) as [number, number, number]),
+          value:
+              resizedImage.reshape(shape.slice(1) as [number, number, number]),
           done: false
         };
       } catch (e) {
@@ -150,6 +160,20 @@ export class WebcamIterator extends LazyIterator<Tensor3D> {
     }
   }
 
+  private needToResize() {
+    // If resizeWidth and resizeHeight are provided, and different from the
+    // width and height of original HTMLVideoElement, then resizing and cropping
+    // is required.
+    if (this.webcamConfig.resizeWidth && this.webcamConfig.resizeHeight &&
+        (this.webcamVideoElement.width !== this.webcamConfig.resizeWidth ||
+         this.webcamVideoElement.height !== this.webcamConfig.resizeHeight)) {
+      return true;
+    }
+    return false;
+  }
+
+  // Capture one frame from the video stream, and extract the value from
+  // iterator.next() result.
   async capture(): Promise<Tensor3D> {
     return (await this.next()).value;
   }

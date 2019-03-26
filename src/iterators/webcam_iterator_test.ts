@@ -16,29 +16,14 @@
  * =============================================================================
  */
 
-import {tensor1d, test_util} from '@tensorflow/tfjs-core';
+import {test_util} from '@tensorflow/tfjs-core';
 import {describeWithFlags} from '@tensorflow/tfjs-core/dist/jasmine_util';
+import {setupFakeVideoStream} from '../util/test_util';
 import {WebcamIterator} from './webcam_iterator';
-
-let stream: MediaStream;
-
-const setupFakeMediaStream = () => {
-  const width = 500;
-  const height = 500;
-  const canvasElement = document.createElement('canvas');
-  const ctx = canvasElement.getContext('2d');
-  ctx.fillStyle = 'rgb(1, 2, 3)';
-  ctx.fillRect(0, 0, width, height);
-  // tslint:disable-next-line:no-any
-  stream = (canvasElement as any).captureStream(60);
-  navigator.mediaDevices.getUserMedia = async () => {
-    return stream;
-  };
-};
 
 describeWithFlags('WebcamIterator', test_util.BROWSER_ENVS, () => {
   beforeEach(() => {
-    setupFakeMediaStream();
+    setupFakeVideoStream();
   });
 
   it('creates webcamIterator with html element', async () => {
@@ -63,39 +48,39 @@ describeWithFlags('WebcamIterator', test_util.BROWSER_ENVS, () => {
   });
 
   it('creates webcamIterator with no html element', async () => {
-    const webcamIterator =
-        await WebcamIterator.create(null, {width: 100, height: 200});
+    const webcamIterator = await WebcamIterator.create(
+        null, {resizeWidth: 100, resizeHeight: 200});
     const result = await webcamIterator.next();
     expect(result.done).toBeFalsy();
     expect(result.value.shape).toEqual([200, 100, 3]);
   });
 
   it('creates webcamIterator with no html element and capture', async () => {
-    const webcamIterator =
-        await WebcamIterator.create(null, {width: 100, height: 200});
+    const webcamIterator = await WebcamIterator.create(
+        null, {resizeWidth: 100, resizeHeight: 200});
     const result = await webcamIterator.capture();
     expect(result.shape).toEqual([200, 100, 3]);
   });
 
-  it('resize with html element', async () => {
+  it('resize and center crop with html element', async () => {
     const videoElement = document.createElement('video');
     videoElement.width = 300;
     videoElement.height = 300;
 
-    const webcamIterator = await WebcamIterator.create(videoElement, {
-      cropAndResizeConfig: {
-        cropSize: [100, 200],
-        cropBox: tensor1d([0, 0, 0.5, 1]),
-      }
-    });
+    const webcamIterator = await WebcamIterator.create(
+        videoElement, {resizeWidth: 100, resizeHeight: 200, centerCrop: true});
     const result = await webcamIterator.next();
     expect(result.done).toBeFalsy();
-    expect(result.value.shape).toEqual([100, 200, 3]);
+    expect(result.value.shape).toEqual([200, 100, 3]);
   });
 
-  it('resize with no html element', async () => {
-    const webcamIterator =
-        await WebcamIterator.create(null, {width: 100, height: 200});
+  it('resize in bilinear method with html element', async () => {
+    const videoElement = document.createElement('video');
+    videoElement.width = 300;
+    videoElement.height = 300;
+
+    const webcamIterator = await WebcamIterator.create(
+        videoElement, {resizeWidth: 100, resizeHeight: 200, centerCrop: false});
     const result = await webcamIterator.next();
     expect(result.done).toBeFalsy();
     expect(result.value.shape).toEqual([200, 100, 3]);
@@ -133,7 +118,7 @@ describeWithFlags('WebcamIterator', test_util.BROWSER_ENVS, () => {
     expect(result2.value).toBeNull();
 
     // Reset fake media stream after stopped the stream.
-    setupFakeMediaStream();
+    setupFakeVideoStream();
 
     await webcamIterator.start();
     const result3 = await webcamIterator.next();

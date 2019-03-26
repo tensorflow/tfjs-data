@@ -16,7 +16,7 @@
  * =============================================================================
  */
 
-import {DataType, Tensor1D, TensorLike} from '@tensorflow/tfjs-core';
+import {DataType} from '@tensorflow/tfjs-core';
 import {TensorContainer, TensorContainerArray, TensorContainerObject} from '@tensorflow/tfjs-core/dist/tensor_types';
 import {Dataset} from './dataset';
 import {LazyIterator} from './iterators/lazy_iterator';
@@ -142,7 +142,7 @@ export interface CSVConfig {
  */
 export interface WebcamConfig {
   /**
-   * A string specifying which camera to use on mobile device. If the value is
+   * A string specifying which camera to use on device. If the value is
    * 'user', it will use front camera. If the value is 'environment', it will
    * use rear camera.
    */
@@ -156,54 +156,22 @@ export interface WebcamConfig {
 
   /**
    * If webcamVideoElement is provided when calling `tf.data.webcam()`, this
-   * field is ignored. If webcamVideoElement is not provided, this field will be
-   * used as the width of the hidden HTMLVideoElement, which holds the webcam
-   * video stream.
+   * field is treated as resizing width. If webcamVideoElement is not provided,
+   * this field will be used as the width of the hidden HTMLVideoElement, which
+   * holds the webcam video stream, and no need to do resize anymore.
    */
-  width?: number;
+  resizeWidth?: number;
 
   /**
    * If webcamVideoElement is provided when calling `tf.data.webcam()`, this
-   * field is ignored. If webcamVideoElement is not provided, this field will be
-   * used as the height of the hidden HTMLVideoElement, which holds the webcam
-   * video stream.
+   * field is treated as resizing height. If webcamVideoElement is not provided,
+   * this field will be used as the height of the hidden HTMLVideoElement, which
+   * holds the webcam video stream, and no need to do resize anymore.
    */
-  height?: number;
+  resizeHeight?: number;
 
   /**
-   * Croping and resizing configuration when reading data from
-   * webcam video stream. Please see
-   * https://js.tensorflow.org/api/latest/#image.cropAndResize for details.
+   * A boolean value that indicates whether to crop the video frame from center.
    */
-  cropAndResizeConfig?: CropAndResizeConfig;
-}
-
-/**
- * Interface contains croping and resizing configuration when reading data from
- * webcam video stream.
- */
-export interface CropAndResizeConfig {
-  /**
-   * 1d float32 tensor of [y1, x1, y2, x2], where (y1, x1) and (y2, x2) are the
-   * normalized coordinates of the box in the image.
-   */
-  cropBox: Tensor1D|TensorLike;
-
-  /**
-   * 1d int32 tensor of 2 elements [cropHeigh, cropWidth] specifying the size to
-   * which all crops are resized to.
-   */
-  cropSize: [number, number];
-
-  /**
-   * A string from `'bilinear' | 'nearest'`, defaults to bilinear, which
-   * specifies the sampling method for resizing
-   */
-  cropMethod?: 'bilinear'|'nearest';
-
-  /**
-   * A threshold for deciding when to remove boxes based on score. Defaults to
-   * 0.
-   */
-  extrapolationValue?: number;
+  centerCrop?: boolean;
 }
