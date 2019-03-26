@@ -132,13 +132,22 @@ export class WebcamIterator extends LazyIterator<Tensor3D> {
             [this.webcamConfig.resizeHeight, this.webcamConfig.resizeWidth];
         let resizedImage;
         if (this.webcamConfig.centerCrop) {
+          // Calculate the box based on resizing shape.
           const widthCroppingRatio = this.webcamConfig.resizeWidth * 1.0 /
               this.webcamVideoElement.width;
           const heightCroppingRatio = this.webcamConfig.resizeHeight * 1.0 /
               this.webcamVideoElement.height;
+          const widthCropStart = (1 - widthCroppingRatio) / 2;
+          const heightCropStart = (1 - heightCroppingRatio) / 2;
+          const widthCropEnd = widthCropStart + widthCroppingRatio;
+          const heightCropEnd = heightCroppingRatio + heightCropStart;
           resizedImage = image.cropAndResize(
               expandedImage,
-              tensor2d([0, 0, heightCroppingRatio, widthCroppingRatio], [1, 4]),
+              tensor2d(
+                  [
+                    heightCropStart, widthCropStart, heightCropEnd, widthCropEnd
+                  ],
+                  [1, 4]),
               tensor1d([0], 'int32'), cropSize, 'bilinear');
         } else {
           resizedImage = image.cropAndResize(
