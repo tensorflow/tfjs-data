@@ -134,7 +134,9 @@ describeWithFlags('readers', tf.test_util.ALL_ENVS, () => {
     const result = await ds.toArrayForTest();
     expect(result).toEqual([3, 4, 5]);
   });
+});
 
+describeWithFlags('readers in browser', tf.test_util.BROWSER_ENVS, () => {
   it('generate data from webcam with HTML element', async () => {
     setupFakeVideoStream();
 
