@@ -26,6 +26,8 @@ export interface FileChunkIteratorOptions {
   offset?: number;
   /** The number of bytes to read at a time. Default 1MB. */
   chunkSize?: number;
+  /** The content type to validate when downloading file fomr url */
+  urlContentType?: string;
 }
 
 /**

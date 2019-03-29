@@ -16,7 +16,7 @@
  * =============================================================================
  */
 
-import {ENV} from '@tensorflow/tfjs-core';
+import {ENV, util} from '@tensorflow/tfjs-core';
 import {FileChunkIterator, FileChunkIteratorOptions} from './file_chunk_iterator';
 
 /**
@@ -31,6 +31,8 @@ export async function urlChunkIterator(
   let response;
   if (ENV.get('IS_BROWSER')) {
     response = await fetch(url);
+    validateUrlContentType(
+        response.headers.get('Content-Type'), options.urlContentType);
     if (response.ok) {
       const blob = await response.blob();
       return new FileChunkIterator(blob, options);
@@ -48,11 +50,22 @@ export async function urlChunkIterator(
           'in the node.js environment yet.');
     }
     response = await nodeFetch(url);
+    validateUrlContentType(
+        response.headers.get('Content-Type'), options.urlContentType);
     if (response.ok) {
       const unitArray = await response.buffer();
       return new FileChunkIterator(unitArray, options);
     } else {
       throw new Error(response.statusText);
     }
+  }
+}
+
+function validateUrlContentType(contentType: string, idealContentType: string) {
+  if (idealContentType) {
+    util.assert(
+        contentType === idealContentType,
+        () => `Response Content-Type should be ${idealContentType}, but got ${
+            contentType}`);
   }
 }

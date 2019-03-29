@@ -26,13 +26,16 @@ const testString = 'abcdefghijklmnopqrstuvwxyz';
 // node-fetch requires absolute url syntax even though the response is mocked.
 const url = 'http://google.com/';
 
-// fetch-mock is for browser env, and nock is for node env.
-fetchMock.get('*', testString);
-
-// Call .times() so that nock could repeat the response for all tests.
-nock(url).get('/').times(3).reply(200, testString);
-
 describe('URLChunkIterator', () => {
+  beforeEach(() => {
+    // fetch-mock is for browser env, and nock is for node env.
+    fetchMock.get('*', testString);
+
+    // Call .times() so that nock could repeat the response for all tests.
+    nock(url).get('/').times(1).reply(
+        200, testString, {'Content-Type': 'text/plain;charset=UTF-8'});
+  })
+
   it('Reads the entire file and then closes the stream', async () => {
     const readIterator = await urlChunkIterator(url, {chunkSize: 10});
     const result = await readIterator.toArrayForTest();
@@ -57,6 +60,17 @@ describe('URLChunkIterator', () => {
     expect(result[0].length).toEqual(10);
     expect(result[1].length).toEqual(10);
     expect(result[2].length).toEqual(6);
+  });
+
+  it('check fetch response Content-Type', async done => {
+    try {
+      await urlChunkIterator(url, {chunkSize: 10, urlContentType: 'text/csv'});
+      done.fail()
+    } catch (e) {
+      expect(e.message).toEqual(
+          'Response Content-Type should be text/csv, but got text/plain;charset=UTF-8');
+      done();
+    }
   });
 });
 

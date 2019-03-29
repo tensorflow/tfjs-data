@@ -103,7 +103,8 @@ import {CSVConfig, DataElement} from './types';
  */
 export function csv(
     source: RequestInfo, csvConfig: CSVConfig = {}): CSVDataset {
-  return new CSVDataset(new URLDataSource(source), csvConfig);
+  return new CSVDataset(
+      new URLDataSource(source, {urlContentType: 'text/csv'}), csvConfig);
 }
 
 /**
