@@ -15,24 +15,18 @@
  * =============================================================================
  */
 
-module.exports = function (config) {
+module.exports = function(config) {
   config.set({
     frameworks: ['jasmine', 'karma-typescript'],
-    files: [{
-      pattern: 'src/**/*.ts'
-    }],
+    files: [{pattern: 'src/**/*.ts'}],
     exclude: ['src/test_node.ts'],
     preprocessors: {
-      '**/*.ts': ['karma-typescript'], // *.tsx for React Jsx
+      '**/*.ts': ['karma-typescript'],  // *.tsx for React Jsx
     },
-    karmaTypescriptConfig: {
-      tsconfig: 'tsconfig.json',
-      compilerOptions: {
-        module: 'commonjs'
-      }
-    },
+    karmaTypescriptConfig:
+        {tsconfig: 'tsconfig.json', compilerOptions: {module: 'commonjs'}},
     reporters: ['progress', 'karma-typescript'],
-    browsers: ['Chrome', 'Firefox'],
+    browsers: ['Chrome'],
     browserStack: {
       username: process.env.BROWSERSTACK_USERNAME,
       accessKey: process.env.BROWSERSTACK_KEY
@@ -59,11 +53,6 @@ module.exports = function (config) {
         flags: ['--blacklist-accelerated-compositing', '--blacklist-webgl']
       }
     },
-    client: {
-      jasmine: {
-        random: false
-      },
-      args: ['--grep', config.grep || '']
-    }
+    client: {jasmine: {random: false}, args: ['--grep', config.grep || '']}
   });
 };

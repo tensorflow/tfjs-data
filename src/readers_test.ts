@@ -15,11 +15,10 @@
  * =============================================================================
  */
 
-import * as tf from '@tensorflow/tfjs-core';
-import {describeWithFlags} from '@tensorflow/tfjs-core/dist/jasmine_util';
+import {ALL_ENVS, describeWithFlags} from '@tensorflow/tfjs-core/dist/jasmine_util';
 import * as tfd from './readers';
 
-describeWithFlags('readers', tf.test_util.ALL_ENVS, () => {
+describeWithFlags('readers', ALL_ENVS, () => {
   it('generate dataset from function', async () => {
     let i = -1;
     const f = () =>
