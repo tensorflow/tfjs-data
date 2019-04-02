@@ -32,7 +32,7 @@ module.exports = function (config) {
       }
     },
     reporters: ['progress', 'karma-typescript'],
-    browsers: ['Chrome'],
+    browsers: ['Chrome', 'Firefox'],
     browserStack: {
       username: process.env.BROWSERSTACK_USERNAME,
       accessKey: process.env.BROWSERSTACK_KEY
