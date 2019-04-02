@@ -74,16 +74,17 @@ describeWithFlags('WebcamIterator', test_util.BROWSER_ENVS, () => {
     }
   });
 
-  it('resize and center crop with html element', async () => {
+  fit('resize and center crop with html element', async () => {
     const videoElement = document.createElement('video');
-    videoElement.width = 300;
-    videoElement.height = 300;
+    videoElement.width = 10;
+    videoElement.height = 10;
 
     const webcamIterator = await WebcamIterator.create(
-        videoElement, {resizeWidth: 100, resizeHeight: 200, centerCrop: true});
+        videoElement, {resizeWidth: 5, resizeHeight: 5, centerCrop: true});
     const result = await webcamIterator.next();
     expect(result.done).toBeFalsy();
     expect(result.value.shape).toEqual([200, 100, 3]);
+    result.value.print();
   });
 
   it('resize in bilinear method with html element', async () => {
