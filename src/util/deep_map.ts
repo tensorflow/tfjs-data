@@ -272,6 +272,6 @@ export function canTensorify(obj: any): boolean {
  */
 function isPrimitive(value: any): boolean {
   return (
-      (typeof value !== 'object' && typeof value !== 'function') ||
-      value === null);
+      value === null ||
+      (typeof value !== 'object' && typeof value !== 'function'));
 }
