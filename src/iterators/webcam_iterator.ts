@@ -53,8 +53,8 @@ export class WebcamIterator extends LazyIterator<Tensor3D> {
       webcamVideoElement = document.createElement('video');
       if (!webcamConfig.resizeWidth || !webcamConfig.resizeHeight) {
         throw new Error(
-            'Please provide webcam video element, or width and height to ' +
-            'create a hidden video element.');
+            'Please provide webcam video element, or resizeWidth and ' +
+            'resizeHeight to create a hidden video element.');
       }
       webcamVideoElement.width = webcamConfig.resizeWidth;
       webcamVideoElement.height = webcamConfig.resizeHeight;

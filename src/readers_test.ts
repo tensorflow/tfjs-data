@@ -137,9 +137,11 @@ describeWithFlags('readers', tf.test_util.ALL_ENVS, () => {
 });
 
 describeWithFlags('readers in browser', tf.test_util.BROWSER_ENVS, () => {
-  it('generate data from webcam with HTML element', async () => {
+  beforeEach(() => {
     setupFakeVideoStream();
+  });
 
+  it('generate data from webcam with HTML element', async () => {
     const videoElement = document.createElement('video');
     videoElement.width = 300;
     videoElement.height = 500;
@@ -151,8 +153,6 @@ describeWithFlags('readers in browser', tf.test_util.BROWSER_ENVS, () => {
   });
 
   it('generate data from webcam with no HTML element', async () => {
-    setupFakeVideoStream();
-
     const webcamIterator =
         await tfd.webcam(null, {resizeWidth: 100, resizeHeight: 200});
     const result = await webcamIterator.next();
@@ -161,8 +161,6 @@ describeWithFlags('readers in browser', tf.test_util.BROWSER_ENVS, () => {
   });
 
   it('generate data from webcam with HTML element and resize', async () => {
-    setupFakeVideoStream();
-
     const videoElement = document.createElement('video');
     videoElement.width = 300;
     videoElement.height = 500;

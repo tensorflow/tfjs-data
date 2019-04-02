@@ -62,6 +62,18 @@ describeWithFlags('WebcamIterator', test_util.BROWSER_ENVS, () => {
     expect(result.shape).toEqual([200, 100, 3]);
   });
 
+  it('creates webcamIterator with no html element and no size', async done => {
+    try {
+      await WebcamIterator.create();
+      done.fail();
+    } catch (e) {
+      expect(e.message).toEqual(
+          'Please provide webcam video element, or resizeWidth and ' +
+          'resizeHeight to create a hidden video element.');
+      done();
+    }
+  });
+
   it('resize and center crop with html element', async () => {
     const videoElement = document.createElement('video');
     videoElement.width = 300;

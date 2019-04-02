@@ -207,12 +207,11 @@ export function generator<T extends DataElement>(
 }
 
 /**
- * Create an iterator that generate `Tensor` from webcam video stream. Only
- * works in Browser environment when the device has webcam.
+ * Create an iterator that generate `Tensor` from webcam video stream. This API
+ * only works in Browser environment when the device has webcam.
  *
- * Note: this code snippet only works when the device has a webcam ,and it will
- * open the webcam when running.
- *
+ * Note: this code snippet only works when the device has a webcam. It will
+ * request permission to open the webcam when running.
  * ```js
  * const videoElement = document.createElement('video');
  * videoElement.width = 100;

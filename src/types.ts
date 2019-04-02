@@ -155,18 +155,16 @@ export interface WebcamConfig {
   deviceId?: string;
 
   /**
-   * If webcamVideoElement is provided when calling `tf.data.webcam()`, this
-   * field is treated as resizing width. If webcamVideoElement is not provided,
-   * this field will be used as the width of the hidden HTMLVideoElement, which
-   * holds the webcam video stream, and no need to do resize anymore.
+   * Specifies the width of the output tensor. The actual width of the
+   * HTMLVideoElement (if provided) can be different and the final image will be
+   * resized to match resizeWidth.
    */
   resizeWidth?: number;
 
   /**
-   * If webcamVideoElement is provided when calling `tf.data.webcam()`, this
-   * field is treated as resizing height. If webcamVideoElement is not provided,
-   * this field will be used as the height of the hidden HTMLVideoElement, which
-   * holds the webcam video stream, and no need to do resize anymore.
+   * Specifies the height of the output tensor. The actual height of the
+   * HTMLVideoElement (if provided) can be different and the final image will be
+   * resized to match resizeHeight.
    */
   resizeHeight?: number;
 
