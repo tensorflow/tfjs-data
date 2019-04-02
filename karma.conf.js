@@ -32,7 +32,7 @@ module.exports = function (config) {
       }
     },
     reporters: ['progress', 'karma-typescript'],
-    browsers: ['Chrome'],
+    browsers: ['chrome_with_flags'],
     browserStack: {
       username: process.env.BROWSERSTACK_USERNAME,
       accessKey: process.env.BROWSERSTACK_KEY
@@ -57,6 +57,10 @@ module.exports = function (config) {
       chrome_with_swift_shader: {
         base: 'Chrome',
         flags: ['--blacklist-accelerated-compositing', '--blacklist-webgl']
+      },
+      chrome_with_flags: {
+        base: 'Chrome',
+        flags: ['--enable-experimental-web-platform-features']
       }
     },
     client: {

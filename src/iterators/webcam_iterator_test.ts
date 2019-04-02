@@ -75,71 +75,42 @@ describeWithFlags('WebcamIterator', test_util.BROWSER_ENVS, () => {
   });
 
   it('resize and center crop with html element', async () => {
-    const videoElement = document.createElement('video');
-    videoElement.width = 10;
-    videoElement.height = 10;
-
-    // const width = 500;
-    // const height = 500;
-    // const canvasElement = document.createElement('canvas');
-    // const ctx = canvasElement.getContext('2d');
-    // ctx.fillStyle = 'rgb(11, 22, 33)';
-    // ctx.fillRect(0, 0, width, height);
-    // // console.log(ctx.getImageData(0, 0, 9, 9).data);
-    // // ctx.canvas.width = 10;
-    // // ctx.canvas.height = 10;
-    // ctx.drawImage = () => {};
-
-    // document.createElement = (type: string): HTMLElement => {
-    //   if (type === 'video') {
-    //     return videoElement;
-    //   }
-    //   // tslint:disable-next-line
-    //   canvasElement.getContext = (): any => {
-    //     return ctx;
-    //   };
-    //   return canvasElement;
-    // };
-
-    const webcamIterator = await WebcamIterator.create(
-        videoElement, {resizeWidth: 5, resizeHeight: 5, centerCrop: true});
-    const result = await webcamIterator.next();
-    expect(result.done).toBeFalsy();
-    console.log(result.value.shape);
-    expect(result.value.shape).toEqual([5, 5, 3]);
-    test_util.expectArraysClose(
-        result.value, tensor3d([
-          [
-            [11, 22, 33], [11, 22, 33], [11, 22, 33], [11, 22, 33], [11, 22, 33]
-          ],
-
-          [
-            [11, 22, 33], [11, 22, 33], [11, 22, 33], [11, 22, 33], [11, 22, 33]
-          ],
-
-          [
-            [11, 22, 33], [11, 22, 33], [11, 22, 33], [11, 22, 33], [11, 22, 33]
-          ],
-
-          [
-            [11, 22, 33], [11, 22, 33], [11, 22, 33], [11, 22, 33], [11, 22, 33]
-          ],
-
-          [[11, 22, 33], [11, 22, 33], [11, 22, 33], [11, 22, 33], [11, 22, 33]]
-        ]));
-    // result.value.print();
+    if (navigator.userAgent.search('Firefox') > 0) {
+      const videoElement = document.createElement('video');
+      videoElement.width = 10;
+      videoElement.height = 10;
+      const webcamIterator = await WebcamIterator.create(
+          videoElement, {resizeWidth: 3, resizeHeight: 4, centerCrop: true});
+      const result = await webcamIterator.next();
+      expect(result.done).toBeFalsy();
+      expect(result.value.shape).toEqual([4, 3, 3]);
+      test_util.expectArraysClose(result.value, tensor3d([
+                                    [[11, 22, 33], [11, 22, 33], [11, 22, 33]],
+                                    [[11, 22, 33], [11, 22, 33], [11, 22, 33]],
+                                    [[11, 22, 33], [11, 22, 33], [11, 22, 33]],
+                                    [[11, 22, 33], [11, 22, 33], [11, 22, 33]]
+                                  ]));
+    }
   });
 
   it('resize in bilinear method with html element', async () => {
-    const videoElement = document.createElement('video');
-    videoElement.width = 300;
-    videoElement.height = 300;
+    if (navigator.userAgent.search('Firefox') > 0) {
+      const videoElement = document.createElement('video');
+      videoElement.width = 10;
+      videoElement.height = 20;
 
-    const webcamIterator = await WebcamIterator.create(
-        videoElement, {resizeWidth: 100, resizeHeight: 200, centerCrop: false});
-    const result = await webcamIterator.next();
-    expect(result.done).toBeFalsy();
-    expect(result.value.shape).toEqual([200, 100, 3]);
+      const webcamIterator = await WebcamIterator.create(
+          videoElement, {resizeWidth: 3, resizeHeight: 4, centerCrop: false});
+      const result = await webcamIterator.next();
+      expect(result.done).toBeFalsy();
+      expect(result.value.shape).toEqual([4, 3, 3]);
+      test_util.expectArraysClose(result.value, tensor3d([
+                                    [[11, 22, 33], [11, 22, 33], [11, 22, 33]],
+                                    [[11, 22, 33], [11, 22, 33], [11, 22, 33]],
+                                    [[11, 22, 33], [11, 22, 33], [11, 22, 33]],
+                                    [[11, 22, 33], [11, 22, 33], [11, 22, 33]]
+                                  ]));
+    }
   });
 
   it('webcamIterator could stop', async () => {
