@@ -16,7 +16,7 @@
  * =============================================================================
  */
 
-import {/*tensor3d,*/ test_util} from '@tensorflow/tfjs-core';
+import {tensor3d, test_util} from '@tensorflow/tfjs-core';
 import {describeWithFlags} from '@tensorflow/tfjs-core/dist/jasmine_util';
 import {setupFakeVideoStream} from '../util/test_util';
 import {WebcamIterator} from './webcam_iterator';
@@ -37,7 +37,7 @@ describeWithFlags('WebcamIterator', test_util.BROWSER_ENVS, () => {
     expect(result.value.shape).toEqual([200, 100, 3]);
   });
 
-  /*it('create webcamIterator with html element and capture', async () => {
+  it('create webcamIterator with html element and capture', async () => {
     const videoElement = document.createElement('video');
     videoElement.width = 100;
     videoElement.height = 200;
@@ -74,44 +74,92 @@ describeWithFlags('WebcamIterator', test_util.BROWSER_ENVS, () => {
     }
   });
 
-  it('resize and center crop with html element', async () => {
-    if (navigator.userAgent.search('Firefox') > 0) {
-      const videoElement = document.createElement('video');
-      videoElement.width = 10;
-      videoElement.height = 10;
-      const webcamIterator = await WebcamIterator.create(
-          videoElement, {resizeWidth: 3, resizeHeight: 4, centerCrop: true});
-      const result = await webcamIterator.next();
-      expect(result.done).toBeFalsy();
-      expect(result.value.shape).toEqual([4, 3, 3]);
-      test_util.expectArraysClose(
-          result.value, tensor3d([
-            [[1, 2, 3], [1, 2, 3], [1, 2, 3]],
-            [[1, 2, 3], [1, 2, 3], [1, 2, 3]],
-            [[1, 2, 3], [1, 2, 3], [1, 2, 3]], [[1, 2, 3], [1, 2, 3], [1, 2, 3]]
-          ]));
-    }
+  it('resize and center crop has correct shape with html element', async () => {
+    const videoElement = document.createElement('video');
+    videoElement.width = 100;
+    videoElement.height = 200;
+    const webcamIterator = await WebcamIterator.create(
+        videoElement, {resizeWidth: 30, resizeHeight: 40, centerCrop: true});
+    const result = await webcamIterator.next();
+    expect(result.done).toBeFalsy();
+    expect(result.value.shape).toEqual([40, 30, 3]);
   });
 
-  it('resize in bilinear method with html element', async () => {
-    if (navigator.userAgent.search('Firefox') > 0) {
-      const videoElement = document.createElement('video');
-      videoElement.width = 10;
-      videoElement.height = 20;
+  it('resize and center crop has correct pixel with html element', async () => {
+    const videoElement = document.createElement('video');
+    videoElement.width = 4;
+    videoElement.height = 4;
+    const webcamIterator = await WebcamIterator.create(
+        videoElement, {resizeWidth: 2, resizeHeight: 2, centerCrop: true});
+    const originalImg = tensor3d([
+      [[1, 1, 1], [1, 1, 1], [1, 1, 1], [1, 1, 1]],
+      [
+        [1, 1, 1],
+        [11, 12, 13],
+        [14, 15, 16],
+        [1, 1, 1],
+      ],
+      [
+        [1, 1, 1],
+        [1, 2, 3],
+        [4, 5, 6],
+        [1, 1, 1],
+      ],
+      [[1, 1, 1], [1, 1, 1], [1, 1, 1], [1, 1, 1]]
+    ]);
+    const croppedImg = webcamIterator.cropAndResizeFrame(originalImg);
+    test_util.expectArraysClose(
+        croppedImg, tensor3d([
+          [[6.625, 7.1875, 7.75], [8.3125, 8.875, 9.4375]],
 
-      const webcamIterator = await WebcamIterator.create(
-          videoElement, {resizeWidth: 3, resizeHeight: 4, centerCrop: false});
-      const result = await webcamIterator.next();
-      expect(result.done).toBeFalsy();
-      expect(result.value.shape).toEqual([4, 3, 3]);
-      test_util.expectArraysClose(
-          result.value, tensor3d([
-            [[1, 2, 3], [1, 2, 3], [1, 2, 3]],
-            [[1, 2, 3], [1, 2, 3], [1, 2, 3]],
-            [[1, 2, 3], [1, 2, 3], [1, 2, 3]], [[1, 2, 3], [1, 2, 3], [1, 2, 3]]
-          ]));
-    }
+          [[1, 1.5625, 2.125], [2.6875, 3.25, 3.8125]]
+        ]));
   });
+
+  it('resize in bilinear method has correct shape with html element',
+     async () => {
+       const videoElement = document.createElement('video');
+       videoElement.width = 100;
+       videoElement.height = 200;
+
+       const webcamIterator = await WebcamIterator.create(
+           videoElement,
+           {resizeWidth: 30, resizeHeight: 40, centerCrop: false});
+       const result = await webcamIterator.next();
+       expect(result.done).toBeFalsy();
+       expect(result.value.shape).toEqual([40, 30, 3]);
+     });
+
+  it('resize in bilinear method has correct pixel with html element',
+     async () => {
+       const videoElement = document.createElement('video');
+       videoElement.width = 4;
+       videoElement.height = 4;
+       const webcamIterator = await WebcamIterator.create(
+           videoElement, {resizeWidth: 2, resizeHeight: 2, centerCrop: false});
+       const originalImg = tensor3d([
+         [[1, 1, 1], [1, 1, 1], [1, 1, 1], [1, 1, 1]],
+         [
+           [1, 1, 1],
+           [11, 12, 13],
+           [14, 15, 16],
+           [1, 1, 1],
+         ],
+         [
+           [1, 1, 1],
+           [1, 2, 3],
+           [4, 5, 6],
+           [1, 1, 1],
+         ],
+         [[1, 1, 1], [1, 1, 1], [1, 1, 1], [1, 1, 1]]
+       ]);
+       const croppedImg = webcamIterator.cropAndResizeFrame(originalImg);
+       test_util.expectArraysClose(croppedImg, tensor3d([
+                                     [[1, 1, 1], [1, 1, 1]],
+
+                                     [[1, 1, 1], [1, 1, 1]]
+                                   ]));
+     });
 
   it('webcamIterator could stop', async () => {
     const videoElement = document.createElement('video');
@@ -151,5 +199,5 @@ describeWithFlags('WebcamIterator', test_util.BROWSER_ENVS, () => {
     const result3 = await webcamIterator.next();
     expect(result3.done).toBeFalsy();
     expect(result3.value.shape).toEqual([100, 100, 3]);
-  });*/
+  });
 });

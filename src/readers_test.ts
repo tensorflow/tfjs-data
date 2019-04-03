@@ -18,7 +18,7 @@
 import * as tf from '@tensorflow/tfjs-core';
 import {describeWithFlags} from '@tensorflow/tfjs-core/dist/jasmine_util';
 import * as tfd from './readers';
-// import {setupFakeVideoStream} from './util/test_util';
+import {setupFakeVideoStream} from './util/test_util';
 
 describeWithFlags('readers', tf.test_util.ALL_ENVS, () => {
   it('generate dataset from function', async () => {
@@ -136,7 +136,7 @@ describeWithFlags('readers', tf.test_util.ALL_ENVS, () => {
   });
 });
 
-/*describeWithFlags('readers in browser', tf.test_util.BROWSER_ENVS, () => {
+describeWithFlags('readers in browser', tf.test_util.BROWSER_ENVS, () => {
   beforeEach(() => {
     setupFakeVideoStream();
   });
@@ -171,7 +171,7 @@ describeWithFlags('readers', tf.test_util.ALL_ENVS, () => {
     expect(result.done).toBeFalsy();
     expect(result.value.shape).toEqual([200, 100, 3]);
   });
-});*/
+});
 
 describeWithFlags('readers in node', tf.test_util.NODE_ENVS, () => {
   it('webcam only available in browser env', async done => {
