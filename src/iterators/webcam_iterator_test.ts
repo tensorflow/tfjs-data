@@ -84,12 +84,12 @@ describeWithFlags('WebcamIterator', test_util.BROWSER_ENVS, () => {
       const result = await webcamIterator.next();
       expect(result.done).toBeFalsy();
       expect(result.value.shape).toEqual([4, 3, 3]);
-      test_util.expectArraysClose(result.value, tensor3d([
-                                    [[11, 22, 33], [11, 22, 33], [11, 22, 33]],
-                                    [[11, 22, 33], [11, 22, 33], [11, 22, 33]],
-                                    [[11, 22, 33], [11, 22, 33], [11, 22, 33]],
-                                    [[11, 22, 33], [11, 22, 33], [11, 22, 33]]
-                                  ]));
+      test_util.expectArraysClose(
+          result.value, tensor3d([
+            [[1, 2, 3], [1, 2, 3], [1, 2, 3]],
+            [[1, 2, 3], [1, 2, 3], [1, 2, 3]],
+            [[1, 2, 3], [1, 2, 3], [1, 2, 3]], [[1, 2, 3], [1, 2, 3], [1, 2, 3]]
+          ]));
     }
   });
 
@@ -104,12 +104,12 @@ describeWithFlags('WebcamIterator', test_util.BROWSER_ENVS, () => {
       const result = await webcamIterator.next();
       expect(result.done).toBeFalsy();
       expect(result.value.shape).toEqual([4, 3, 3]);
-      test_util.expectArraysClose(result.value, tensor3d([
-                                    [[11, 22, 33], [11, 22, 33], [11, 22, 33]],
-                                    [[11, 22, 33], [11, 22, 33], [11, 22, 33]],
-                                    [[11, 22, 33], [11, 22, 33], [11, 22, 33]],
-                                    [[11, 22, 33], [11, 22, 33], [11, 22, 33]]
-                                  ]));
+      test_util.expectArraysClose(
+          result.value, tensor3d([
+            [[1, 2, 3], [1, 2, 3], [1, 2, 3]],
+            [[1, 2, 3], [1, 2, 3], [1, 2, 3]],
+            [[1, 2, 3], [1, 2, 3], [1, 2, 3]], [[1, 2, 3], [1, 2, 3], [1, 2, 3]]
+          ]));
     }
   });
 

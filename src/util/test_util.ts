@@ -22,7 +22,7 @@ export function setupFakeVideoStream() {
   const height = 500;
   const canvasElement = document.createElement('canvas');
   const ctx = canvasElement.getContext('2d');
-  ctx.fillStyle = 'rgb(11, 22, 33)';
+  ctx.fillStyle = 'rgb(1,2,3)';
   ctx.fillRect(0, 0, width, height);
   // tslint:disable-next-line:no-any
   const stream = (canvasElement as any).captureStream(60);
