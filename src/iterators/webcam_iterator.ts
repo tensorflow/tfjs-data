@@ -109,29 +109,12 @@ export class WebcamIterator extends LazyIterator<Tensor3D> {
     }
     // Start to the webcam video stream
     this.webcamVideoElement.play();
-    console.log(':::::::::::::::::start to play');
 
     this.isClosed = false;
 
     return new Promise<void>(resolve => {
-      this.webcamVideoElement.onloadeddata = () => {
-        console.log('onloadeddata');
-      };
-      this.webcamVideoElement.oncanplay = () => {
-        console.log('oncanplay');
-      };
-      this.webcamVideoElement.oncanplaythrough = () => {
-        console.log('oncanplaythrough');
-      };
-      this.webcamVideoElement.onplay = () => {
-        console.log('onplay');
-      };
-      this.webcamVideoElement.onload = () => {
-        console.log('onload');
-      };
       // Add event listener to make sure the webcam has been fully initialized.
       this.webcamVideoElement.onloadedmetadata = () => {
-        console.log('onloadedmetadata');
         resolve();
       };
     });
@@ -142,14 +125,19 @@ export class WebcamIterator extends LazyIterator<Tensor3D> {
       return {value: null, done: true};
     }
 
+    console.log('::::::::::::::::::::1');
     const img = browser.fromPixels(this.webcamVideoElement);
+    console.log('::::::::::::::::::::2');
+    img.print();
     if (this.needToResize()) {
+      console.log('::::::::::::::::::::3');
       try {
         return {value: this.cropAndResizeFrame(img), done: false};
       } catch (e) {
         throw new Error(`Error thrown cropping the video: ${e.message}`);
       }
     } else {
+      console.log('::::::::::::::::::::4');
       return {value: img, done: false};
     }
   }
