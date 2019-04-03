@@ -94,6 +94,7 @@ export class WebcamIterator extends LazyIterator<Tensor3D> {
       throw new Error(
           `Error thrown while initializing video stream: ${e.message}`);
     }
+    console.log('get user media');
 
     if (!this.stream) {
       throw new Error('Could not obtain video from webcam.');
@@ -112,8 +113,24 @@ export class WebcamIterator extends LazyIterator<Tensor3D> {
     this.isClosed = false;
 
     return new Promise<void>(resolve => {
+      this.webcamVideoElement.onloadeddata = () => {
+        console.log('onloadeddata');
+      };
+      this.webcamVideoElement.oncanplay = () => {
+        console.log('oncanplay');
+      };
+      this.webcamVideoElement.oncanplaythrough = () => {
+        console.log('oncanplaythrough');
+      };
+      this.webcamVideoElement.onplay = () => {
+        console.log('onplay');
+      };
+      this.webcamVideoElement.onload = () => {
+        console.log('onload');
+      };
       // Add event listener to make sure the webcam has been fully initialized.
       this.webcamVideoElement.onloadedmetadata = () => {
+        console.log('onloadedmetadata');
         resolve();
       };
     });

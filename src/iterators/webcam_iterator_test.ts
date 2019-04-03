@@ -16,7 +16,7 @@
  * =============================================================================
  */
 
-import {tensor3d, test_util} from '@tensorflow/tfjs-core';
+import {test_util} from '@tensorflow/tfjs-core';
 import {describeWithFlags} from '@tensorflow/tfjs-core/dist/jasmine_util';
 import {setupFakeVideoStream} from '../util/test_util';
 import {WebcamIterator} from './webcam_iterator';
@@ -26,7 +26,7 @@ describeWithFlags('WebcamIterator', test_util.BROWSER_ENVS, () => {
     setupFakeVideoStream();
   });
 
-  it('create webcamIterator with html element', async () => {
+  /*it('create webcamIterator with html element', async () => {
     const videoElement = document.createElement('video');
     videoElement.width = 100;
     videoElement.height = 200;
@@ -175,7 +175,7 @@ describeWithFlags('WebcamIterator', test_util.BROWSER_ENVS, () => {
     const result2 = await webcamIterator.next();
     expect(result2.done).toBeTruthy();
     expect(result2.value).toBeNull();
-  });
+  });*/
 
   it('webcamIterator could restart', async () => {
     const videoElement = document.createElement('video');
@@ -186,16 +186,21 @@ describeWithFlags('WebcamIterator', test_util.BROWSER_ENVS, () => {
     const result1 = await webcamIterator.next();
     expect(result1.done).toBeFalsy();
     expect(result1.value.shape).toEqual([100, 100, 3]);
+    console.log(1);
 
     await webcamIterator.stop();
     const result2 = await webcamIterator.next();
     expect(result2.done).toBeTruthy();
     expect(result2.value).toBeNull();
 
+    console.log(2);
+
     // Reset fake media stream after stopped the stream.
     setupFakeVideoStream();
 
+    console.log(3);
     await webcamIterator.start();
+    console.log(4);
     const result3 = await webcamIterator.next();
     expect(result3.done).toBeFalsy();
     expect(result3.value.shape).toEqual([100, 100, 3]);
