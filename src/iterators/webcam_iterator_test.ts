@@ -26,18 +26,22 @@ describeWithFlags('WebcamIterator', test_util.BROWSER_ENVS, () => {
     setupFakeVideoStream();
   });
 
-  it('creates webcamIterator with html element', async () => {
+  it('create webcamIterator with html element', async () => {
+    console.log(1);
     const videoElement = document.createElement('video');
     videoElement.width = 100;
     videoElement.height = 200;
 
+    console.log(2);
     const webcamIterator = await WebcamIterator.create(videoElement);
+    console.log(3);
     const result = await webcamIterator.next();
+    console.log(4);
     expect(result.done).toBeFalsy();
     expect(result.value.shape).toEqual([200, 100, 3]);
   });
 
-  it('creates webcamIterator with html element and capture', async () => {
+  it('create webcamIterator with html element and capture', async () => {
     const videoElement = document.createElement('video');
     videoElement.width = 100;
     videoElement.height = 200;
@@ -47,7 +51,7 @@ describeWithFlags('WebcamIterator', test_util.BROWSER_ENVS, () => {
     expect(result.shape).toEqual([200, 100, 3]);
   });
 
-  it('creates webcamIterator with no html element', async () => {
+  it('create webcamIterator with no html element', async () => {
     const webcamIterator = await WebcamIterator.create(
         null, {resizeWidth: 100, resizeHeight: 200});
     const result = await webcamIterator.next();
@@ -55,14 +59,14 @@ describeWithFlags('WebcamIterator', test_util.BROWSER_ENVS, () => {
     expect(result.value.shape).toEqual([200, 100, 3]);
   });
 
-  it('creates webcamIterator with no html element and capture', async () => {
+  it('create webcamIterator with no html element and capture', async () => {
     const webcamIterator = await WebcamIterator.create(
         null, {resizeWidth: 100, resizeHeight: 200});
     const result = await webcamIterator.capture();
     expect(result.shape).toEqual([200, 100, 3]);
   });
 
-  it('creates webcamIterator with no html element and no size', async done => {
+  it('create webcamIterator with no html element and no size', async done => {
     try {
       await WebcamIterator.create();
       done.fail();

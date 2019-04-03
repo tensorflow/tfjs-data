@@ -60,8 +60,12 @@ export class WebcamIterator extends LazyIterator<Tensor3D> {
       webcamVideoElement.height = webcamConfig.resizeHeight;
     }
     const webcamIterator = new WebcamIterator(webcamVideoElement, webcamConfig);
+
+    console.log('in create, before start');
     // Call async function to initialize the video stream.
     await webcamIterator.start();
+
+    console.log('in create, after start');
     return webcamIterator;
   }
 
@@ -77,6 +81,7 @@ export class WebcamIterator extends LazyIterator<Tensor3D> {
     }
 
     try {
+      console.log('getting stream');
       this.stream = await navigator.mediaDevices.getUserMedia({
         video: {
           deviceId: this.webcamConfig.deviceId,
@@ -93,6 +98,7 @@ export class WebcamIterator extends LazyIterator<Tensor3D> {
           `Error thrown while initializing video stream: ${e.message}`);
     }
 
+    console.log('after stream');
     if (!this.stream) {
       throw new Error('Could not obtain video from webcam.');
     }
@@ -104,6 +110,7 @@ export class WebcamIterator extends LazyIterator<Tensor3D> {
       console.log(error);
       this.webcamVideoElement.src = window.URL.createObjectURL(this.stream);
     }
+    console.log('before play');
     // Start to the webcam video stream
     this.webcamVideoElement.play();
 
