@@ -18,15 +18,20 @@
 
 // Provide fake video stream
 export function setupFakeVideoStream() {
+  console.log('setup fake 1');
   const width = 500;
   const height = 500;
   const canvasElement = document.createElement('canvas');
   const ctx = canvasElement.getContext('2d');
+  console.log('setup fake 2');
   ctx.fillStyle = 'rgb(1,2,3)';
   ctx.fillRect(0, 0, width, height);
+  console.log('setup fake 3');
   // tslint:disable-next-line:no-any
   const stream = (canvasElement as any).captureStream(60);
+  console.log('setup fake 4');
   navigator.mediaDevices.getUserMedia = async () => {
     return stream;
   };
+  console.log('setup fake 5');
 }
