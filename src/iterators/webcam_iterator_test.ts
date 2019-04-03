@@ -22,22 +22,17 @@ import {setupFakeVideoStream} from '../util/test_util';
 import {WebcamIterator} from './webcam_iterator';
 
 describeWithFlags('WebcamIterator', test_util.BROWSER_ENVS, () => {
-  beforeAll(() => {
+  beforeEach(() => {
     setupFakeVideoStream();
   });
 
   it('create webcamIterator with html element', async () => {
-    // setupFakeVideoStream();
-    console.log(1);
     const videoElement = document.createElement('video');
     videoElement.width = 100;
     videoElement.height = 200;
 
-    console.log(2);
     const webcamIterator = await WebcamIterator.create(videoElement);
-    console.log(3);
     const result = await webcamIterator.next();
-    console.log(4);
     expect(result.done).toBeFalsy();
     expect(result.value.shape).toEqual([200, 100, 3]);
   });
