@@ -202,6 +202,7 @@ describeWithFlags('WebcamIterator', test_util.BROWSER_ENVS, () => {
     await webcamIterator.start();
     console.log(4);
     const result3 = await webcamIterator.next();
+    console.log(5);
     expect(result3.done).toBeFalsy();
     expect(result3.value.shape).toEqual([100, 100, 3]);
   });
