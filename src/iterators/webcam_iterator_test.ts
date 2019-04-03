@@ -178,11 +178,8 @@ describeWithFlags('WebcamIterator', test_util.BROWSER_ENVS, () => {
   });*/
 
   it('webcamIterator could restart', async () => {
-    const videoElement = document.createElement('video');
-    videoElement.width = 100;
-    videoElement.height = 100;
-
-    const webcamIterator = await WebcamIterator.create(videoElement);
+    const webcamIterator = await WebcamIterator.create(
+        null, {resizeWidth: 100, resizeHeight: 100});
     const result1 = await webcamIterator.next();
     expect(result1.done).toBeFalsy();
     expect(result1.value.shape).toEqual([100, 100, 3]);
