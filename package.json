@@ -49,7 +49,7 @@
     "test": "karma start",
     "test-browsers": "karma start --browsers='Chrome,Firefox'",
     "test-node": "ts-node src/test_node.ts",
-    "test-travis": "karma start --browsers='bs_firefox_mac,bs_chrome_mac' --singleRun",
+    "test-travis": "karma start --browsers='bs_firefox_mac' --singleRun",
     "lint": "tslint -p . -t verbose"
   },
   "peerDependencies": {
