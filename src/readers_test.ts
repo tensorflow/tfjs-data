@@ -18,7 +18,7 @@
 import * as tf from '@tensorflow/tfjs-core';
 import {describeWithFlags} from '@tensorflow/tfjs-core/dist/jasmine_util';
 import * as tfd from './readers';
-import {setupFakeVideoStream} from './util/test_util';
+// import {setupFakeVideoStream} from './util/test_util';
 
 describeWithFlags('readers', tf.test_util.ALL_ENVS, () => {
   it('generate dataset from function', async () => {
