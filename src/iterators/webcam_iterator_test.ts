@@ -41,7 +41,7 @@ describeWithFlags('WebcamIterator', test_util.BROWSER_ENVS, () => {
     expect(result.value.shape).toEqual([200, 100, 3]);
   });
 
-  it('create webcamIterator with html element and capture', async () => {
+  /*it('create webcamIterator with html element and capture', async () => {
     const videoElement = document.createElement('video');
     videoElement.width = 100;
     videoElement.height = 200;
@@ -155,5 +155,5 @@ describeWithFlags('WebcamIterator', test_util.BROWSER_ENVS, () => {
     const result3 = await webcamIterator.next();
     expect(result3.done).toBeFalsy();
     expect(result3.value.shape).toEqual([100, 100, 3]);
-  });
+  });*/
 });
