@@ -126,7 +126,12 @@ export class WebcamIterator extends LazyIterator<Tensor3D> {
     }
 
     console.log('::::::::::::::::::::1');
-    const img = browser.fromPixels(this.webcamVideoElement);
+    let img;
+    try {
+      img = browser.fromPixels(this.webcamVideoElement);
+    } catch (e) {
+      throw new Error(`Error thrown converting video to pixels: ${e.message}`);
+    }
     console.log('::::::::::::::::::::2');
     img.print();
     if (this.needToResize()) {

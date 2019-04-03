@@ -25,7 +25,7 @@ export function setupFakeVideoStream() {
   ctx.fillStyle = 'rgb(1,2,3)';
   ctx.fillRect(0, 0, width, height);
   // tslint:disable-next-line:no-any
-  const stream = (canvasElement as any).captureStream(60);
+  const stream = (canvasElement as any).captureStream();
   navigator.mediaDevices.getUserMedia = async () => {
     return stream;
   };
