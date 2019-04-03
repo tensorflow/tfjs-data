@@ -61,11 +61,9 @@ export class WebcamIterator extends LazyIterator<Tensor3D> {
     }
     const webcamIterator = new WebcamIterator(webcamVideoElement, webcamConfig);
 
-    console.log('in create, before start');
     // Call async function to initialize the video stream.
     await webcamIterator.start();
 
-    console.log('in create, after start');
     return webcamIterator;
   }
 
@@ -81,7 +79,6 @@ export class WebcamIterator extends LazyIterator<Tensor3D> {
     }
 
     try {
-      console.log('getting stream');
       this.stream = await navigator.mediaDevices.getUserMedia({
         video: {
           deviceId: this.webcamConfig.deviceId,
@@ -98,7 +95,6 @@ export class WebcamIterator extends LazyIterator<Tensor3D> {
           `Error thrown while initializing video stream: ${e.message}`);
     }
 
-    console.log('after stream');
     if (!this.stream) {
       throw new Error('Could not obtain video from webcam.');
     }
@@ -113,12 +109,24 @@ export class WebcamIterator extends LazyIterator<Tensor3D> {
     console.log('before play');
     // Start to the webcam video stream
     this.webcamVideoElement.play();
+    console.log('after play');
 
     this.isClosed = false;
 
     return new Promise<void>(resolve => {
+      console.log('waiting for resolve');
+      this.webcamVideoElement.onloadeddata = () => {
+        console.log('loaded data');
+      };
+      this.webcamVideoElement.onloadedmetadata = () => {
+        console.log('loaded metadata');
+      };
+      this.webcamVideoElement.oncanplay = () => {
+        console.log('can play');
+      };
       // Add event listener to make sure the webcam has been fully initialized.
       this.webcamVideoElement.oncanplaythrough = () => {
+        console.log('can play through');
         resolve();
       };
     });
