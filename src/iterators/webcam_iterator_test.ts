@@ -177,7 +177,7 @@ describeWithFlags('WebcamIterator', test_util.BROWSER_ENVS, () => {
     expect(result2.value).toBeNull();
   });*/
 
-  fit('webcamIterator could restart', async () => {
+  it('webcamIterator could restart', async () => {
     const videoElement = document.createElement('video');
     videoElement.width = 100;
     videoElement.height = 100;

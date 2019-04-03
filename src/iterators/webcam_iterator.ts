@@ -135,14 +135,12 @@ export class WebcamIterator extends LazyIterator<Tensor3D> {
     console.log('::::::::::::::::::::2');
     img.print();
     if (this.needToResize()) {
-      console.log('::::::::::::::::::::3');
       try {
         return {value: this.cropAndResizeFrame(img), done: false};
       } catch (e) {
         throw new Error(`Error thrown cropping the video: ${e.message}`);
       }
     } else {
-      console.log('::::::::::::::::::::4');
       return {value: img, done: false};
     }
   }
