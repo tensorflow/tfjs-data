@@ -16,7 +16,7 @@
  * =============================================================================
  */
 
-import {browser, test_util} from '@tensorflow/tfjs-core';
+import {tensor3d, test_util} from '@tensorflow/tfjs-core';
 import {describeWithFlags} from '@tensorflow/tfjs-core/dist/jasmine_util';
 import {setupFakeVideoStream} from '../util/test_util';
 import {WebcamIterator} from './webcam_iterator';
@@ -26,7 +26,7 @@ describeWithFlags('WebcamIterator', test_util.BROWSER_ENVS, () => {
     setupFakeVideoStream();
   });
 
-  /*it('create webcamIterator with html element', async () => {
+  it('create webcamIterator with html element', async () => {
     const videoElement = document.createElement('video');
     videoElement.width = 100;
     videoElement.height = 200;
@@ -175,7 +175,7 @@ describeWithFlags('WebcamIterator', test_util.BROWSER_ENVS, () => {
     const result2 = await webcamIterator.next();
     expect(result2.done).toBeTruthy();
     expect(result2.value).toBeNull();
-  });*/
+  });
 
   it('webcamIterator could restart', async () => {
     const videoElement = document.createElement('video');
@@ -186,40 +186,25 @@ describeWithFlags('WebcamIterator', test_util.BROWSER_ENVS, () => {
     const result1 = await webcamIterator.next();
     expect(result1.done).toBeFalsy();
     expect(result1.value.shape).toEqual([100, 100, 3]);
-    console.log(1);
 
     webcamIterator.stop();
     const result2 = await webcamIterator.next();
     expect(result2.done).toBeTruthy();
     expect(result2.value).toBeNull();
 
-    console.log(2);
-
     // Reset fake media stream after stopped the stream.
     setupFakeVideoStream();
 
-    console.log(3);
     await webcamIterator.start();
-    console.log(4);
-    await webcamIterator.start();
-    // const result3 = await webcamIterator.next();
-    // expect(result3.done).toBeFalsy();
-    // expect(result3.value.shape).toEqual([100, 100, 3]);
-
-    const canvasElement = document.createElement('canvas');
-    const ctx = canvasElement.getContext('2d');
-    ctx.canvas.width = videoElement.width;
-    ctx.canvas.height = videoElement.height;
-    console.log(5);
-    ctx.drawImage(videoElement, 0, 0, videoElement.width, videoElement.height);
-    console.log(6);
-    const vals =
-        ctx.getImageData(0, 0, videoElement.width, videoElement.height).data;
-    console.log(7);
-    console.log(vals.length);
-
-    const result3 = browser.fromPixels(videoElement);
-    console.log(8);
-    console.log(result3.shape);
+    console.log(navigator.userAgent);
+    // Skip validation when it's Firefox and Mac OS, because BrowserStack for
+    // Firefox on travis does not support restarting experimental function
+    // HTMLCanvasElement.captureStream().
+    if (navigator.userAgent.search('Firefox') < 0 &&
+        navigator.userAgent.search('OS X') < 0) {
+      const result3 = await webcamIterator.next();
+      expect(result3.done).toBeFalsy();
+      expect(result3.value.shape).toEqual([100, 100, 3]);
+    }
   });
 });
