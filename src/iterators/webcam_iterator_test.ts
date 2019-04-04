@@ -22,7 +22,7 @@ import {setupFakeVideoStream} from '../util/test_util';
 import {WebcamIterator} from './webcam_iterator';
 
 describeWithFlags('WebcamIterator', test_util.BROWSER_ENVS, () => {
-  beforeAll(() => {
+  beforeEach(() => {
     setupFakeVideoStream();
   });
 
@@ -202,12 +202,8 @@ describeWithFlags('WebcamIterator', test_util.BROWSER_ENVS, () => {
     await webcamIterator.start();
     console.log(4);
     // const result3 = await webcamIterator.next();
-
-    await new Promise(resolve => {
-      setTimeout(() => {
-        resolve();
-      }, 1000);
-    });
+    // expect(result3.done).toBeFalsy();
+    // expect(result3.value.shape).toEqual([100, 100, 3]);
 
     const canvasElement = document.createElement('canvas');
     const ctx = canvasElement.getContext('2d');
@@ -224,7 +220,5 @@ describeWithFlags('WebcamIterator', test_util.BROWSER_ENVS, () => {
     const result3 = browser.fromPixels(videoElement);
     console.log(8);
     console.log(result3.shape);
-    // expect(result3.done).toBeFalsy();
-    // expect(result3.value.shape).toEqual([100, 100, 3]);
   });
 });

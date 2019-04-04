@@ -94,7 +94,6 @@ export class WebcamIterator extends LazyIterator<Tensor3D> {
       throw new Error(
           `Error thrown while initializing video stream: ${e.message}`);
     }
-    console.log('get user media');
 
     if (!this.stream) {
       throw new Error('Could not obtain video from webcam.');
@@ -125,7 +124,6 @@ export class WebcamIterator extends LazyIterator<Tensor3D> {
       return {value: null, done: true};
     }
 
-    console.log('::::::::::::::::::::1');
     let img;
     try {
       img = browser.fromPixels(this.webcamVideoElement);
@@ -133,8 +131,6 @@ export class WebcamIterator extends LazyIterator<Tensor3D> {
       throw new Error(
           `Error thrown converting video to pixels: ${JSON.stringify(e)}`);
     }
-    console.log('::::::::::::::::::::2');
-    img.print();
     if (this.needToResize()) {
       try {
         return {value: this.cropAndResizeFrame(img), done: false};
