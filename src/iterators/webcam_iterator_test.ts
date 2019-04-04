@@ -16,7 +16,7 @@
  * =============================================================================
  */
 
-import {test_util} from '@tensorflow/tfjs-core';
+import {browser, test_util} from '@tensorflow/tfjs-core';
 import {describeWithFlags} from '@tensorflow/tfjs-core/dist/jasmine_util';
 import {setupFakeVideoStream} from '../util/test_util';
 import {WebcamIterator} from './webcam_iterator';
@@ -178,8 +178,11 @@ describeWithFlags('WebcamIterator', test_util.BROWSER_ENVS, () => {
   });*/
 
   it('webcamIterator could restart', async () => {
-    const webcamIterator = await WebcamIterator.create(
-        null, {resizeWidth: 100, resizeHeight: 100});
+    const videoElement = document.createElement('video');
+    videoElement.width = 100;
+    videoElement.height = 100;
+
+    const webcamIterator = await WebcamIterator.create(videoElement);
     const result1 = await webcamIterator.next();
     expect(result1.done).toBeFalsy();
     expect(result1.value.shape).toEqual([100, 100, 3]);
@@ -198,9 +201,24 @@ describeWithFlags('WebcamIterator', test_util.BROWSER_ENVS, () => {
     console.log(3);
     await webcamIterator.start();
     console.log(4);
-    const result3 = await webcamIterator.next();
+    // const result3 = await webcamIterator.next();
+
+    const canvasElement = document.createElement('canvas');
+    const ctx = canvasElement.getContext('2d');
+    ctx.canvas.width = videoElement.width;
+    ctx.canvas.height = videoElement.height;
     console.log(5);
-    expect(result3.done).toBeFalsy();
-    expect(result3.value.shape).toEqual([100, 100, 3]);
+    ctx.drawImage(videoElement, 0, 0, videoElement.width, videoElement.height);
+    console.log(6);
+    const vals =
+        ctx.getImageData(0, 0, videoElement.width, videoElement.height).data;
+    console.log(7);
+    console.log(vals.length);
+
+    const result3 = browser.fromPixels(videoElement);
+    console.log(8);
+    console.log(result3.shape);
+    // expect(result3.done).toBeFalsy();
+    // expect(result3.value.shape).toEqual([100, 100, 3]);
   });
 });
