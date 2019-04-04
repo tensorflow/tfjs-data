@@ -22,9 +22,9 @@ import {setupFakeVideoStream} from '../util/test_util';
 import {WebcamIterator} from './webcam_iterator';
 
 describeWithFlags('WebcamIterator', test_util.BROWSER_ENVS, () => {
-  beforeEach(() => {
-    setupFakeVideoStream();
-  });
+  // beforeAll(() => {
+  //   setupFakeVideoStream();
+  // });
 
   /*it('create webcamIterator with html element', async () => {
     const videoElement = document.createElement('video');
@@ -178,6 +178,7 @@ describeWithFlags('WebcamIterator', test_util.BROWSER_ENVS, () => {
   });*/
 
   it('webcamIterator could restart', async () => {
+    setupFakeVideoStream();
     const webcamIterator = await WebcamIterator.create(
         null, {resizeWidth: 100, resizeHeight: 100});
     const result1 = await webcamIterator.next();
