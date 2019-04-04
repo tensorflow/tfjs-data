@@ -113,9 +113,9 @@ export class WebcamIterator extends LazyIterator<Tensor3D> {
 
     return new Promise<void>(resolve => {
       // Add event listener to make sure the webcam has been fully initialized.
-      this.webcamVideoElement.addEventListener('canplaythrough', () => {
+      this.webcamVideoElement.onloadedmetadata = () => {
         resolve();
-      });
+      };
     });
   }
 
