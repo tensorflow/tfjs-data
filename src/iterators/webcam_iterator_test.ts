@@ -203,6 +203,12 @@ describeWithFlags('WebcamIterator', test_util.BROWSER_ENVS, () => {
     console.log(4);
     // const result3 = await webcamIterator.next();
 
+    await new Promise(resolve => {
+      setTimeout(() => {
+        resolve();
+      }, 1000);
+    });
+
     const canvasElement = document.createElement('canvas');
     const ctx = canvasElement.getContext('2d');
     ctx.canvas.width = videoElement.width;
