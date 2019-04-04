@@ -196,8 +196,7 @@ describeWithFlags('WebcamIterator', test_util.BROWSER_ENVS, () => {
     setupFakeVideoStream();
 
     await webcamIterator.start();
-    console.log(navigator.userAgent);
-    // Skip validation when it's Firefox and Mac OS, because BrowserStack for
+    // Skip validation when it's in Firefox and Mac OS, because BrowserStack for
     // Firefox on travis does not support restarting experimental function
     // HTMLCanvasElement.captureStream().
     if (navigator.userAgent.search('Firefox') < 0 &&
