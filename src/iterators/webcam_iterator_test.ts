@@ -186,7 +186,7 @@ describeWithFlags('WebcamIterator', test_util.BROWSER_ENVS, () => {
     expect(result1.value.shape).toEqual([100, 100, 3]);
     console.log(1);
 
-    // await webcamIterator.stop();
+    await webcamIterator.stop();
     // const result2 = await webcamIterator.next();
     // expect(result2.done).toBeTruthy();
     // expect(result2.value).toBeNull();
@@ -194,7 +194,7 @@ describeWithFlags('WebcamIterator', test_util.BROWSER_ENVS, () => {
     console.log(2);
 
     // Reset fake media stream after stopped the stream.
-    setupFakeVideoStream();
+    // setupFakeVideoStream();
 
     console.log(3);
     await webcamIterator.start();
