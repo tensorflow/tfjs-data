@@ -273,7 +273,7 @@ export abstract class Dataset<T extends DataElement> {
    *  tf.data.array([1, 2, 3]).mapAsync(x => new Promise(function(resolve){
    *    setTimeout(() => {
    *      resolve(x * x);
-   *    }, Math.random()*1000 );
+   *    }, Math.random()*1000);
    *  }));
    * console.log(await a.toArray());
    * ```
