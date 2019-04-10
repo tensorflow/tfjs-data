@@ -271,9 +271,11 @@ export abstract class Dataset<T extends DataElement> {
    * ```js
    * const a =
    *  tf.data.array([1, 2, 3]).mapAsync(x => new Promise(function(resolve){
-   *    resolve(x*x);
+   *    setTimeout(() => {
+   *      resolve(x * x);
+   *    }, (Math.random()*1000 + 500));
    *  }));
-   * await a.forEachAsync(e => console.log(e));
+   * console.log(await a.toArray());
    * ```
    *
    * @param transform A function mapping a dataset element to a `Promise` for a
