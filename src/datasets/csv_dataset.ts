@@ -274,7 +274,7 @@ export class CSVDataset extends Dataset<DataElement> {
     const result: string[] = [];
     let readOffset = 0;
     const readLength = line.length;
-    let currentState = STATE_FIELD;
+    let currentState = STATE_OUT;
     // Goes through the line to parse quote.
     for (let i = 0; i < readLength; i++) {
       switch (currentState) {
