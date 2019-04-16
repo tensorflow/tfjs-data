@@ -24,7 +24,7 @@ process.on('unhandledRejection', e => {
   throw e;
 });
 
-setTestEnvs([{name: 'node', backendName: 'cpu', flags: {}}]);
+setTestEnvs([{name: 'node', backendName: 'cpu'}]);
 
 const runner = new jasmine();
 runner.loadConfig({spec_files: ['src/**/*_test.ts'], random: false});
