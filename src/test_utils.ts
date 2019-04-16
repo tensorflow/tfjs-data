@@ -14,8 +14,7 @@
  * limitations under the License.
  * =============================================================================
  */
-import {describeWithFlags, registerTestEnv} from '@tensorflow/tfjs-core/dist/jasmine_util';
-import {ALL_ENVS} from '@tensorflow/tfjs-core/dist/jasmine_util';
+import {ALL_ENVS, describeWithFlags, registerTestEnv} from '@tensorflow/tfjs-core/dist/jasmine_util';
 
 // Register backends.
 registerTestEnv({name: 'cpu', backendName: 'cpu'});
