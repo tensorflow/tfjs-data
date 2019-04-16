@@ -16,12 +16,12 @@
  */
 
 import * as tf from '@tensorflow/tfjs-core';
-import {ALL_ENVS, describeWithFlags} from '@tensorflow/tfjs-core/dist/jasmine_util';
 import {Dataset} from './dataset';
 import {TestDataset} from './dataset_test';
 import {computeDatasetStatistics, scaleTo01, TabularRecord} from './statistics';
+import {describeAllEnvs} from './test_utils';
 
-describeWithFlags('makeDatasetStatistics', ALL_ENVS, () => {
+describeAllEnvs('makeDatasetStatistics', () => {
   it('computes numeric min and max over numbers, arrays, and Tensors',
      async () => {
        const ds = new TestDataset().skip(55) as Dataset<TabularRecord>;
@@ -77,7 +77,7 @@ describeWithFlags('makeDatasetStatistics', ALL_ENVS, () => {
   });
 });
 
-describeWithFlags('scaleTo01', ALL_ENVS, () => {
+describeAllEnvs('scaleTo01', () => {
   it('scales numeric data to the [0, 1] interval', async () => {
     const ds = new TestDataset().skip(55) as Dataset<TabularRecord>;
     const scaleFn = scaleTo01(55, 99 * 99 * 99);

@@ -18,11 +18,11 @@
 
 import * as tf from '@tensorflow/tfjs-core';
 import {TensorContainerObject} from '@tensorflow/tfjs-core';
-import {ALL_ENVS, describeWithFlags} from '@tensorflow/tfjs-core/dist/jasmine_util';
 
 import {array} from './dataset';
 import * as tfd from './index';
 import {iteratorFromItems, LazyIterator} from './iterators/lazy_iterator';
+import {describeAllEnvs} from './test_utils';
 import {DataElementObject, DatasetContainer} from './types';
 
 class TestObjectIterator extends LazyIterator<{}> {
@@ -87,7 +87,7 @@ function complexifyExampleAsDict(simple: any): {} {
   };
 }
 
-describeWithFlags('Dataset', ALL_ENVS, () => {
+describeAllEnvs('Dataset', () => {
   it('can be concatenated', async () => {
     const a = tfd.array([{'item': 1}, {'item': 2}, {'item': 3}]);
     const b = tfd.array([{'item': 4}, {'item': 5}, {'item': 6}]);
