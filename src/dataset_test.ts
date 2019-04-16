@@ -18,7 +18,7 @@
 
 import * as tf from '@tensorflow/tfjs-core';
 import {TensorContainerObject} from '@tensorflow/tfjs-core';
-import {CPU_ENVS, describeWithFlags} from '@tensorflow/tfjs-core/dist/jasmine_util';
+import {ALL_ENVS, describeWithFlags} from '@tensorflow/tfjs-core/dist/jasmine_util';
 
 import {array} from './dataset';
 import * as tfd from './index';
@@ -87,7 +87,7 @@ function complexifyExampleAsDict(simple: any): {} {
   };
 }
 
-describeWithFlags('Dataset', CPU_ENVS, () => {
+describeWithFlags('Dataset', ALL_ENVS, () => {
   it('can be concatenated', async () => {
     const a = tfd.array([{'item': 1}, {'item': 2}, {'item': 3}]);
     const b = tfd.array([{'item': 4}, {'item': 5}, {'item': 6}]);
