@@ -16,6 +16,8 @@
  * =============================================================================
  */
 
+import {ALL_ENVS, BROWSER_ENVS, describeWithFlags, NODE_ENVS, registerTestEnv} from '@tensorflow/tfjs-core/dist/jasmine_util';
+
 // Provide fake video stream
 export function setupFakeVideoStream() {
   const width = 500;
@@ -29,4 +31,34 @@ export function setupFakeVideoStream() {
   navigator.mediaDevices.getUserMedia = async () => {
     return stream;
   };
+}
+
+// Register backends.
+registerTestEnv({name: 'cpu', backendName: 'cpu'});
+registerTestEnv({
+  name: 'webgl2',
+  backendName: 'webgl',
+  flags: {
+    'WEBGL_VERSION': 2,
+    'WEBGL_CPU_FORWARD': false,
+    'WEBGL_SIZE_UPLOAD_UNIFORM': 0
+  }
+});
+
+export function describeAllEnvs(testName: string, tests: () => void) {
+  describeWithFlags(testName, ALL_ENVS, () => {
+    tests();
+  });
+}
+
+export function describeBrowserEnvs(testName: string, tests: () => void) {
+  describeWithFlags(testName, BROWSER_ENVS, () => {
+    tests();
+  });
+}
+
+export function describeNodeEnvs(testName: string, tests: () => void) {
+  describeWithFlags(testName, NODE_ENVS, () => {
+    tests();
+  });
 }

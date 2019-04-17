@@ -17,11 +17,10 @@
  */
 
 import {tensor3d, test_util} from '@tensorflow/tfjs-core';
-import {describeWithFlags} from '@tensorflow/tfjs-core/dist/jasmine_util';
-import {setupFakeVideoStream} from '../util/test_util';
+import {describeBrowserEnvs, setupFakeVideoStream} from '../util/test_utils';
 import {WebcamIterator} from './webcam_iterator';
 
-describeWithFlags('WebcamIterator', test_util.BROWSER_ENVS, () => {
+describeBrowserEnvs('WebcamIterator', () => {
   beforeEach(() => {
     setupFakeVideoStream();
   });

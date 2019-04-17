@@ -15,12 +15,10 @@
  * =============================================================================
  */
 
-import * as tf from '@tensorflow/tfjs-core';
-import {describeWithFlags} from '@tensorflow/tfjs-core/dist/jasmine_util';
 import * as tfd from './readers';
-import {setupFakeVideoStream} from './util/test_util';
+import {describeAllEnvs, describeBrowserEnvs, describeNodeEnvs, setupFakeVideoStream} from './util/test_utils';
 
-describeWithFlags('readers', tf.test_util.ALL_ENVS, () => {
+describeAllEnvs('readers', () => {
   it('generate dataset from function', async () => {
     let i = -1;
     const f = () =>
@@ -136,7 +134,7 @@ describeWithFlags('readers', tf.test_util.ALL_ENVS, () => {
   });
 });
 
-describeWithFlags('readers in browser', tf.test_util.BROWSER_ENVS, () => {
+describeBrowserEnvs('readers in browser', () => {
   beforeEach(() => {
     setupFakeVideoStream();
   });
@@ -173,7 +171,7 @@ describeWithFlags('readers in browser', tf.test_util.BROWSER_ENVS, () => {
   });
 });
 
-describeWithFlags('readers in node', tf.test_util.NODE_ENVS, () => {
+describeNodeEnvs('readers in node', () => {
   it('webcam only available in browser env', async done => {
     try {
       await tfd.webcam();

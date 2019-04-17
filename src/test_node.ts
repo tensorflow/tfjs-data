@@ -15,7 +15,6 @@
  * =============================================================================
  */
 
-import {ENV} from '@tensorflow/tfjs-core';
 import {setTestEnvs} from '@tensorflow/tfjs-core/dist/jasmine_util';
 
 // tslint:disable-next-line:no-require-imports
@@ -25,8 +24,7 @@ process.on('unhandledRejection', e => {
   throw e;
 });
 
-setTestEnvs(
-    [{name: 'node', factory: ENV.findBackendFactory('cpu'), features: {}}]);
+setTestEnvs([{name: 'node', backendName: 'cpu'}]);
 
 const runner = new jasmine();
 runner.loadConfig({spec_files: ['src/**/*_test.ts'], random: false});
