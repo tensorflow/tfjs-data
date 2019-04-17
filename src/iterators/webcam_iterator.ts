@@ -16,7 +16,7 @@
  * =============================================================================
  */
 
-import {browser, ENV, image, tensor1d, tensor2d, Tensor3D, Tensor4D} from '@tensorflow/tfjs-core';
+import {browser, ENV, image, tensor1d, Tensor1D, tensor2d, Tensor2D, Tensor3D, Tensor4D} from '@tensorflow/tfjs-core';
 import {assert} from '@tensorflow/tfjs-core/dist/util';
 import {WebcamConfig} from '../types';
 import {LazyIterator} from './lazy_iterator';
@@ -28,15 +28,41 @@ import {LazyIterator} from './lazy_iterator';
 export class WebcamIterator extends LazyIterator<Tensor3D> {
   private isClosed = true;
   private stream: MediaStream;
+  private resize = false;
+  private cropSize: [number, number];
+  private cropBox: Tensor2D;
+  private cropBoxInd: Tensor1D;
 
   private constructor(
       protected readonly webcamVideoElement: HTMLVideoElement,
       protected readonly webcamConfig: WebcamConfig) {
     super();
+    if (this.needToResize()) {
+      this.resize = true;
+      this.cropSize =
+          [this.webcamConfig.resizeHeight, this.webcamConfig.resizeWidth];
+      this.cropBoxInd = tensor1d([0], 'int32');
+      if (this.webcamConfig.centerCrop) {
+        // Calculate the box based on resizing shape.
+        const widthCroppingRatio =
+            this.webcamConfig.resizeWidth * 1.0 / this.webcamVideoElement.width;
+        const heightCroppingRatio = this.webcamConfig.resizeHeight * 1.0 /
+            this.webcamVideoElement.height;
+        const widthCropStart = (1 - widthCroppingRatio) / 2;
+        const heightCropStart = (1 - heightCroppingRatio) / 2;
+        const widthCropEnd = widthCropStart + widthCroppingRatio;
+        const heightCropEnd = heightCroppingRatio + heightCropStart;
+        this.cropBox = tensor2d(
+            [heightCropStart, widthCropStart, heightCropEnd, widthCropEnd],
+            [1, 4]);
+      } else {
+        this.cropBox = tensor2d([0, 0, 1, 1], [1, 4]);
+      }
+    }
   }
 
   summary() {
-    return `Endless data stream from webcam`;
+    return `webcam`;
   }
 
   // Construct a WebcamIterator and start it's video stream.
@@ -74,7 +100,7 @@ export class WebcamIterator extends LazyIterator<Tensor3D> {
           (this.webcamConfig.facingMode === 'user') ||
               (this.webcamConfig.facingMode === 'environment'),
           () =>
-              `Invalid wecam facing model: ${this.webcamConfig.facingMode}. ` +
+              `Invalid webcam facing mode: ${this.webcamConfig.facingMode}. ` +
               `Please provide 'user' or 'environment'`);
     }
 
@@ -91,8 +117,8 @@ export class WebcamIterator extends LazyIterator<Tensor3D> {
       });
     } catch (e) {
       // Modify the error message but leave the stack trace intact
-      throw new Error(
-          `Error thrown while initializing video stream: ${e.message}`);
+      e.message = `Error thrown while initializing video stream: ${e.message}`;
+      throw e;
     }
 
     if (!this.stream) {
@@ -106,7 +132,7 @@ export class WebcamIterator extends LazyIterator<Tensor3D> {
       console.log(error);
       this.webcamVideoElement.src = window.URL.createObjectURL(this.stream);
     }
-    // Start to the webcam video stream
+    // Start the webcam video stream
     this.webcamVideoElement.play();
 
     this.isClosed = false;
@@ -131,7 +157,7 @@ export class WebcamIterator extends LazyIterator<Tensor3D> {
       throw new Error(
           `Error thrown converting video to pixels: ${JSON.stringify(e)}`);
     }
-    if (this.needToResize()) {
+    if (this.resize) {
       try {
         return {value: this.cropAndResizeFrame(img), done: false};
       } catch (e) {
@@ -157,30 +183,10 @@ export class WebcamIterator extends LazyIterator<Tensor3D> {
   // Cropping and resizing each frame based on config
   cropAndResizeFrame(img: Tensor3D): Tensor3D {
     const expandedImage: Tensor4D = img.toFloat().expandDims(0);
-    const cropSize: [number, number] =
-        [this.webcamConfig.resizeHeight, this.webcamConfig.resizeWidth];
     let resizedImage;
-    if (this.webcamConfig.centerCrop) {
-      // Calculate the box based on resizing shape.
-      const widthCroppingRatio =
-          this.webcamConfig.resizeWidth * 1.0 / this.webcamVideoElement.width;
-      const heightCroppingRatio =
-          this.webcamConfig.resizeHeight * 1.0 / this.webcamVideoElement.height;
-      const widthCropStart = (1 - widthCroppingRatio) / 2;
-      const heightCropStart = (1 - heightCroppingRatio) / 2;
-      const widthCropEnd = widthCropStart + widthCroppingRatio;
-      const heightCropEnd = heightCroppingRatio + heightCropStart;
-      resizedImage = image.cropAndResize(
-          expandedImage,
-          tensor2d(
-              [heightCropStart, widthCropStart, heightCropEnd, widthCropEnd],
-              [1, 4]),
-          tensor1d([0], 'int32'), cropSize, 'bilinear');
-    } else {
-      resizedImage = image.cropAndResize(
-          expandedImage, tensor2d([0, 0, 1, 1], [1, 4]), tensor1d([0], 'int32'),
-          cropSize, 'bilinear');
-    }
+    resizedImage = image.cropAndResize(
+        expandedImage, this.cropBox, this.cropBoxInd, this.cropSize,
+        'bilinear');
     // Extract image from batch cropping.
     const shape = resizedImage.shape;
     return resizedImage.reshape(shape.slice(1) as [number, number, number]);

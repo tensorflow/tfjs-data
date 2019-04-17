@@ -207,7 +207,7 @@ export function generator<T extends DataElement>(
 }
 
 /**
- * Create an iterator that generate `Tensor` from webcam video stream. This API
+ * Create an iterator that generate `Tensor`s from webcam video stream. This API
  * only works in Browser environment when the device has webcam.
  *
  * Note: this code snippet only works when the device has a webcam. It will
@@ -224,8 +224,8 @@ export function generator<T extends DataElement>(
  *
  * @param webcamVideoElement A `HTMLVideoElement` used to play video from
  *     webcam. If this element is not provided, a hidden `HTMLVideoElement` will
- *     be created. `width` and `height` in `WebcamConfig` must be provided to
- *     set the generated tensor shape.
+ *     be created. In that case, `resizeWidth` and `resizeHeight` must be
+ *     provided to set the generated tensor shape.
  * @param webcamConfig A `WebcamConfig` object that contains configurations of
  *     reading and manipulating data from webcam video stream.
  */

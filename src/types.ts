@@ -169,6 +169,10 @@ export interface WebcamConfig {
 
   /**
    * A boolean value that indicates whether to crop the video frame from center.
+   * If true, `resizeWidth` and `resizeHeight` must be specified; then an image
+   * of size `[resizeWidth, resizeHeight]` is taken from the center of the frame
+   * without scaling. If false, the entire image is returned (perhaps scaled to
+   * fit in `[resizeWidth, resizeHeight]`, if those are provided).
    */
   centerCrop?: boolean;
 }
