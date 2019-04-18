@@ -50,7 +50,11 @@ export class CSVDataset extends Dataset<DataElement> {
   private columnConfigs: {[key: string]: ColumnConfig} = null;
   private configuredColumnsOnly = false;
   private delimiter = ',';
-  private trimWhitespaces = false;
+  private trimWhitespace = false;
+  // This flag is used to control whether to check one row's element count is
+  // the same as number of column names when parsing a row. It is only set to
+  // false when parsing header line.
+  private validateElementCount = true;
 
   /**
    * Returns column names of the csv dataset. If `configuredColumnsOnly` is
@@ -116,13 +120,16 @@ export class CSVDataset extends Dataset<DataElement> {
 
   private async maybeReadHeaderLine() {
     if (this.hasHeader) {
+      this.validateElementCount = false;
       const iter = await this.base.iterator();
       const firstElement = await iter.next();
       if (firstElement.done) {
         throw new Error('No data was found for CSV parsing.');
       }
       const firstLine: string = firstElement.value;
-      return this.parseRow(firstLine);
+      const headers = this.parseRow(firstLine);
+      this.validateElementCount = true;
+      return headers;
     } else {
       return null;
     }
@@ -171,7 +178,7 @@ export class CSVDataset extends Dataset<DataElement> {
     this.columnConfigs = csvConfig.columnConfigs;
     this.configuredColumnsOnly = csvConfig.configuredColumnsOnly;
     this.delimiter = csvConfig.delimiter ? csvConfig.delimiter : ',';
-    this.trimWhitespaces = csvConfig.trimWhitespace;
+    this.trimWhitespace = csvConfig.trimWhitespace;
   }
 
   async iterator(): Promise<LazyIterator<DataElement>> {
@@ -291,7 +298,7 @@ export class CSVDataset extends Dataset<DataElement> {
               readOffset = i + 1;
               // Skip if delimiter is white space and configured to trim
               // multiple white spaces
-              if (this.delimiter === ' ' && this.trimWhitespaces) {
+              if (this.delimiter === ' ' && this.trimWhitespace) {
                 break;
               }
               result.push('');
@@ -363,10 +370,9 @@ export class CSVDataset extends Dataset<DataElement> {
     } else {
       result.push(line.substring(readOffset));
     }
-    // Check if each row has the same amount elements as column names. This
-    // validation is disabled when this.fullColumnNames is null, because
-    // this.parseRow() is also used to parse header row.
-    if (this.fullColumnNames && result.length !== this.fullColumnNames.length) {
+    // Check if each row has the same number of elements as column names.
+    if (this.validateElementCount &&
+        result.length !== this.fullColumnNames.length) {
       throw new Error(`Invalid row in csv file. Should have ${
           this.fullColumnNames.length} elements in a row, but got ${result}`);
     }

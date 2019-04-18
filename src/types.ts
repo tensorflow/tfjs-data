@@ -136,7 +136,8 @@ export interface CSVConfig {
   delimiter?: string;
 
   /**
-   * If true, treat continuous multiple whitespace as one delimiter.
+   * If true, delimiter field should be null. Parsing delimiter is whitespace
+   * and treat continuous multiple whitespace as one delimiter.
    */
-  trimWhitespace?: boolean;
+  delimWhitespace?: boolean;
 }
