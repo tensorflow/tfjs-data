@@ -16,18 +16,16 @@
  * =============================================================================
  */
 
-import {DataType, TensorContainer, TensorContainerArray, TensorContainerObject} from '@tensorflow/tfjs-core';
+import {DataType, TensorContainer} from '@tensorflow/tfjs-core';
 import {Dataset} from './dataset';
 import {LazyIterator} from './iterators/lazy_iterator';
 
 /**
+ * @deprecated Use `TensorContainer` from `@tensorflow/tfjs-core` instead.
+ *
  * JSON-like type representing a nested structure of primitives or Tensors.
  */
 export type DataElement = TensorContainer;
-
-export type DataElementObject = TensorContainerObject;
-
-export type DataElementArray = TensorContainerArray;
 
 // Maybe this should be called 'NestedContainer'-- that's just a bit unwieldy.
 export type Container<T> = ContainerObject<T>|ContainerArray<T>;
@@ -140,4 +138,45 @@ export interface CSVConfig {
    * and treat continuous multiple whitespace as one delimiter.
    */
   delimWhitespace?: boolean;
+}
+
+/**
+ * Interface configuring data from webcam video stream.
+ */
+export interface WebcamConfig {
+  /**
+   * A string specifying which camera to use on device. If the value is
+   * 'user', it will use front camera. If the value is 'environment', it will
+   * use rear camera.
+   */
+  facingMode?: 'user'|'environment';
+
+  /**
+   * A string used to request a specific camera. The deviceId can be obtained by
+   * calling `mediaDevices.enumerateDevices()`.
+   */
+  deviceId?: string;
+
+  /**
+   * Specifies the width of the output tensor. The actual width of the
+   * HTMLVideoElement (if provided) can be different and the final image will be
+   * resized to match resizeWidth.
+   */
+  resizeWidth?: number;
+
+  /**
+   * Specifies the height of the output tensor. The actual height of the
+   * HTMLVideoElement (if provided) can be different and the final image will be
+   * resized to match resizeHeight.
+   */
+  resizeHeight?: number;
+
+  /**
+   * A boolean value that indicates whether to crop the video frame from center.
+   * If true, `resizeWidth` and `resizeHeight` must be specified; then an image
+   * of size `[resizeWidth, resizeHeight]` is taken from the center of the frame
+   * without scaling. If false, the entire image is returned (perhaps scaled to
+   * fit in `[resizeWidth, resizeHeight]`, if those are provided).
+   */
+  centerCrop?: boolean;
 }
