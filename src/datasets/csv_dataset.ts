@@ -24,6 +24,7 @@ import {ColumnConfig, CSVConfig} from '../types';
 import {TextLineDataset} from './text_line_dataset';
 
 const CODE_QUOTE = '"';
+const CODE_SPACE = ' ';
 const STATE_OUT = Symbol('out');
 const STATE_FIELD = Symbol('field');
 const STATE_QUOTE = Symbol('quote');
@@ -50,7 +51,7 @@ export class CSVDataset extends Dataset<TensorContainer> {
   private columnConfigs: {[key: string]: ColumnConfig} = null;
   private configuredColumnsOnly = false;
   private delimiter = ',';
-  private trimWhitespace = false;
+  private delimWhitespace = false;
   // This flag is used to control whether to check one row's element count is
   // the same as number of column names when parsing a row. It is only set to
   // false when parsing header line.
@@ -87,6 +88,14 @@ export class CSVDataset extends Dataset<TensorContainer> {
       // Throw an error if columnNames is not provided and no header line.
       throw new Error(
           'Column names must be provided if there is no header line.');
+    } else if (this.fullColumnNames && columnNamesFromFile) {
+      // Check provided columnNames match header line.
+      util.assert(
+          columnNamesFromFile.length === this.fullColumnNames.length,
+          () => 'The length of provided columnNames (' +
+              this.fullColumnNames.length.toString() +
+              ') does not match the length of the header line read from ' +
+              'file (' + columnNamesFromFile.length.toString() + ').');
     }
     if (!this.fullColumnNames) {
       this.fullColumnNames = columnNamesFromFile;
@@ -177,8 +186,16 @@ export class CSVDataset extends Dataset<TensorContainer> {
     this.fullColumnNames = csvConfig.columnNames;
     this.columnConfigs = csvConfig.columnConfigs;
     this.configuredColumnsOnly = csvConfig.configuredColumnsOnly;
-    this.delimiter = csvConfig.delimiter ? csvConfig.delimiter : ',';
-    this.trimWhitespace = csvConfig.trimWhitespace;
+    if (csvConfig.delimWhitespace) {
+      util.assert(
+          csvConfig.delimiter == null,
+          () =>
+              'Delimiter should not be provided when delimWhitespace is true.');
+      this.delimWhitespace = true;
+      this.delimiter = ' ';
+    } else {
+      this.delimiter = csvConfig.delimiter ? csvConfig.delimiter : ',';
+    }
   }
 
   async iterator(): Promise<LazyIterator<TensorContainer>> {
@@ -296,13 +313,16 @@ export class CSVDataset extends Dataset<TensorContainer> {
             // Read an empty field
             case this.delimiter:
               readOffset = i + 1;
-              // Skip if delimiter is white space and configured to trim
-              // multiple white spaces
-              if (this.delimiter === ' ' && this.trimWhitespace) {
+              // If delimiter is white space and configured to collapse
+              // multiple white spaces.
+              if (this.delimiter === ' ' && this.delimWhitespace) {
                 break;
               }
               result.push('');
               currentState = STATE_OUT;
+              break;
+            case CODE_SPACE:
+              readOffset = i + 1;
               break;
             // Enter an unquoted field
             default:
