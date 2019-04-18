@@ -84,19 +84,15 @@ const csvWithMultiWhitespaces = `A B    C
 6 2 3
 7 2 3`;
 
+const csvWithSingleWhitespace = `A B C\n` +
+    `1 2 3\n` +
+    `2  \n` +
+    `3 2 3`;
+
 const csvWithMissingElement = `A,B,C
 1,2,3
 2,
 3,2,3`;
-
-const csvWithDelimiterAndMultiWhitespaces = `A, B,    C
-1, 2,  3
-2, 2, 3
-3,  2, 3
-4, 2, 3
-  5,    2,    3
-6, 2, 3
-7, 2, 3`;
 
 const csvDataWithHeadersExtra = ENV.get('IS_BROWSER') ?
     new Blob([csvDataExtra]) :
@@ -114,9 +110,9 @@ const csvDataWithMultiWhitespaces = ENV.get('IS_BROWSER') ?
 const csvDataWithMissingElement = ENV.get('IS_BROWSER') ?
     new Blob([csvWithMissingElement]) :
     Buffer.from(csvWithMissingElement);
-const csvDataWithDelimiterAndMultiWhitespaces = ENV.get('IS_BROWSER') ?
-    new Blob([csvWithDelimiterAndMultiWhitespaces]) :
-    Buffer.from(csvWithDelimiterAndMultiWhitespaces);
+const csvDataWithSingleWhitespace = ENV.get('IS_BROWSER') ?
+    new Blob([csvWithSingleWhitespace]) :
+    Buffer.from(csvWithSingleWhitespace);
 
 describe('CSVDataset', () => {
   it('produces a stream of dicts containing UTF8-decoded csv data',
@@ -449,7 +445,7 @@ describe('CSVDataset', () => {
     }
   });
 
-  it('collapse continuous multiple white spaces', async () => {
+  it('collapse continuous white spaces', async () => {
     const source =
         new FileDataSource(csvDataWithMultiWhitespaces, {chunkSize: 10});
     const dataset = new CSVDataset(source, {delimWhitespace: true});
@@ -462,6 +458,19 @@ describe('CSVDataset', () => {
     expect(result[2]).toEqual({A: 3, B: 2, C: 3});
     expect(result[3]).toEqual({A: 4, B: 2, C: 3});
     expect(result[4]).toEqual({A: 5, B: 2, C: 3});
+  });
+
+  it('parse correctly with single white spaces delimiter', async () => {
+    const source =
+        new FileDataSource(csvDataWithSingleWhitespace, {chunkSize: 10});
+    const dataset = new CSVDataset(source, {delimiter: ' '});
+    expect(await dataset.columnNames()).toEqual(['A', 'B', 'C']);
+    const iter = await dataset.iterator();
+    const result = await iter.toArrayForTest();
+
+    expect(result[0]).toEqual({A: 1, B: 2, C: 3});
+    expect(result[1]).toEqual({A: 2, B: undefined, C: undefined});
+    expect(result[2]).toEqual({A: 3, B: 2, C: 3});
   });
 
   it('throw error when delimiter is provided and delimWhitespace is true',
@@ -479,19 +488,4 @@ describe('CSVDataset', () => {
          done();
        }
      });
-
-  it('trim white spaces', async () => {
-    const source = new FileDataSource(
-        csvDataWithDelimiterAndMultiWhitespaces, {chunkSize: 10});
-    const dataset = new CSVDataset(source);
-    expect(await dataset.columnNames()).toEqual(['A', 'B', 'C']);
-    const iter = await dataset.iterator();
-    const result = await iter.toArrayForTest();
-
-    expect(result[0]).toEqual({A: 1, B: 2, C: 3});
-    expect(result[1]).toEqual({A: 2, B: 2, C: 3});
-    expect(result[2]).toEqual({A: 3, B: 2, C: 3});
-    expect(result[3]).toEqual({A: 4, B: 2, C: 3});
-    expect(result[4]).toEqual({A: 5, B: 2, C: 3});
-  });
 });
