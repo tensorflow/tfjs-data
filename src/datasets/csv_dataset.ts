@@ -24,7 +24,6 @@ import {ColumnConfig, CSVConfig} from '../types';
 import {TextLineDataset} from './text_line_dataset';
 
 const CODE_QUOTE = '"';
-const CODE_SPACE = ' ';
 const STATE_OUT = Symbol('out');
 const STATE_FIELD = Symbol('field');
 const STATE_QUOTE = Symbol('quote');
@@ -314,15 +313,12 @@ export class CSVDataset extends Dataset<TensorContainer> {
             case this.delimiter:
               readOffset = i + 1;
               // If delimiter is white space and configured to collapse
-              // multiple white spaces.
+              // multiple white spaces, ignore this white space.
               if (this.delimiter === ' ' && this.delimWhitespace) {
                 break;
               }
               result.push('');
               currentState = STATE_OUT;
-              break;
-            case CODE_SPACE:
-              readOffset = i + 1;
               break;
             // Enter an unquoted field
             default:
