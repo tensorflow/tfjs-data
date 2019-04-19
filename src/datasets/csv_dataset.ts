@@ -51,10 +51,6 @@ export class CSVDataset extends Dataset<TensorContainer> {
   private configuredColumnsOnly = false;
   private delimiter = ',';
   private delimWhitespace = false;
-  // This flag is used to control whether to check one row's element count is
-  // the same as number of column names when parsing a row. It is only set to
-  // false when parsing header line.
-  private validateElementCount = true;
 
   /**
    * Returns column names of the csv dataset. If `configuredColumnsOnly` is
@@ -128,15 +124,13 @@ export class CSVDataset extends Dataset<TensorContainer> {
 
   private async maybeReadHeaderLine() {
     if (this.hasHeader) {
-      this.validateElementCount = false;
       const iter = await this.base.iterator();
       const firstElement = await iter.next();
       if (firstElement.done) {
         throw new Error('No data was found for CSV parsing.');
       }
       const firstLine: string = firstElement.value;
-      const headers = this.parseRow(firstLine);
-      this.validateElementCount = true;
+      const headers = this.parseRow(firstLine, false);
       return headers;
     } else {
       return null;
@@ -293,7 +287,7 @@ export class CSVDataset extends Dataset<TensorContainer> {
   }
 
   // adapted from https://beta.observablehq.com/@mbostock/streaming-csv
-  private parseRow(line: string): string[] {
+  private parseRow(line: string, validateElementCount = true): string[] {
     const result: string[] = [];
     let readOffset = 0;
     const readLength = line.length;
@@ -387,8 +381,7 @@ export class CSVDataset extends Dataset<TensorContainer> {
       result.push(line.substring(readOffset));
     }
     // Check if each row has the same number of elements as column names.
-    if (this.validateElementCount &&
-        result.length !== this.fullColumnNames.length) {
+    if (validateElementCount && result.length !== this.fullColumnNames.length) {
       throw new Error(`Invalid row in csv file. Should have ${
           this.fullColumnNames.length} elements in a row, but got ${result}`);
     }
