@@ -180,3 +180,5 @@ export interface WebcamConfig {
    */
   centerCrop?: boolean;
 }
+
+export interface MicrophoneConfig {}
