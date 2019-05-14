@@ -21,8 +21,8 @@ import {MicrophoneIterator} from './microphone_iterator';
 
 describeBrowserEnvs('WebcamIterator', () => {
   fit('test use mediaDevice', async () => {
-    const webcamIterator = await MicrophoneIterator.create(videoElement);
-    const result = await webcamIterator.next();
+    const microphoneIterator = await MicrophoneIterator.create();
+    const result = await microphoneIterator.next();
     expect(result.done).toBeFalsy();
     expect(result.value.shape).toEqual([200, 100, 3]);
   });

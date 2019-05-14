@@ -63,7 +63,7 @@ export class MicrophoneIterator extends LazyIterator<Tensor> {
   }
 
   // Construct a MicrophoneIterator and start it's audio stream.
-  static async create(microphoneConfig: MicrophoneConfig) {
+  static async create(microphoneConfig: MicrophoneConfig = {}) {
     if (ENV.get('IS_NODE')) {
       throw new Error(
           'tf.data.microphone is only supported in browser environment.');
@@ -81,11 +81,10 @@ export class MicrophoneIterator extends LazyIterator<Tensor> {
   async start(): Promise<void> {
     try {
       this.stream = await navigator.mediaDevices.getUserMedia(
-          {audio: this.microphoneConfig, video: false});
+          {audio: true /*this.microphoneConfig*/, video: false});
     } catch (e) {
-      // Modify the error message but leave the stack trace intact
-      e.message = `Error thrown while initializing audio stream: ${e.message}`;
-      throw e;
+      throw new Error(
+          `Error thrown while initializing video stream: ${e.message}`);
     }
 
     if (!this.stream) {

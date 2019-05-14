@@ -183,17 +183,17 @@ export interface WebcamConfig {
 }
 
 export interface MicrophoneConfig {
-  sampleRate: number;
+  sampleRate?: number;
 
-  fftSize: number;
+  fftSize?: number;
 
-  columnTruncateLength: number;
+  columnTruncateLength?: number;
 
-  overlapFactor: number;
+  overlapFactor?: number;
 
-  numFramesPerSpectrogram: number;
+  numFramesPerSpectrogram?: number;
 
-  suppressionTimeMillis: number;
+  suppressionTimeMillis?: number;
 
-  spectrogramCallback: SpectrogramCallback;
+  spectrogramCallback?: SpectrogramCallback;
 }
