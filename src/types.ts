@@ -19,6 +19,7 @@
 import {DataType, TensorContainer} from '@tensorflow/tfjs-core';
 import {Dataset} from './dataset';
 import {LazyIterator} from './iterators/lazy_iterator';
+import {SpectrogramCallback} from './iterators/microphone_iterator';
 
 /**
  * @deprecated Use `TensorContainer` from `@tensorflow/tfjs-core` instead.
@@ -181,4 +182,18 @@ export interface WebcamConfig {
   centerCrop?: boolean;
 }
 
-export interface MicrophoneConfig {}
+export interface MicrophoneConfig {
+  sampleRate: number;
+
+  fftSize: number;
+
+  columnTruncateLength: number;
+
+  overlapFactor: number;
+
+  numFramesPerSpectrogram: number;
+
+  suppressionTimeMillis: number;
+
+  spectrogramCallback: SpectrogramCallback;
+}
