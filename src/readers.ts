@@ -17,12 +17,15 @@
  */
 
 import {TensorContainer} from '@tensorflow/tfjs-core';
+
 import {Dataset, datasetFromIteratorFn} from './dataset';
 import {CSVDataset} from './datasets/csv_dataset';
 import {iteratorFromFunction} from './iterators/lazy_iterator';
+import {MicrophoneIterator} from './iterators/microphone_iterator';
 import {WebcamIterator} from './iterators/webcam_iterator';
 import {URLDataSource} from './sources/url_data_source';
-import {CSVConfig, WebcamConfig} from './types';
+import {CSVConfig, MicrophoneConfig, WebcamConfig} from './types';
+
 
 /**
  * Create a `CSVDataset` by reading and decoding CSV file(s) from provided URL
@@ -240,4 +243,8 @@ export function generator<T extends TensorContainer>(
 export async function webcam(
     webcamVideoElement?: HTMLVideoElement, webcamConfig?: WebcamConfig) {
   return WebcamIterator.create(webcamVideoElement, webcamConfig);
+}
+
+export async function microphone(microphoneConfig?: MicrophoneConfig) {
+  return MicrophoneIterator.create(microphoneConfig);
 }

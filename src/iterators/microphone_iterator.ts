@@ -38,9 +38,9 @@ export class MicrophoneIterator extends LazyIterator<Tensor> {
   private tracker: Tracker;
   private suppressionTimeMillis: number;
   // tslint:disable-next-line:no-any
-  // private frameIntervalTask: any;
+  private frameIntervalTask: any;
   private analyser: AnalyserNode;
-  // private spectrogramCallback: SpectrogramCallback;
+  private spectrogramCallback: SpectrogramCallback;
   private audioContext: AudioContext;
   // private startTimeOfLastSpectro: number;
   // private endTimeOfLastSpectro: number;
@@ -52,10 +52,10 @@ export class MicrophoneIterator extends LazyIterator<Tensor> {
     this.frameDurationMillis = this.fftSize / this.sampleRateHz * 1e3;
     this.columnTruncateLength =
         microphoneConfig.columnTruncateLength || this.fftSize;
-    this.overlapFactor = microphoneConfig.overlapFactor;
-    this.numFrames = microphoneConfig.numFramesPerSpectrogram;
+    this.overlapFactor = microphoneConfig.overlapFactor || 0.5;
+    this.numFrames = microphoneConfig.numFramesPerSpectrogram || 42;
     this.suppressionTimeMillis = microphoneConfig.suppressionTimeMillis;
-    // this.spectrogramCallback = microphoneConfig.spectrogramCallback;
+    this.spectrogramCallback = microphoneConfig.spectrogramCallback;
   }
 
   summary() {
@@ -95,12 +95,12 @@ export class MicrophoneIterator extends LazyIterator<Tensor> {
     this.audioContext = new (window as any).AudioContext() ||
         // tslint:disable-next-line:no-any
         (window as any).webkitAudioContext;
-    // if (this.audioContext.sampleRate !== this.sampleRateHz) {
-    //   console.warn(
-    //       `Mismatch in sampling rate: ` +
-    //       `Expected: ${this.sampleRateHz}; ` +
-    //       `Actual: ${this.audioContext.sampleRate}`);
-    // }
+    if (this.audioContext.sampleRate !== this.sampleRateHz) {
+      console.warn(
+          `Mismatch in sampling rate: ` +
+          `Expected: ${this.sampleRateHz}; ` +
+          `Actual: ${this.audioContext.sampleRate}`);
+    }
     const streamSource = this.audioContext.createMediaStreamSource(this.stream);
     this.analyser = this.audioContext.createAnalyser();
     this.analyser.fftSize = this.fftSize * 2;
@@ -115,46 +115,24 @@ export class MicrophoneIterator extends LazyIterator<Tensor> {
     this.tracker = new Tracker(
         period,
         Math.round(this.suppressionTimeMillis / this.frameDurationMillis));
-    // this.frameIntervalTask = setInterval(
-    //     this.onAudioFrame.bind(this), this.fftSize / this.sampleRateHz *
-    //     1e3);
-  }
-
-  // private async onAudioFrame() {
-  //   this.analyser.getFloatFrequencyData(this.freqData);
-  //   if (this.freqData[0] === -Infinity) {
-  //     return;
-  //   }
-
-  //   this.freqDataQueue.push(this.freqData.slice(0,
-  //   this.columnTruncateLength)); if (this.freqDataQueue.length >
-  //   this.numFrames) {
-  //     // Drop the oldest frame (least recent).
-  //     this.freqDataQueue.shift();
-  //   }
-  //   const shouldFire = this.tracker.tick();
-  //   if (shouldFire) {
-  //     const freqData = flattenQueue(this.freqDataQueue);
-  //     const inputTensor = getInputTensorFromFrequencyData(
-  //         freqData, [1, this.numFrames, this.columnTruncateLength, 1]);
-  //     const shouldRest = await this.spectrogramCallback(inputTensor);
-  //     if (shouldRest) {
-  //       this.tracker.suppress();
-  //     }
-  //     inputTensor.dispose();
-  //   }
-  // }
-
-  async next(): Promise<IteratorResult<Tensor>> {
-    if (this.isClosed) {
-      return {value: null, done: true};
+    if (this.spectrogramCallback) {
+      this.frameIntervalTask = setInterval(
+          this.onAudioFrame.bind(this), this.fftSize / this.sampleRateHz * 1e3);
     }
 
-    let resultTensor: Tensor;
 
+    return new Promise<void>(resolve => {
+      // Add event listener to make sure the microphone has been fully
+      // initialized.
+      this.analyser.getFloatFrequencyData(this.freqData);
+      resolve();
+    });
+  }
+
+  private async onAudioFrame() {
     this.analyser.getFloatFrequencyData(this.freqData);
     if (this.freqData[0] === -Infinity) {
-      return {value: null, done: false};
+      return;
     }
 
     this.freqDataQueue.push(this.freqData.slice(0, this.columnTruncateLength));
@@ -165,16 +143,50 @@ export class MicrophoneIterator extends LazyIterator<Tensor> {
     const shouldFire = this.tracker.tick();
     if (shouldFire) {
       const freqData = flattenQueue(this.freqDataQueue);
-      resultTensor = getInputTensorFromFrequencyData(
+      const inputTensor = getInputTensorFromFrequencyData(
           freqData, [1, this.numFrames, this.columnTruncateLength, 1]);
-      // const shouldRest = await this.spectrogramCallback(resultTensor);
-      // if (shouldRest) {
-      //   this.tracker.suppress();
-      // }
-      return {value: resultTensor, done: false};
-    } else {
+      const shouldRest = await this.spectrogramCallback(inputTensor);
+      if (shouldRest) {
+        this.tracker.suppress();
+      }
+      inputTensor.dispose();
+    }
+  }
+
+  async next(): Promise<IteratorResult<Tensor>> {
+    if (this.isClosed) {
+      return {value: null, done: true};
+    }
+
+    let resultTensor: Tensor;
+
+    this.analyser.getFloatFrequencyData(this.freqData);
+    if (this.freqData[0] === -Infinity) {
+      console.log(1111);
       return {value: null, done: false};
     }
+
+    this.freqDataQueue.push(this.freqData.slice(0, this.columnTruncateLength));
+    if (this.freqDataQueue.length > this.numFrames) {
+      // Drop the oldest frame (least recent).
+      this.freqDataQueue.shift();
+    }
+    // const shouldFire = this.tracker.tick();
+    this.tracker.tick();
+    // if (shouldFire) {
+    const freqData = flattenQueue(this.freqDataQueue);
+    resultTensor = getInputTensorFromFrequencyData(
+        freqData, [1, this.numFrames, this.columnTruncateLength, 1]);
+    // const shouldRest = await this.spectrogramCallback(resultTensor);
+    // if (shouldRest) {
+    //   this.tracker.suppress();
+    // }
+    console.log(2222);
+    return {value: resultTensor, done: false};
+    // } else {
+    //   console.log(3333);
+    //   return {value: null, done: false};
+    // }
   }
 
   // private needToResize() {
@@ -210,23 +222,20 @@ export class MicrophoneIterator extends LazyIterator<Tensor> {
 
   // Stop the video stream and pause webcam iterator.
   stop(): void {
-    // const tracks = this.stream.getTracks();
+    this.isClosed = true;
 
-    // tracks.forEach(track => track.stop());
-
-    // try {
-    //   this.webcamVideoElement.srcObject = null;
-    // } catch (error) {
-    //   console.log(error);
-    //   this.webcamVideoElement.src = null;
-    // }
-    // this.isClosed = true;
-    // this.frameIntervalTask = null;
+    console.log('stop 1');
+    clearInterval(this.frameIntervalTask);
+    this.frameIntervalTask = null;
     this.analyser.disconnect();
+    console.log('stop 2');
     this.audioContext.close();
+    console.log('stop 3');
     if (this.stream != null && this.stream.getTracks().length > 0) {
-      this.stream.getTracks()[0].stop();
+      const tracks = this.stream.getTracks();
+      tracks.forEach(track => track.stop());
     }
+    console.log('stop 4');
   }
 
   // Override toArray() function to prevent collecting.
