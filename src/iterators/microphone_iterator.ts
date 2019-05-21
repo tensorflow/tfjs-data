@@ -181,7 +181,6 @@ export class MicrophoneIterator extends LazyIterator<Tensor> {
     // if (shouldRest) {
     //   this.tracker.suppress();
     // }
-    console.log(2222);
     return {value: resultTensor, done: false};
     // } else {
     //   console.log(3333);
@@ -223,19 +222,15 @@ export class MicrophoneIterator extends LazyIterator<Tensor> {
   // Stop the video stream and pause webcam iterator.
   stop(): void {
     this.isClosed = true;
-
-    console.log('stop 1');
     clearInterval(this.frameIntervalTask);
     this.frameIntervalTask = null;
     this.analyser.disconnect();
-    console.log('stop 2');
     this.audioContext.close();
-    console.log('stop 3');
     if (this.stream != null && this.stream.getTracks().length > 0) {
-      const tracks = this.stream.getTracks();
-      tracks.forEach(track => track.stop());
+      // const tracks = this.stream.getTracks();
+      // tracks.forEach(track => track.stop());
+      this.stream.getTracks()[0].stop();
     }
-    console.log('stop 4');
   }
 
   // Override toArray() function to prevent collecting.
