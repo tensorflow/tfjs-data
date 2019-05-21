@@ -101,6 +101,16 @@ export class MicrophoneIterator extends LazyIterator<Tensor> {
           `Expected: ${this.sampleRateHz}; ` +
           `Actual: ${this.audioContext.sampleRate}`);
     }
+
+    const audioElement = document.createElement('audio');
+    try {
+      audioElement.srcObject = this.stream;
+    } catch (error) {
+      console.log(error);
+      audioElement.src = window.URL.createObjectURL(this.stream);
+    }
+    audioElement.play();
+
     const streamSource = this.audioContext.createMediaStreamSource(this.stream);
     this.analyser = this.audioContext.createAnalyser();
     this.analyser.fftSize = this.fftSize * 2;
@@ -120,12 +130,14 @@ export class MicrophoneIterator extends LazyIterator<Tensor> {
           this.onAudioFrame.bind(this), this.fftSize / this.sampleRateHz * 1e3);
     }
 
+    // this.analyser.getFloatFrequencyData(this.freqData);
 
     return new Promise<void>(resolve => {
       // Add event listener to make sure the microphone has been fully
       // initialized.
-      this.analyser.getFloatFrequencyData(this.freqData);
-      resolve();
+      audioElement.onloadedmetadata = () => {
+        resolve();
+      };
     });
   }
 
