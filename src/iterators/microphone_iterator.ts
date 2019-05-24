@@ -29,18 +29,13 @@ export class MicrophoneIterator extends LazyIterator<Tensor> {
   private stream: MediaStream;
   private fftSize: number;
   private sampleRateHz: number;
-  private frameDurationMillis: number;
   private columnTruncateLength: number;
-  private overlapFactor: number;
   private freqDataQueue: Float32Array[];
   private freqData: Float32Array;
   private numFrames: number;
-  private tracker: Tracker;
-  private suppressionTimeMillis: number;
   // tslint:disable-next-line:no-any
   private frameIntervalTask: any;
   private analyser: AnalyserNode;
-  private spectrogramCallback: SpectrogramCallback;
   private audioContext: AudioContext;
   // private startTimeOfLastSpectro: number;
   // private endTimeOfLastSpectro: number;
@@ -49,13 +44,9 @@ export class MicrophoneIterator extends LazyIterator<Tensor> {
     super();
     this.fftSize = microphoneConfig.fftSize || 1024;
     this.sampleRateHz = microphoneConfig.sampleRate || 44100;
-    this.frameDurationMillis = this.fftSize / this.sampleRateHz * 1e3;
     this.columnTruncateLength =
         microphoneConfig.columnTruncateLength || this.fftSize;
-    this.overlapFactor = microphoneConfig.overlapFactor || 0.5;
     this.numFrames = microphoneConfig.numFramesPerSpectrogram || 42;
-    this.suppressionTimeMillis = microphoneConfig.suppressionTimeMillis;
-    this.spectrogramCallback = microphoneConfig.spectrogramCallback;
   }
 
   summary() {
@@ -120,49 +111,16 @@ export class MicrophoneIterator extends LazyIterator<Tensor> {
     this.freqDataQueue = [];
     this.freqData = new Float32Array(this.fftSize);
 
-    const period =
-        Math.max(1, Math.round(this.numFrames * (1 - this.overlapFactor)));
-    this.tracker = new Tracker(
-        period,
-        Math.round(this.suppressionTimeMillis / this.frameDurationMillis));
-    if (this.spectrogramCallback) {
-      this.frameIntervalTask = setInterval(
-          this.onAudioFrame.bind(this), this.fftSize / this.sampleRateHz * 1e3);
-    }
-
-    // this.analyser.getFloatFrequencyData(this.freqData);
+    this.analyser.getFloatFrequencyData(this.freqData);
 
     return new Promise<void>(resolve => {
       // Add event listener to make sure the microphone has been fully
       // initialized.
       audioElement.onloadedmetadata = () => {
+        console.log('onloadedmetadata');
         resolve();
       };
     });
-  }
-
-  private async onAudioFrame() {
-    this.analyser.getFloatFrequencyData(this.freqData);
-    if (this.freqData[0] === -Infinity) {
-      return;
-    }
-
-    this.freqDataQueue.push(this.freqData.slice(0, this.columnTruncateLength));
-    if (this.freqDataQueue.length > this.numFrames) {
-      // Drop the oldest frame (least recent).
-      this.freqDataQueue.shift();
-    }
-    const shouldFire = this.tracker.tick();
-    if (shouldFire) {
-      const freqData = flattenQueue(this.freqDataQueue);
-      const inputTensor = getInputTensorFromFrequencyData(
-          freqData, [1, this.numFrames, this.columnTruncateLength, 1]);
-      const shouldRest = await this.spectrogramCallback(inputTensor);
-      if (shouldRest) {
-        this.tracker.suppress();
-      }
-      inputTensor.dispose();
-    }
   }
 
   async next(): Promise<IteratorResult<Tensor>> {
@@ -174,7 +132,6 @@ export class MicrophoneIterator extends LazyIterator<Tensor> {
 
     this.analyser.getFloatFrequencyData(this.freqData);
     if (this.freqData[0] === -Infinity) {
-      console.log(1111);
       return {value: null, done: false};
     }
 
@@ -183,53 +140,11 @@ export class MicrophoneIterator extends LazyIterator<Tensor> {
       // Drop the oldest frame (least recent).
       this.freqDataQueue.shift();
     }
-    // const shouldFire = this.tracker.tick();
-    this.tracker.tick();
-    // if (shouldFire) {
     const freqData = flattenQueue(this.freqDataQueue);
     resultTensor = getInputTensorFromFrequencyData(
         freqData, [1, this.numFrames, this.columnTruncateLength, 1]);
-    // const shouldRest = await this.spectrogramCallback(resultTensor);
-    // if (shouldRest) {
-    //   this.tracker.suppress();
-    // }
     return {value: resultTensor, done: false};
-    // } else {
-    //   console.log(3333);
-    //   return {value: null, done: false};
-    // }
   }
-
-  // private needToResize() {
-  // If resizeWidth and resizeHeight are provided, and different from the
-  // width and height of original HTMLVideoElement, then resizing and cropping
-  // is required.
-  // if (this.webcamConfig.resizeWidth && this.webcamConfig.resizeHeight &&
-  //     (this.webcamVideoElement.width !== this.webcamConfig.resizeWidth ||
-  //      this.webcamVideoElement.height !==
-  //      this.webcamConfig.resizeHeight)) {
-  //   return true;
-  // }
-  // return false;
-  // }
-
-  // Cropping and resizing each frame based on config
-  // cropAndResizeFrame(img: Tensor3D): Tensor3D {
-  // const expandedImage: Tensor4D = img.toFloat().expandDims(0);
-  // let resizedImage;
-  // resizedImage = image.cropAndResize(
-  //     expandedImage, this.cropBox, this.cropBoxInd, this.cropSize,
-  //     'bilinear');
-  // // Extract image from batch cropping.
-  // const shape = resizedImage.shape;
-  // return resizedImage.reshape(shape.slice(1) as [number, number, number]);
-  // }
-
-  // Capture one frame from the video stream, and extract the value from
-  // iterator.next() result.
-  // async capture(): Promise<Tensor3D> {
-  //   return (await this.next()).value;
-  // }
 
   // Stop the video stream and pause webcam iterator.
   stop(): void {
@@ -266,52 +181,4 @@ export function getInputTensorFromFrequencyData(
   // If the data is less than the output shape, the rest is padded with zeros.
   vals.set(freqData, vals.length - freqData.length);
   return tensor(vals, shape);
-}
-
-/**
- * A class that manages the firing of events based on periods
- * and suppression time.
- */
-export class Tracker {
-  readonly period: number;
-  readonly suppressionTime: number;
-
-  private counter: number;
-  private suppressionOnset: number;
-
-  /**
-   * Constructor of Tracker.
-   *
-   * @param period The event-firing period, in number of frames.
-   * @param suppressionPeriod The suppression period, in number of frames.
-   */
-  constructor(period: number, suppressionPeriod: number) {
-    this.period = period;
-    this.suppressionTime = suppressionPeriod == null ? 0 : suppressionPeriod;
-    this.counter = 0;
-
-    util.assert(
-        this.period > 0,
-        () => `Expected period to be positive, but got ${this.period}`);
-  }
-
-  /**
-   * Mark a frame.
-   *
-   * @returns Whether the event should be fired at the current frame.
-   */
-  tick(): boolean {
-    this.counter++;
-    const shouldFire = (this.counter % this.period === 0) &&
-        (this.suppressionOnset == null ||
-         this.counter - this.suppressionOnset > this.suppressionTime);
-    return shouldFire;
-  }
-
-  /**
-   * Order the beginning of a supression period.
-   */
-  suppress() {
-    this.suppressionOnset = this.counter;
-  }
 }
