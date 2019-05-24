@@ -28,7 +28,6 @@ export class MicrophoneIterator extends LazyIterator<Tensor> {
   private isClosed = false;
   private stream: MediaStream;
   private fftSize: number;
-  private sampleRateHz: number;
   private columnTruncateLength: number;
   private freqDataQueue: Float32Array[];
   private freqData: Float32Array;
@@ -43,7 +42,6 @@ export class MicrophoneIterator extends LazyIterator<Tensor> {
   private constructor(protected readonly microphoneConfig: MicrophoneConfig) {
     super();
     this.fftSize = microphoneConfig.fftSize || 1024;
-    this.sampleRateHz = microphoneConfig.sampleRate || 44100;
     this.columnTruncateLength =
         microphoneConfig.columnTruncateLength || this.fftSize;
     this.numFrames = microphoneConfig.numFramesPerSpectrogram || 42;
@@ -86,12 +84,6 @@ export class MicrophoneIterator extends LazyIterator<Tensor> {
     this.audioContext = new (window as any).AudioContext() ||
         // tslint:disable-next-line:no-any
         (window as any).webkitAudioContext;
-    if (this.audioContext.sampleRate !== this.sampleRateHz) {
-      console.warn(
-          `Mismatch in sampling rate: ` +
-          `Expected: ${this.sampleRateHz}; ` +
-          `Actual: ${this.audioContext.sampleRate}`);
-    }
 
     const audioElement = document.createElement('audio');
     try {
