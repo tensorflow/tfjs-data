@@ -19,7 +19,6 @@
 import {DataType, TensorContainer} from '@tensorflow/tfjs-core';
 import {Dataset} from './dataset';
 import {LazyIterator} from './iterators/lazy_iterator';
-import {SpectrogramCallback} from './iterators/microphone_iterator';
 
 /**
  * @deprecated Use `TensorContainer` from `@tensorflow/tfjs-core` instead.
