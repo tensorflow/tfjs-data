@@ -154,12 +154,15 @@ export class MicrophoneIterator extends LazyIterator<Tensor> {
     }
     const shouldFire = this.tracker.tick();
     if (shouldFire) {
+      console.log('should fire');
       const freqData = flattenQueue(this.freqDataQueue);
       const inputTensor = getInputTensorFromFrequencyData(
           freqData, [1, this.numFrames, this.columnTruncateLength, 1]);
       const shouldRest = await this.spectrogramCallback(inputTensor);
+      console.log('should rest');
       if (shouldRest) {
         this.tracker.suppress();
+        console.log('suppress');
       }
       inputTensor.dispose();
     }
@@ -286,6 +289,7 @@ export class Tracker {
    * @param suppressionPeriod The suppression period, in number of frames.
    */
   constructor(period: number, suppressionPeriod: number) {
+    console.log(period, suppressionPeriod);
     this.period = period;
     this.suppressionTime = suppressionPeriod == null ? 0 : suppressionPeriod;
     this.counter = 0;
@@ -305,6 +309,7 @@ export class Tracker {
     const shouldFire = (this.counter % this.period === 0) &&
         (this.suppressionOnset == null ||
          this.counter - this.suppressionOnset > this.suppressionTime);
+    console.log(this.counter, this.suppressionOnset);
     return shouldFire;
   }
 
