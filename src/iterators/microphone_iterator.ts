@@ -177,7 +177,6 @@ export class MicrophoneIterator extends LazyIterator<Tensor> {
 
     this.analyser.getFloatFrequencyData(this.freqData);
     if (this.freqData[0] === -Infinity) {
-      console.log(1111);
       return {value: null, done: false};
     }
 
@@ -186,21 +185,10 @@ export class MicrophoneIterator extends LazyIterator<Tensor> {
       // Drop the oldest frame (least recent).
       this.freqDataQueue.shift();
     }
-    // const shouldFire = this.tracker.tick();
-    this.tracker.tick();
-    // if (shouldFire) {
     const freqData = flattenQueue(this.freqDataQueue);
     resultTensor = getInputTensorFromFrequencyData(
         freqData, [1, this.numFrames, this.columnTruncateLength, 1]);
-    // const shouldRest = await this.spectrogramCallback(resultTensor);
-    // if (shouldRest) {
-    //   this.tracker.suppress();
-    // }
     return {value: resultTensor, done: false};
-    // } else {
-    //   console.log(3333);
-    //   return {value: null, done: false};
-    // }
   }
 
   // private needToResize() {
