@@ -130,8 +130,6 @@ export class MicrophoneIterator extends LazyIterator<Tensor> {
           this.onAudioFrame.bind(this), this.fftSize / this.sampleRateHz * 1e3);
     }
 
-    // this.analyser.getFloatFrequencyData(this.freqData);
-
     return new Promise<void>(resolve => {
       // Add event listener to make sure the microphone has been fully
       // initialized.
@@ -147,6 +145,8 @@ export class MicrophoneIterator extends LazyIterator<Tensor> {
       return;
     }
 
+    console.log(
+        'freqData length: ', this.freqData.length, this.columnTruncateLength);
     this.freqDataQueue.push(this.freqData.slice(0, this.columnTruncateLength));
     if (this.freqDataQueue.length > this.numFrames) {
       // Drop the oldest frame (least recent).
@@ -191,38 +191,7 @@ export class MicrophoneIterator extends LazyIterator<Tensor> {
     return {value: resultTensor, done: false};
   }
 
-  // private needToResize() {
-  // If resizeWidth and resizeHeight are provided, and different from the
-  // width and height of original HTMLVideoElement, then resizing and cropping
-  // is required.
-  // if (this.webcamConfig.resizeWidth && this.webcamConfig.resizeHeight &&
-  //     (this.webcamVideoElement.width !== this.webcamConfig.resizeWidth ||
-  //      this.webcamVideoElement.height !==
-  //      this.webcamConfig.resizeHeight)) {
-  //   return true;
-  // }
-  // return false;
-  // }
-
-  // Cropping and resizing each frame based on config
-  // cropAndResizeFrame(img: Tensor3D): Tensor3D {
-  // const expandedImage: Tensor4D = img.toFloat().expandDims(0);
-  // let resizedImage;
-  // resizedImage = image.cropAndResize(
-  //     expandedImage, this.cropBox, this.cropBoxInd, this.cropSize,
-  //     'bilinear');
-  // // Extract image from batch cropping.
-  // const shape = resizedImage.shape;
-  // return resizedImage.reshape(shape.slice(1) as [number, number, number]);
-  // }
-
-  // Capture one frame from the video stream, and extract the value from
-  // iterator.next() result.
-  // async capture(): Promise<Tensor3D> {
-  //   return (await this.next()).value;
-  // }
-
-  // Stop the video stream and pause webcam iterator.
+  // Stop the audio stream and pause microphone iterator.
   stop(): void {
     this.isClosed = true;
     clearInterval(this.frameIntervalTask);
