@@ -184,9 +184,15 @@ export interface WebcamConfig {
 export interface MicrophoneConfig {
   fftSize?: number;
 
-  columnTruncateLength?: number;
+  cutOffFrequencyHz?: number;
 
   numFramesPerSpectrogram?: number;
 
-  sampleRateHz?: number;
+  sampleRateHz?: 44100|48000;
+
+  audioTrackConstraints?: MediaTrackConstraints;
+
+  includeSpectrogram?: boolean;
+
+  includeWaveform?: boolean;
 }

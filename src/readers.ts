@@ -17,7 +17,6 @@
  */
 
 import {TensorContainer} from '@tensorflow/tfjs-core';
-
 import {Dataset, datasetFromIteratorFn} from './dataset';
 import {CSVDataset} from './datasets/csv_dataset';
 import {iteratorFromFunction} from './iterators/lazy_iterator';

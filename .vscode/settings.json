@@ -1,31 +1,59 @@
-// Place your settings in this file to overwrite default and user settings.
+// Place your settings in this file to override default and user settings.
 {
   "search.exclude": {
     "**/node_modules": true,
+    "**/bower_components": true,
     "coverage/": true,
     "dist/": true,
     "**/bundle.js": true,
     "**/yarn.lock": true,
-    ".rpt2_cache/": true,
-    ".yalc/": true
+    "**/.yalc/": true,
+    "**/.rpt2_cache/": true,
   },
-  "tslint.enable": true,
-  "tslint.run": "onType",
-  "tslint.configFile": "tslint.json",
+
+  /*** Here to end should be synced with Workspace and sister repositories ***/
+
   "files.trimTrailingWhitespace": true,
   "editor.tabSize": 2,
   "editor.insertSpaces": true,
-  "[typescript]": {
-    "editor.formatOnSave": true
-  },
-  "[javascript]": {
-    "editor.formatOnSave": true
-  },
-  "editor.rulers": [80],
-  "clang-format.style": "Google",
   "files.insertFinalNewline": true,
   "editor.detectIndentation": false,
   "editor.wrappingIndent": "none",
-  "typescript.tsdk": "./node_modules/typescript/lib",
-  "clang-format.executable": "${workspaceRoot}/node_modules/.bin/clang-format"
-}
+
+  // Use only clang-format, not the built-in formatter, for all languages.
+  "editor.defaultFormatter": "xaver.clang-format",
+  "clang-format.style": "Google",
+  // In workspace, prefix with ${workspaceRoot}/
+  "clang-format.executable": "node_modules/.bin/clang-format",
+
+  /** JS lint and formatting */
+  "javascript.format.enable": false,
+  "javascript.format.insertSpaceAfterOpeningAndBeforeClosingNonemptyBraces": false,
+  "javascript.preferences.quoteStyle": "single",
+  "javascript.updateImportsOnFileMove.enabled": "always",
+
+  /** TS config */
+  // In workspace, prefix with ${workspaceRoot}/
+  "typescript.tsdk": "node_modules/typescript/lib",
+
+  /** TS lint and formatting */
+  "tslint.configFile": "tslint.json",
+  // Add extra confidence that we run only clang-format, and only once.
+  "typescript.format.enable": false,
+  "typescript.format.insertSpaceAfterOpeningAndBeforeClosingNonemptyBraces": false,
+  "typescript.updateImportsOnFileMove.enabled": "always",
+  "typescript.preferences.quoteStyle": "single",
+
+  "editor.codeActionsOnSave": {
+    "source.fixAll": true,
+    "source.fixAll.tslint": true,
+    // Let tslint sort the imports; don't collide
+    "source.organizeImports": false,
+  },
+
+  "[typescript]": {
+    "editor.formatOnSave": true,
+    "editor.formatOnPaste": false,
+    "editor.formatOnType": false,
+  },
+ }
