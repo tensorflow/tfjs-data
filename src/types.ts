@@ -187,4 +187,6 @@ export interface MicrophoneConfig {
   columnTruncateLength?: number;
 
   numFramesPerSpectrogram?: number;
+
+  sampleRateHz?: number;
 }

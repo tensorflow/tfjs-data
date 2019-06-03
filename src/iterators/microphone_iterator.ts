@@ -29,22 +29,19 @@ export class MicrophoneIterator extends LazyIterator<Tensor> {
   private stream: MediaStream;
   private fftSize: number;
   private columnTruncateLength: number;
-  private freqDataQueue: Float32Array[];
   private freqData: Float32Array;
   private numFrames: number;
-  // tslint:disable-next-line:no-any
-  private frameIntervalTask: any;
   private analyser: AnalyserNode;
   private audioContext: AudioContext;
-  // private startTimeOfLastSpectro: number;
-  // private endTimeOfLastSpectro: number;
+  private sampleRateHz: number;
 
   private constructor(protected readonly microphoneConfig: MicrophoneConfig) {
     super();
     this.fftSize = microphoneConfig.fftSize || 1024;
     this.columnTruncateLength =
         microphoneConfig.columnTruncateLength || this.fftSize;
-    this.numFrames = microphoneConfig.numFramesPerSpectrogram || 42;
+    this.numFrames = microphoneConfig.numFramesPerSpectrogram || 43;
+    this.sampleRateHz = microphoneConfig.sampleRateHz || 44100;
   }
 
   summary() {
@@ -60,17 +57,17 @@ export class MicrophoneIterator extends LazyIterator<Tensor> {
 
     const microphoneIterator = new MicrophoneIterator(microphoneConfig);
 
-    // Call async function to initialize the video stream.
+    // Call async function to initialize the audio stream.
     await microphoneIterator.start();
 
     return microphoneIterator;
   }
 
-  // Async function to start video stream.
+  // Async function to start the audio stream and FFT.
   async start(): Promise<void> {
     try {
       this.stream = await navigator.mediaDevices.getUserMedia(
-          {audio: true /*this.microphoneConfig*/, video: false});
+          {audio: true, video: false});
     } catch (e) {
       throw new Error(
           `Error thrown while initializing video stream: ${e.message}`);
@@ -80,39 +77,17 @@ export class MicrophoneIterator extends LazyIterator<Tensor> {
       throw new Error('Could not obtain audio from microphone.');
     }
 
-    // tslint:disable-next-line:no-any
     this.audioContext = new (window as any).AudioContext() ||
         // tslint:disable-next-line:no-any
         (window as any).webkitAudioContext;
-
-    const audioElement = document.createElement('audio');
-    try {
-      audioElement.srcObject = this.stream;
-    } catch (error) {
-      console.log(error);
-      audioElement.src = window.URL.createObjectURL(this.stream);
-    }
-    audioElement.play();
 
     const streamSource = this.audioContext.createMediaStreamSource(this.stream);
     this.analyser = this.audioContext.createAnalyser();
     this.analyser.fftSize = this.fftSize * 2;
     this.analyser.smoothingTimeConstant = 0.0;
     streamSource.connect(this.analyser);
-    // Reset the queue.
-    this.freqDataQueue = [];
     this.freqData = new Float32Array(this.fftSize);
-
-    this.analyser.getFloatFrequencyData(this.freqData);
-
-    return new Promise<void>(resolve => {
-      // Add event listener to make sure the microphone has been fully
-      // initialized.
-      audioElement.onloadedmetadata = () => {
-        console.log('onloadedmetadata');
-        resolve();
-      };
-    });
+    return;
   }
 
   async next(): Promise<IteratorResult<Tensor>> {
@@ -122,43 +97,48 @@ export class MicrophoneIterator extends LazyIterator<Tensor> {
 
     let resultTensor: Tensor;
 
-    this.analyser.getFloatFrequencyData(this.freqData);
-    if (this.freqData[0] === -Infinity) {
-      return {value: null, done: false};
-    }
-
-    this.freqDataQueue.push(this.freqData.slice(0, this.columnTruncateLength));
-    if (this.freqDataQueue.length > this.numFrames) {
-      // Drop the oldest frame (least recent).
-      this.freqDataQueue.shift();
-    }
-    const freqData = flattenQueue(this.freqDataQueue);
+    const freqDataQueue = await this.getSpectrogram();
+    const freqData = flattenQueue(freqDataQueue);
     resultTensor = getInputTensorFromFrequencyData(
         freqData, [1, this.numFrames, this.columnTruncateLength, 1]);
+
     return {value: resultTensor, done: false};
   }
 
-  // Stop the video stream and pause webcam iterator.
+  private async getSpectrogram(): Promise<Float32Array[]> {
+    const freqDataQueue: Float32Array[] = [];
+    let currentFrames = 0;
+    return new Promise(resolve => {
+      const intervalID = setInterval(() => {
+        this.analyser.getFloatFrequencyData(this.freqData);
+        if (this.freqData[0] === -Infinity) {
+          resolve();
+        }
+        freqDataQueue.push(this.freqData.slice(0, this.columnTruncateLength));
+
+        if (++currentFrames === this.numFrames) {
+          clearInterval(intervalID);
+          resolve(freqDataQueue);
+        }
+      }, this.fftSize / this.sampleRateHz * 1e3);
+    })
+  }
+
+  // Stop the audio stream and pause the MicroPhone iterator.
   stop(): void {
     this.isClosed = true;
-    clearInterval(this.frameIntervalTask);
-    this.frameIntervalTask = null;
     this.analyser.disconnect();
     this.audioContext.close();
     if (this.stream != null && this.stream.getTracks().length > 0) {
-      // const tracks = this.stream.getTracks();
-      // tracks.forEach(track => track.stop());
       this.stream.getTracks()[0].stop();
     }
   }
 
   // Override toArray() function to prevent collecting.
   toArray(): Promise<Tensor3D[]> {
-    throw new Error('Can not convert infinite video stream to array.');
+    throw new Error('Can not convert infinite audio stream to array.');
   }
 }
-
-export type SpectrogramCallback = (x: Tensor) => Promise<boolean>;
 
 export function flattenQueue(queue: Float32Array[]): Float32Array {
   const frameSize = queue[0].length;
