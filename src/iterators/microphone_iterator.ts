@@ -42,8 +42,6 @@ export class MicrophoneIterator extends LazyIterator<Tensor> {
   private analyser: AnalyserNode;
   private spectrogramCallback: SpectrogramCallback;
   private audioContext: AudioContext;
-  // private startTimeOfLastSpectro: number;
-  // private endTimeOfLastSpectro: number;
 
   private constructor(protected readonly microphoneConfig: MicrophoneConfig) {
     super();
@@ -71,20 +69,20 @@ export class MicrophoneIterator extends LazyIterator<Tensor> {
 
     const microphoneIterator = new MicrophoneIterator(microphoneConfig);
 
-    // Call async function to initialize the video stream.
+    // Call async function to initialize the audio stream.
     await microphoneIterator.start();
 
     return microphoneIterator;
   }
 
-  // Async function to start video stream.
+  // Async function to start audio stream.
   async start(): Promise<void> {
     try {
       this.stream = await navigator.mediaDevices.getUserMedia(
           {audio: true /*this.microphoneConfig*/, video: false});
     } catch (e) {
       throw new Error(
-          `Error thrown while initializing video stream: ${e.message}`);
+          `Error thrown while initializing audio stream: ${e.message}`);
     }
 
     if (!this.stream) {
@@ -145,8 +143,6 @@ export class MicrophoneIterator extends LazyIterator<Tensor> {
       return;
     }
 
-    console.log(
-        'freqData length: ', this.freqData.length, this.columnTruncateLength);
     this.freqDataQueue.push(this.freqData.slice(0, this.columnTruncateLength));
     if (this.freqDataQueue.length > this.numFrames) {
       // Drop the oldest frame (least recent).
@@ -154,15 +150,12 @@ export class MicrophoneIterator extends LazyIterator<Tensor> {
     }
     const shouldFire = this.tracker.tick();
     if (shouldFire) {
-      console.log('should fire');
       const freqData = flattenQueue(this.freqDataQueue);
       const inputTensor = getInputTensorFromFrequencyData(
           freqData, [1, this.numFrames, this.columnTruncateLength, 1]);
       const shouldRest = await this.spectrogramCallback(inputTensor);
-      console.log('should rest');
       if (shouldRest) {
         this.tracker.suppress();
-        console.log('suppress');
       }
       inputTensor.dispose();
     }
@@ -207,7 +200,7 @@ export class MicrophoneIterator extends LazyIterator<Tensor> {
 
   // Override toArray() function to prevent collecting.
   toArray(): Promise<Tensor3D[]> {
-    throw new Error('Can not convert infinite video stream to array.');
+    throw new Error('Can not convert infinite audio stream to array.');
   }
 }
 
@@ -246,7 +239,6 @@ export class Tracker {
    * @param suppressionPeriod The suppression period, in number of frames.
    */
   constructor(period: number, suppressionPeriod: number) {
-    console.log(period, suppressionPeriod);
     this.period = period;
     this.suppressionTime = suppressionPeriod == null ? 0 : suppressionPeriod;
     this.counter = 0;
@@ -266,7 +258,6 @@ export class Tracker {
     const shouldFire = (this.counter % this.period === 0) &&
         (this.suppressionOnset == null ||
          this.counter - this.suppressionOnset > this.suppressionTime);
-    console.log(this.counter, this.suppressionOnset);
     return shouldFire;
   }
 
