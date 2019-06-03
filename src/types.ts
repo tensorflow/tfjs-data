@@ -184,7 +184,8 @@ export interface WebcamConfig {
 export interface MicrophoneConfig {
   fftSize?: number;
 
-  cutOffFrequencyHz?: number;
+  // cutOffFrequencyHz?: number;
+  columnTruncateLength?: number;
 
   numFramesPerSpectrogram?: number;
 

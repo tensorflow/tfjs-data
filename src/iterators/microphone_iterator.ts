@@ -28,7 +28,7 @@ export class MicrophoneIterator extends LazyIterator<TensorContainer> {
   private isClosed = false;
   private stream: MediaStream;
   private fftSize: number;
-  private cutOffFrequencyHz: number;
+  // private cutOffFrequencyHz: number;
   private columnTruncateLength: number;
   private freqData: Float32Array;
   private timeData: Float32Array;
@@ -45,16 +45,20 @@ export class MicrophoneIterator extends LazyIterator<TensorContainer> {
     this.fftSize = microphoneConfig.fftSize || 1024;
     this.numFrames = microphoneConfig.numFramesPerSpectrogram || 43;
     this.sampleRateHz = microphoneConfig.sampleRateHz || 44100;
-    this.cutOffFrequencyHz =
-        microphoneConfig.cutOffFrequencyHz || Math.round(this.sampleRateHz / 2);
+    // this.cutOffFrequencyHz =
+    //     microphoneConfig.cutOffFrequencyHz || Math.round(this.sampleRateHz /
+    //     2);
+    this.columnTruncateLength =
+        microphoneConfig.columnTruncateLength || this.fftSize;
     this.audioTrackConstraints = microphoneConfig.audioTrackConstraints;
     this.includeSpectrogram =
         microphoneConfig.includeSpectrogram === false ? false : true;
     this.includeWaveform =
         microphoneConfig.includeWaveform === true ? true : false;
 
-    this.columnTruncateLength =
-        Math.round((this.fftSize * this.cutOffFrequencyHz) / this.sampleRateHz);
+    // this.columnTruncateLength =
+    //     Math.round((this.fftSize * this.cutOffFrequencyHz) /
+    //     this.sampleRateHz);
   }
 
   summary() {
@@ -117,6 +121,7 @@ export class MicrophoneIterator extends LazyIterator<TensorContainer> {
     this.analyser.smoothingTimeConstant = 0.0;
     streamSource.connect(this.analyser);
     this.freqData = new Float32Array(this.fftSize);
+    this.timeData = new Float32Array(this.fftSize);
     return;
   }
 
@@ -137,7 +142,7 @@ export class MicrophoneIterator extends LazyIterator<TensorContainer> {
     if (this.includeWaveform) {
       const timeData = flattenQueue(audioDataQueue.timeDataQueue);
       waveformTensor = getTensorFromAudioDataArray(
-          timeData, [this.numFrames * this.columnTruncateLength]);
+          timeData, [this.numFrames * this.fftSize]);
     }
 
     return {
@@ -161,7 +166,7 @@ export class MicrophoneIterator extends LazyIterator<TensorContainer> {
           freqDataQueue.push(this.freqData.slice(0, this.columnTruncateLength));
         }
         if (this.includeWaveform) {
-          this.analyser.getFloatFrequencyData(this.timeData);
+          this.analyser.getFloatTimeDomainData(this.timeData);
           timeDataQueue.push(this.timeData.slice());
         }
 
