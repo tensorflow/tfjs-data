@@ -142,7 +142,7 @@ export class MicrophoneIterator extends LazyIterator<TensorContainer> {
     if (this.includeWaveform) {
       const timeData = flattenQueue(audioDataQueue.timeDataQueue);
       waveformTensor = getTensorFromAudioDataArray(
-          timeData, [this.numFrames * this.fftSize]);
+          timeData, [this.numFrames * this.fftSize, 1]);
     }
 
     return {
