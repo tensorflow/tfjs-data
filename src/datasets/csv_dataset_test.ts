@@ -94,7 +94,7 @@ const csvWithMissingElement = `A,B,C
 2,
 3,2,3`;
 
-const csvWithLineBreaker = `A,B,C\r\n1,2,3\r\n3,2,3`;
+const csvWithLineBreaker = `A,B,C\r\n1,2,3\r\nv,\rw,x\r\n3,2,3`;
 
 const csvDataWithHeadersExtra = ENV.get('IS_BROWSER') ?
     new Blob([csvDataExtra]) :
@@ -494,7 +494,7 @@ describe('CSVDataset', () => {
        }
      });
 
-  fit('parse correctly when csv file has extra line breaker', async () => {
+  it('parse correctly when csv file has extra line breaker', async () => {
     const source = new FileDataSource(csvDataWithLineBreaker, {chunkSize: 10});
     const dataset = new CSVDataset(source);
     expect(await dataset.columnNames()).toEqual(['A', 'B', 'C']);
@@ -502,6 +502,7 @@ describe('CSVDataset', () => {
     const result = await iter.toArrayForTest();
 
     expect(result[0]).toEqual({A: 1, B: 2, C: 3});
-    expect(result[1]).toEqual({A: 3, B: 2, C: 3});
+    expect(result[1]).toEqual({A: 'v', B: '\rw', C: 'x'});
+    expect(result[2]).toEqual({A: 3, B: 2, C: 3});
   });
 });
