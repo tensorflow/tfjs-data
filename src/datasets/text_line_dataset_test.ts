@@ -24,7 +24,13 @@ const runes = `ᚠᛇᚻ᛫ᛒᛦᚦ᛫ᚠᚱᚩᚠᚢᚱ᛫ᚠᛁᚱᚪ᛫ᚷ�
 ᛋᚳᛖᚪᛚ᛫ᚦᛖᚪᚻ᛫ᛗᚪᚾᚾᚪ᛫ᚷᛖᚻᚹᛦᛚᚳ᛫ᛗᛁᚳᛚᚢᚾ᛫ᚻᛦᛏ᛫ᛞᚫᛚᚪᚾ
 ᚷᛁᚠ᛫ᚻᛖ᛫ᚹᛁᛚᛖ᛫ᚠᚩᚱ᛫ᛞᚱᛁᚻᛏᚾᛖ᛫ᛞᚩᛗᛖᛋ᛫ᚻᛚᛇᛏᚪᚾ᛬`;
 
+const textFromWindows = 'abc\rdefg\r\nhijklmn\r\nopqrst';
+
 const testBlob = ENV.get('IS_BROWSER') ? new Blob([runes]) : Buffer.from(runes);
+
+const textBlobFromWindows = ENV.get('IS_BROWSER') ?
+    new Blob([textFromWindows]) :
+    Buffer.from(textFromWindows);
 
 describe('TextLineDataset', () => {
   it('Produces a stream of strings containing UTF8-decoded text lines',
@@ -40,4 +46,15 @@ describe('TextLineDataset', () => {
          'ᚷᛁᚠ᛫ᚻᛖ᛫ᚹᛁᛚᛖ᛫ᚠᚩᚱ᛫ᛞᚱᛁᚻᛏᚾᛖ᛫ᛞᚩᛗᛖᛋ᛫ᚻᛚᛇᛏᚪᚾ᛬',
        ]);
      });
+
+  it('Parses lines from windows text correctly', async () => {
+    const source = new FileDataSource(textBlobFromWindows, {chunkSize: 10});
+    const dataset = new TextLineDataset(source);
+    const iter = await dataset.iterator();
+    const result = await iter.toArrayForTest();
+
+    expect(result[0]).toEqual('abc\rdefg');
+    expect(result[1]).toEqual('hijklmn');
+    expect(result[2]).toEqual('opqrst');
+  });
 });
