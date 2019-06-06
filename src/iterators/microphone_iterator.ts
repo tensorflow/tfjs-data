@@ -16,7 +16,7 @@
  * =============================================================================
  */
 
-import {ENV, Tensor, tensor, Tensor3D, TensorContainer, util} from '@tensorflow/tfjs-core';
+import {ENV, Tensor, tensor, TensorContainer, util} from '@tensorflow/tfjs-core';
 import {MicrophoneConfig} from '../types';
 import {LazyIterator} from './lazy_iterator';
 
@@ -37,6 +37,7 @@ export class MicrophoneIterator extends LazyIterator<TensorContainer> {
   private audioContext: AudioContext;
   private sampleRateHz: number;
   private audioTrackConstraints: MediaTrackConstraints;
+  private smoothingTimeConstant: number;
   private includeSpectrogram: boolean;
   private includeWaveform: boolean;
 
@@ -45,9 +46,6 @@ export class MicrophoneIterator extends LazyIterator<TensorContainer> {
     this.fftSize = microphoneConfig.fftSize || 1024;
     this.numFrames = microphoneConfig.numFramesPerSpectrogram || 43;
     this.sampleRateHz = microphoneConfig.sampleRateHz || 44100;
-    // this.cutOffFrequencyHz =
-    //     microphoneConfig.cutOffFrequencyHz || Math.round(this.sampleRateHz /
-    //     2);
     this.columnTruncateLength =
         microphoneConfig.columnTruncateLength || this.fftSize;
     this.audioTrackConstraints = microphoneConfig.audioTrackConstraints;
@@ -56,9 +54,14 @@ export class MicrophoneIterator extends LazyIterator<TensorContainer> {
     this.includeWaveform =
         microphoneConfig.includeWaveform === true ? true : false;
 
+    // this.cutOffFrequencyHz =
+    //     microphoneConfig.cutOffFrequencyHz || Math.round(this.sampleRateHz /
+    //     2);
     // this.columnTruncateLength =
     //     Math.round((this.fftSize * this.cutOffFrequencyHz) /
     //     this.sampleRateHz);
+
+    this.smoothingTimeConstant = microphoneConfig.smoothingTimeConstant || 0;
   }
 
   summary() {
@@ -66,7 +69,7 @@ export class MicrophoneIterator extends LazyIterator<TensorContainer> {
   }
 
   // Construct a MicrophoneIterator and start it's audio stream.
-  static async create(microphoneConfig: MicrophoneConfig = {}) {
+  static async create(microphoneConfig: MicrophoneConfig) {
     if (ENV.get('IS_NODE')) {
       throw new Error(
           'tf.data.microphone is only supported in browser environment.');
@@ -118,7 +121,7 @@ export class MicrophoneIterator extends LazyIterator<TensorContainer> {
     const streamSource = this.audioContext.createMediaStreamSource(this.stream);
     this.analyser = this.audioContext.createAnalyser();
     this.analyser.fftSize = this.fftSize * 2;
-    this.analyser.smoothingTimeConstant = 0.0;
+    this.analyser.smoothingTimeConstant = this.smoothingTimeConstant;
     streamSource.connect(this.analyser);
     this.freqData = new Float32Array(this.fftSize);
     this.timeData = new Float32Array(this.fftSize);
@@ -135,13 +138,13 @@ export class MicrophoneIterator extends LazyIterator<TensorContainer> {
 
     const audioDataQueue = await this.getAudioData();
     if (this.includeSpectrogram) {
-      const freqData = flattenQueue(audioDataQueue.freqDataQueue);
-      spectrogramTensor = getTensorFromAudioDataArray(
+      const freqData = this.flattenQueue(audioDataQueue.freqDataQueue);
+      spectrogramTensor = this.getTensorFromAudioDataArray(
           freqData, [1, this.numFrames, this.columnTruncateLength, 1]);
     }
     if (this.includeWaveform) {
-      const timeData = flattenQueue(audioDataQueue.timeDataQueue);
-      waveformTensor = getTensorFromAudioDataArray(
+      const timeData = this.flattenQueue(audioDataQueue.timeDataQueue);
+      waveformTensor = this.getTensorFromAudioDataArray(
           timeData, [this.numFrames * this.fftSize, 1]);
     }
 
@@ -189,22 +192,22 @@ export class MicrophoneIterator extends LazyIterator<TensorContainer> {
   }
 
   // Override toArray() function to prevent collecting.
-  toArray(): Promise<Tensor3D[]> {
+  toArray(): Promise<Tensor[]> {
     throw new Error('Can not convert infinite audio stream to array.');
   }
-}
 
-export function flattenQueue(queue: Float32Array[]): Float32Array {
-  const frameSize = queue[0].length;
-  const freqData = new Float32Array(queue.length * frameSize);
-  queue.forEach((data, i) => freqData.set(data, i * frameSize));
-  return freqData;
-}
+  private flattenQueue(queue: Float32Array[]): Float32Array {
+    const frameSize = queue[0].length;
+    const freqData = new Float32Array(queue.length * frameSize);
+    queue.forEach((data, i) => freqData.set(data, i * frameSize));
+    return freqData;
+  }
 
-export function getTensorFromAudioDataArray(
-    freqData: Float32Array, shape: number[]): Tensor {
-  const vals = new Float32Array(util.sizeFromShape(shape));
-  // If the data is less than the output shape, the rest is padded with zeros.
-  vals.set(freqData, vals.length - freqData.length);
-  return tensor(vals, shape);
+  private getTensorFromAudioDataArray(freqData: Float32Array, shape: number[]):
+      Tensor {
+    const vals = new Float32Array(util.sizeFromShape(shape));
+    // If the data is less than the output shape, the rest is padded with zeros.
+    vals.set(freqData, vals.length - freqData.length);
+    return tensor(vals, shape);
+  }
 }

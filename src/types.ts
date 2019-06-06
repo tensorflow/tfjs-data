@@ -182,18 +182,69 @@ export interface WebcamConfig {
 }
 
 export interface MicrophoneConfig {
-  fftSize?: number;
-
-  // cutOffFrequencyHz?: number;
-  columnTruncateLength?: number;
-
-  numFramesPerSpectrogram?: number;
-
+  // A number representing Audio sampling rate in Hz. either 44,100 or 48,000.
+  // Optional, defaults to 44,100 (48,000 for “pro” standard)
   sampleRateHz?: 44100|48000;
 
+  // The FFT length of each spectrogram column. A higher value will result in
+  // more details in the frequency domain but fewer details in the time domain.
+  // Must be a power of 2 between 2 to 4 and 2 to 14, so one of: 16, 32, 64,
+  // 128, 256, 512, 1024, 2048, 4096, 8192, and 16384. Defaults to 1024.
+  fftSize?: 16|32|64|128|256|512|1024|2048|4096|8192|16384;
+
+  // Truncate each spectrogram column at how many frequency points. Each audio
+  // frame contains fftSize, for example, 1024 samples which covers voice
+  // frequency from 0 to 22,500 Hz. However, the frequency content relevant to
+  // human speech is generally in the frequency range from 0 to 5000 Hz. So each
+  // audio frame only need 232 columns to cover the frequency range of human
+  // voice. This will be part of the output spectrogram tensor shape. Optional,
+  // defaults to null which means no truncation.
+  columnTruncateLength?: number;
+
+  // Truncate each spectrogram column at how many frequency Hz. Each audio
+  // frame covers voice frequency from 0 to 22,500 Hz. However, the frequency
+  // content relevant to human speech is generally in the frequency range from 0
+  // to 5000 Hz, which is the frequency range for human speech problems. So each
+  // frame of spectrogram data should be chuncated to only keep the data less
+  // thant this cutOffRequencyHz. The columnTruncateLength calculated from this
+  // param will be part of the output spectrogram tensor shape. Optional,
+  // defaults to null which means no truncation.
+  /** cutOffFrequencyHz?: number; */
+
+  // Number of audio frames per spectrogram. The time duration of one
+  // spectrogram equals to numFramesPerSpectrogram*fftSize/sampleRateHz second.
+  // For example: the device sampling rate is 44,100 Hz, and fftSize is 1024,
+  // then each frame duration between two sampling is 0.023 second. If the
+  // purpose is for an audio model to recognize speech command that last 1
+  // second, each spectrogram should contain 1/0.023, which is 43 frames. This
+  // will be part of the output spectrogram tensor shape. Required.
+  numFramesPerSpectrogram: number;
+
+  // Time duration of one spectrogram in second. The number of frames per
+  // spectrogram to cover provided time duration would be
+  // spectrogramDurationSec*sampleRateHz/fftSize.
+  // For example: the device sampling rate is 44,100 Hz, and fftSize is 1024,
+  // then each frame duration between two sampling is 0.023 second. If the
+  // purpose is for an audio model to recognize speech command that last 1
+  // second, each spectrogram should contain 1/0.023, which is 43 frames.
+  // Required.
+  /** spectrogramDurationSec: number */
+
+  // A dictionary specifying the requirements of audio to request, such as
+  // deviceID, echoCancellation, etc. Optional.
   audioTrackConstraints?: MediaTrackConstraints;
 
+  // The averaging constant with the last analysis frame -- basically, it makes
+  // the transition between values over time smoother. It is used by
+  // AnalyserNode interface during FFT. Optional, has to be between 0 and 1,
+  // defaults to 0
+  smoothingTimeConstant?: number;
+
+  // Whether to collect the frequency domain audio spectrogram in
+  // MicrophoneIterator result. Defaults to true.
   includeSpectrogram?: boolean;
 
+  // Whether to collect the time domain audio waveform in MicrophoneIterator
+  // result. Defaults to false.
   includeWaveform?: boolean;
 }

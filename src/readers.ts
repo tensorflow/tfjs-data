@@ -240,10 +240,43 @@ export function generator<T extends TensorContainer>(
  *  }
  */
 export async function webcam(
-    webcamVideoElement?: HTMLVideoElement, webcamConfig?: WebcamConfig) {
+    webcamVideoElement?: HTMLVideoElement,
+    webcamConfig?: WebcamConfig): Promise<WebcamIterator> {
   return WebcamIterator.create(webcamVideoElement, webcamConfig);
 }
 
-export async function microphone(microphoneConfig?: MicrophoneConfig) {
+/**
+ * Create an iterator that generate `Tensor`s from microphone audio stream. This
+ * API  only works in Browser environment when the device has microphone.
+ *
+ * Note: this code snippet only works when the device has a microphone. It will
+ * request permission to open the microphone when running.
+ * ```js
+ * const microphoneIterator = await tf.data.microphone({
+ *  fftSize: 1024,
+ *  columnTruncateLength: 232,
+ *  numFramesPerSpectrogram: 43,
+ *  sampleRateHz:44100,
+ *  includeSpectrogram: true,
+ *  includeWaveform: true
+ * });
+ * const audioData = await microphoneIterator.capture();
+ * const spectrogramTensor = audioData.spectrogram;
+ * const waveformTensor = audioData.waveform;
+ * microphoneIterator.stop();
+ * ```
+ *
+ * @param microphoneConfig A `MicrophoneConfig` object that contains
+ *     configurations of reading audio data from microphone.
+ */
+/**
+ * @doc {
+ *   heading: 'Data',
+ *   subheading: 'Creation',
+ *   namespace: 'data'
+ *  }
+ */
+export async function microphone(microphoneConfig?: MicrophoneConfig):
+    Promise<MicrophoneIterator> {
   return MicrophoneIterator.create(microphoneConfig);
 }
