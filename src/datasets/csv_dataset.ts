@@ -288,6 +288,10 @@ export class CSVDataset extends Dataset<TensorContainer> {
 
   // adapted from https://beta.observablehq.com/@mbostock/streaming-csv
   private parseRow(line: string, validateElementCount = true): string[] {
+    // Truncate line breaker at the end of line.
+    if (line.endsWith('\r')) {
+      line = line.slice(0, -1);
+    }
     const result: string[] = [];
     let readOffset = 0;
     const readLength = line.length;
