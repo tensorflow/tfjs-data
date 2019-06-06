@@ -94,7 +94,7 @@ const csvWithMissingElement = `A,B,C
 2,
 3,2,3`;
 
-const csvWithLineBreaker = `A,B,C\r\n1,2,3\r\nv,\rw,x\r\n3,2,3`;
+const csvWithDOSLineBreaker = `A,B,C\r\n1,2,3\r\nv,\rw,x\r\n3,2,3`;
 
 const csvDataWithHeadersExtra = ENV.get('IS_BROWSER') ?
     new Blob([csvDataExtra]) :
@@ -115,9 +115,9 @@ const csvDataWithMissingElement = ENV.get('IS_BROWSER') ?
 const csvDataWithSingleWhitespace = ENV.get('IS_BROWSER') ?
     new Blob([csvWithSingleWhitespace]) :
     Buffer.from(csvWithSingleWhitespace);
-const csvDataWithLineBreaker = ENV.get('IS_BROWSER') ?
-    new Blob([csvWithLineBreaker]) :
-    Buffer.from(csvWithLineBreaker);
+const csvDataWithDOSLineBreaker = ENV.get('IS_BROWSER') ?
+    new Blob([csvWithDOSLineBreaker]) :
+    Buffer.from(csvWithDOSLineBreaker);
 
 describe('CSVDataset', () => {
   it('produces a stream of dicts containing UTF8-decoded csv data',
@@ -495,7 +495,8 @@ describe('CSVDataset', () => {
      });
 
   it('parse correctly when csv file has extra line breaker', async () => {
-    const source = new FileDataSource(csvDataWithLineBreaker, {chunkSize: 10});
+    const source =
+        new FileDataSource(csvDataWithDOSLineBreaker, {chunkSize: 10});
     const dataset = new CSVDataset(source);
     expect(await dataset.columnNames()).toEqual(['A', 'B', 'C']);
     const iter = await dataset.iterator();
