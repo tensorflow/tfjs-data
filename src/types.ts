@@ -217,8 +217,9 @@ export interface MicrophoneConfig {
   // then each frame duration between two sampling is 0.023 second. If the
   // purpose is for an audio model to recognize speech command that last 1
   // second, each spectrogram should contain 1/0.023, which is 43 frames. This
-  // will be part of the output spectrogram tensor shape. Required.
-  numFramesPerSpectrogram: number;
+  // will be part of the output spectrogram tensor shape. Optional, defaults to
+  // 43 so that each audio data last 1 second.
+  numFramesPerSpectrogram?: number;
 
   // Time duration of one spectrogram in second. The number of frames per
   // spectrogram to cover provided time duration would be

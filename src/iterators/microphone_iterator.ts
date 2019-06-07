@@ -69,7 +69,7 @@ export class MicrophoneIterator extends LazyIterator<TensorContainer> {
   }
 
   // Construct a MicrophoneIterator and start it's audio stream.
-  static async create(microphoneConfig: MicrophoneConfig) {
+  static async create(microphoneConfig: MicrophoneConfig = {}) {
     if (ENV.get('IS_NODE')) {
       throw new Error(
           'tf.data.microphone is only supported in browser environment.');

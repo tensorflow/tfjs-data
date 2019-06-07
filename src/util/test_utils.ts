@@ -18,21 +18,6 @@
 
 import {ALL_ENVS, BROWSER_ENVS, describeWithFlags, NODE_ENVS, registerTestEnv} from '@tensorflow/tfjs-core/dist/jasmine_util';
 
-// Provide fake video stream
-export function setupFakeVideoStream() {
-  const width = 500;
-  const height = 500;
-  const canvasElement = document.createElement('canvas');
-  const ctx = canvasElement.getContext('2d');
-  ctx.fillStyle = 'rgb(1,2,3)';
-  ctx.fillRect(0, 0, width, height);
-  // tslint:disable-next-line:no-any
-  const stream = (canvasElement as any).captureStream(60);
-  navigator.mediaDevices.getUserMedia = async () => {
-    return stream;
-  };
-}
-
 // Register backends.
 registerTestEnv({name: 'cpu', backendName: 'cpu'});
 registerTestEnv({
@@ -61,4 +46,82 @@ export function describeNodeEnvs(testName: string, tests: () => void) {
   describeWithFlags(testName, NODE_ENVS, () => {
     tests();
   });
+}
+
+/**
+ * Testing Utilities for browser video stream.
+ */
+export function setupFakeVideoStream() {
+  const width = 500;
+  const height = 500;
+  const canvasElement = document.createElement('canvas');
+  const ctx = canvasElement.getContext('2d');
+  ctx.fillStyle = 'rgb(1,2,3)';
+  ctx.fillRect(0, 0, width, height);
+  // tslint:disable-next-line:no-any
+  const stream = (canvasElement as any).captureStream(60);
+  navigator.mediaDevices.getUserMedia = async () => {
+    return stream;
+  };
+}
+
+/**
+ * Testing Utilities for browser audeo stream.
+ */
+
+export class FakeAudioContext {
+  readonly sampleRate = 44100;
+
+  static createInstance() {
+    return new FakeAudioContext();
+  }
+
+  createMediaStreamSource() {
+    return new FakeMediaStreamAudioSourceNode();
+  }
+
+  createAnalyser() {
+    return new FakeAnalyser();
+  }
+
+  close(): void {}
+}
+
+export class FakeAudioMediaStream {
+  constructor() {}
+  getTracks(): Array<{}> {
+    return [];
+  }
+}
+
+class FakeMediaStreamAudioSourceNode {
+  constructor() {}
+  connect(node: {}): void {}
+}
+
+class FakeAnalyser {
+  fftSize: number;
+  smoothingTimeConstant: number;
+  private x: number;
+  constructor() {
+    this.x = 0;
+  }
+
+  getFloatFrequencyData(data: Float32Array): void {
+    const xs: number[] = [];
+    for (let i = 0; i < this.fftSize / 2; ++i) {
+      xs.push(this.x++);
+    }
+    data.set(new Float32Array(xs));
+  }
+
+  getFloatTimeDomainData(data: Float32Array): void {
+    const xs: number[] = [];
+    for (let i = 0; i < this.fftSize / 2; ++i) {
+      xs.push(-(this.x++));
+    }
+    data.set(new Float32Array(xs));
+  }
+
+  disconnect(): void {}
 }
