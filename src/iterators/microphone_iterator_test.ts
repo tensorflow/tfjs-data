@@ -16,15 +16,81 @@
  * =============================================================================
  */
 
-import {describeBrowserEnvs} from '../util/test_utils';
-import {MicrophoneIterator} from './microphone_iterator';
+import * as tfd from '../index';
+import {describeBrowserEnvs, setupFakeAudeoStream} from '../util/test_utils';
 
-describeBrowserEnvs('WebcamIterator', () => {
-  fit('test use mediaDevice', async () => {
-    const microphoneIterator = await MicrophoneIterator.create({fftSize: 1024});
-    await new Promise(resolve => setTimeout(() => resolve(), 3000));
+describeBrowserEnvs('MicrophoneIterator', () => {
+  beforeEach(() => {
+    setupFakeAudeoStream();
+  });
+
+  it('gets tensor with default shape with no config', async () => {
+    const microphoneIterator = await tfd.microphone();
     const result = await microphoneIterator.next();
     expect(result.done).toBeFalsy();
-    // expect(result.value.spectrogram.shape).toEqual([1, 42, 1024, 1]);
+    // tslint:disable-next-line:no-any
+    expect((result.value as any).spectrogram.shape).toEqual([43, 1024, 1]);
+  });
+
+  it('throws error when sample rate is not available', async done => {
+    try {
+      await tfd.microphone({sampleRateHz: 48000});
+      done.fail();
+    } catch (e) {
+      expect(e.message).toEqual(
+          'Mismatch in sampling rate: Expected: 48000; Actual: 44100');
+      done();
+    }
+  });
+
+  it('gets tensor with correct shape with fftSize', async () => {
+    const microphoneIterator = await tfd.microphone({fftSize: 2048});
+    const result = await microphoneIterator.next();
+    expect(result.done).toBeFalsy();
+    // tslint:disable-next-line:no-any
+    expect((result.value as any).spectrogram.shape).toEqual([43, 2048, 1]);
+  });
+
+  it('gets tensor with correct shape with columnTruncateLength', async () => {
+    const microphoneIterator =
+        await tfd.microphone({columnTruncateLength: 232});
+    const result = await microphoneIterator.next();
+    expect(result.done).toBeFalsy();
+    // tslint:disable-next-line:no-any
+    expect((result.value as any).spectrogram.shape).toEqual([43, 232, 1]);
+  });
+
+  it('gets tensor with correct shape with numFramesPerSpectrogram',
+     async () => {
+       const microphoneIterator =
+           await tfd.microphone({numFramesPerSpectrogram: 10});
+       const result = await microphoneIterator.next();
+       expect(result.done).toBeFalsy();
+       // tslint:disable-next-line:no-any
+       expect((result.value as any).spectrogram.shape).toEqual([10, 1024, 1]);
+     });
+
+  it('gets tensor with correct shape with full spectrogram config',
+     async () => {
+       const microphoneIterator = await tfd.microphone({
+         sampleRateHz: 44100,
+         fftSize: 1024,
+         numFramesPerSpectrogram: 10,
+         columnTruncateLength: 100
+       });
+       const result = await microphoneIterator.next();
+       expect(result.done).toBeFalsy();
+       // tslint:disable-next-line:no-any
+       expect((result.value as any).spectrogram.shape).toEqual([10, 100, 1]);
+     });
+
+  it('provides both spectrogram and waveform', async () => {
+    const microphoneIterator =
+        await tfd.microphone({includeSpectrogram: true, includeWaveform: true});
+    const result = await microphoneIterator.next();
+    expect(result.done).toBeFalsy();
+    // tslint:disable-next-line:no-any
+    expect((result.value as any).spectrogram.shape).toEqual([43, 1024, 1]);
+    expect((result.value as any).waveform.shape).toEqual([44032, 1]);
   });
 });

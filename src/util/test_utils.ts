@@ -68,6 +68,13 @@ export function setupFakeVideoStream() {
 /**
  * Testing Utilities for browser audeo stream.
  */
+export function setupFakeAudeoStream() {
+  navigator.mediaDevices.getUserMedia = async () => {
+    const stream = new MediaStream();
+    return stream;
+  };
+  (window as any).AudioContext = FakeAudioContext.createInstance();
+}
 
 export class FakeAudioContext {
   readonly sampleRate = 44100;

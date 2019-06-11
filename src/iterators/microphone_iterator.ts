@@ -72,7 +72,7 @@ export class MicrophoneIterator extends LazyIterator<TensorContainer> {
   static async create(microphoneConfig: MicrophoneConfig = {}) {
     if (ENV.get('IS_NODE')) {
       throw new Error(
-          'tf.data.microphone is only supported in browser environment.');
+          'microphone API is only supported in browser environment.');
     }
 
     const microphoneIterator = new MicrophoneIterator(microphoneConfig);
@@ -107,9 +107,8 @@ export class MicrophoneIterator extends LazyIterator<TensorContainer> {
     }
 
     // tslint:disable-next-line:no-any
-    this.audioContext = new (window as any).AudioContext() ||
-        // tslint:disable-next-line:no-any
-        (window as any).webkitAudioContext;
+    this.audioContext =
+        (window as any).AudioContext || (window as any).webkitAudioContext;
 
     if (this.audioContext.sampleRate !== this.sampleRateHz) {
       throw new Error(
@@ -140,7 +139,7 @@ export class MicrophoneIterator extends LazyIterator<TensorContainer> {
     if (this.includeSpectrogram) {
       const freqData = this.flattenQueue(audioDataQueue.freqDataQueue);
       spectrogramTensor = this.getTensorFromAudioDataArray(
-          freqData, [1, this.numFrames, this.columnTruncateLength, 1]);
+          freqData, [this.numFrames, this.columnTruncateLength, 1]);
     }
     if (this.includeWaveform) {
       const timeData = this.flattenQueue(audioDataQueue.timeDataQueue);

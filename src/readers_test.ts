@@ -16,7 +16,7 @@
  */
 
 import * as tfd from './readers';
-import {describeAllEnvs, describeBrowserEnvs, describeNodeEnvs, setupFakeVideoStream} from './util/test_utils';
+import {describeAllEnvs, describeBrowserEnvs, describeNodeEnvs, setupFakeAudeoStream, setupFakeVideoStream} from './util/test_utils';
 
 describeAllEnvs('readers', () => {
   it('generate dataset from function', async () => {
@@ -135,11 +135,8 @@ describeAllEnvs('readers', () => {
 });
 
 describeBrowserEnvs('readers in browser', () => {
-  beforeEach(() => {
-    setupFakeVideoStream();
-  });
-
   it('generate data from webcam with HTML element', async () => {
+    setupFakeVideoStream();
     const videoElement = document.createElement('video');
     videoElement.width = 300;
     videoElement.height = 500;
@@ -151,6 +148,7 @@ describeBrowserEnvs('readers in browser', () => {
   });
 
   it('generate data from webcam with no HTML element', async () => {
+    setupFakeVideoStream();
     const webcamIterator =
         await tfd.webcam(null, {resizeWidth: 100, resizeHeight: 200});
     const result = await webcamIterator.next();
@@ -159,6 +157,7 @@ describeBrowserEnvs('readers in browser', () => {
   });
 
   it('generate data from webcam with HTML element and resize', async () => {
+    setupFakeVideoStream();
     const videoElement = document.createElement('video');
     videoElement.width = 300;
     videoElement.height = 500;
@@ -168,6 +167,22 @@ describeBrowserEnvs('readers in browser', () => {
     const result = await webcamIterator.next();
     expect(result.done).toBeFalsy();
     expect(result.value.shape).toEqual([200, 100, 3]);
+  });
+
+  it('generate spectrogram only from tf.data.browserSpectrogram', async () => {
+    setupFakeAudeoStream();
+    const spectroIterator = await tfd.browserSpectrogram();
+    const result = await spectroIterator.next();
+    expect(result.done).toBeFalsy();
+    expect(result.value.shape).toEqual([43, 1024, 1]);
+  });
+
+  it('generate waveform only from tf.data.browserWaveform', async () => {
+    setupFakeAudeoStream();
+    const waveformIterator = await tfd.browserWaveform();
+    const result = await waveformIterator.next();
+    expect(result.done).toBeFalsy();
+    expect(result.value.shape).toEqual([43 * 1024, 1]);
   });
 });
 
@@ -179,6 +194,17 @@ describeNodeEnvs('readers in node', () => {
     } catch (e) {
       expect(e.message).toEqual(
           'tf.data.webcam is only supported in browser environment.');
+      done();
+    }
+  });
+
+  it('microphone only available in browser env', async done => {
+    try {
+      await tfd.microphone();
+      done.fail();
+    } catch (e) {
+      expect(e.message).toEqual(
+          'microphone API is only supported in browser environment.');
       done();
     }
   });

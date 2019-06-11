@@ -16,14 +16,16 @@
  * =============================================================================
  */
 
-import {TensorContainer} from '@tensorflow/tfjs-core';
+import {Tensor, TensorContainer} from '@tensorflow/tfjs-core';
+
 import {Dataset, datasetFromIteratorFn} from './dataset';
 import {CSVDataset} from './datasets/csv_dataset';
-import {iteratorFromFunction} from './iterators/lazy_iterator';
+import {iteratorFromFunction, LazyIterator} from './iterators/lazy_iterator';
 import {MicrophoneIterator} from './iterators/microphone_iterator';
 import {WebcamIterator} from './iterators/webcam_iterator';
 import {URLDataSource} from './sources/url_data_source';
 import {CSVConfig, MicrophoneConfig, WebcamConfig} from './types';
+
 
 
 /**
@@ -279,4 +281,24 @@ export async function webcam(
 export async function microphone(microphoneConfig?: MicrophoneConfig):
     Promise<MicrophoneIterator> {
   return MicrophoneIterator.create(microphoneConfig);
+}
+
+export async function browserSpectrogram(
+    microphoneConfig: MicrophoneConfig = {}): Promise<LazyIterator<Tensor>> {
+  microphoneConfig.includeSpectrogram = true;
+  microphoneConfig.includeWaveform = false;
+  return (await MicrophoneIterator.create(microphoneConfig))
+      .map((result: {spectrogram: Tensor}) => {
+        return result.spectrogram;
+      });
+}
+
+export async function browserWaveform(microphoneConfig: MicrophoneConfig = {}):
+    Promise<LazyIterator<Tensor>> {
+  microphoneConfig.includeSpectrogram = false;
+  microphoneConfig.includeWaveform = true;
+  return (await MicrophoneIterator.create(microphoneConfig))
+      .map((result: {waveform: Tensor}) => {
+        return result.waveform;
+      });
 }
