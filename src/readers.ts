@@ -17,7 +17,6 @@
  */
 
 import {Tensor, TensorContainer} from '@tensorflow/tfjs-core';
-
 import {Dataset, datasetFromIteratorFn} from './dataset';
 import {CSVDataset} from './datasets/csv_dataset';
 import {iteratorFromFunction, LazyIterator} from './iterators/lazy_iterator';
@@ -25,8 +24,6 @@ import {MicrophoneIterator} from './iterators/microphone_iterator';
 import {WebcamIterator} from './iterators/webcam_iterator';
 import {URLDataSource} from './sources/url_data_source';
 import {CSVConfig, MicrophoneConfig, WebcamConfig} from './types';
-
-
 
 /**
  * Create a `CSVDataset` by reading and decoding CSV file(s) from provided URL

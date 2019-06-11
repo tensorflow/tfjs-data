@@ -73,6 +73,7 @@ export function setupFakeAudeoStream() {
     const stream = new MediaStream();
     return stream;
   };
+  // tslint:disable-next-line:no-any
   (window as any).AudioContext = FakeAudioContext.createInstance();
 }
 

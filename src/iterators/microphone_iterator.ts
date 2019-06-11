@@ -106,8 +106,8 @@ export class MicrophoneIterator extends LazyIterator<TensorContainer> {
           'At least one type of data should be returned.');
     }
 
-    // tslint:disable-next-line:no-any
     this.audioContext =
+        // tslint:disable-next-line:no-any
         (window as any).AudioContext || (window as any).webkitAudioContext;
 
     if (this.audioContext.sampleRate !== this.sampleRateHz) {
