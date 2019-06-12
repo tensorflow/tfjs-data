@@ -21,8 +21,10 @@ import {MicrophoneConfig} from '../types';
 import {LazyIterator} from './lazy_iterator';
 
 /**
- * Provide a stream of audio tensors from microphone audio stream. Only works in
- * browser environment.
+ * Provide a stream of tensors from microphone audio stream. The tensors are
+ * representing audio data as frequency-domain spectrogram generated with
+ * browser's native FFT. Tensors representing time-domain waveform is available
+ * based on configuration. Only works in browser environment.
  */
 export class MicrophoneIterator extends LazyIterator<TensorContainer> {
   private isClosed = false;
@@ -60,7 +62,7 @@ export class MicrophoneIterator extends LazyIterator<TensorContainer> {
     return `microphone`;
   }
 
-  // Construct a MicrophoneIterator and start it's audio stream.
+  // Construct a MicrophoneIterator and start the audio stream.
   static async create(microphoneConfig: MicrophoneConfig = {}) {
     if (ENV.get('IS_NODE')) {
       throw new Error(
@@ -69,13 +71,13 @@ export class MicrophoneIterator extends LazyIterator<TensorContainer> {
 
     const microphoneIterator = new MicrophoneIterator(microphoneConfig);
 
-    // Call async function to initialize the audio stream.
+    // Call async function start() to initialize the audio stream.
     await microphoneIterator.start();
 
     return microphoneIterator;
   }
 
-  // Async function to start the audio stream and FFT.
+  // Start the audio stream and FFT.
   async start(): Promise<void> {
     try {
       this.stream = await navigator.mediaDevices.getUserMedia({
@@ -98,9 +100,10 @@ export class MicrophoneIterator extends LazyIterator<TensorContainer> {
           'At least one type of data should be returned.');
     }
 
-    this.audioContext =
+    const ctxConstructor =
         // tslint:disable-next-line:no-any
         (window as any).AudioContext || (window as any).webkitAudioContext;
+    this.audioContext = new ctxConstructor();
 
     if (this.audioContext.sampleRate !== this.sampleRateHz) {
       throw new Error(
@@ -154,6 +157,7 @@ export class MicrophoneIterator extends LazyIterator<TensorContainer> {
       const intervalID = setInterval(() => {
         if (this.includeSpectrogram) {
           this.analyser.getFloatFrequencyData(this.freqData);
+          // If the audio stream is initializing, return empty queue.
           if (this.freqData[0] === -Infinity) {
             resolve({freqDataQueue, timeDataQueue});
           }
@@ -164,6 +168,7 @@ export class MicrophoneIterator extends LazyIterator<TensorContainer> {
           timeDataQueue.push(this.timeData.slice());
         }
 
+        // Clean interval and return when all frames have been collected
         if (++currentFrames === this.numFrames) {
           clearInterval(intervalID);
           resolve({freqDataQueue, timeDataQueue});
@@ -172,7 +177,7 @@ export class MicrophoneIterator extends LazyIterator<TensorContainer> {
     });
   }
 
-  // Stop the audio stream and pause the MicroPhone iterator.
+  // Stop the audio stream and pause the iterator.
   stop(): void {
     this.isClosed = true;
     this.analyser.disconnect();
