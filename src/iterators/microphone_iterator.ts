@@ -29,33 +29,46 @@ import {LazyIterator} from './lazy_iterator';
 export class MicrophoneIterator extends LazyIterator<TensorContainer> {
   private isClosed = false;
   private stream: MediaStream;
-  private fftSize: number;
-  private columnTruncateLength: number;
+  private readonly fftSize: number;
+  private readonly columnTruncateLength: number;
   private freqData: Float32Array;
   private timeData: Float32Array;
-  private numFrames: number;
+  private readonly numFrames: number;
   private analyser: AnalyserNode;
   private audioContext: AudioContext;
   private sampleRateHz: number;
-  private audioTrackConstraints: MediaTrackConstraints;
-  private smoothingTimeConstant: number;
-  private includeSpectrogram: boolean;
-  private includeWaveform: boolean;
+  private readonly audioTrackConstraints: MediaTrackConstraints;
+  private readonly smoothingTimeConstant: number;
+  private readonly includeSpectrogram: boolean;
+  private readonly includeWaveform: boolean;
 
   private constructor(protected readonly microphoneConfig: MicrophoneConfig) {
     super();
     this.fftSize = microphoneConfig.fftSize || 1024;
+    const fftSizeLog2 = Math.log2(this.fftSize);
+    if (this.fftSize < 0 || fftSizeLog2 < 4 || fftSizeLog2 > 14 ||
+        !Number.isInteger(fftSizeLog2)) {
+      throw new Error(
+          `Invalid fftSize: it must be a power of 2 between ` +
+          `2 to 4 and 2 to 14, but got ${this.fftSize}`);
+    }
+
     this.numFrames = microphoneConfig.numFramesPerSpectrogram || 43;
-    this.sampleRateHz = microphoneConfig.sampleRateHz || 44100;
+    this.sampleRateHz = microphoneConfig.sampleRateHz;
     this.columnTruncateLength =
         microphoneConfig.columnTruncateLength || this.fftSize;
     this.audioTrackConstraints = microphoneConfig.audioTrackConstraints;
+    this.smoothingTimeConstant = microphoneConfig.smoothingTimeConstant || 0;
+
     this.includeSpectrogram =
         microphoneConfig.includeSpectrogram === false ? false : true;
     this.includeWaveform =
         microphoneConfig.includeWaveform === true ? true : false;
-
-    this.smoothingTimeConstant = microphoneConfig.smoothingTimeConstant || 0;
+    if (!this.includeSpectrogram && !this.includeWaveform) {
+      throw new Error(
+          'Both includeSpectrogram and includeWaveform are false. ' +
+          'At least one type of data should be returned.');
+    }
   }
 
   summary() {
@@ -94,18 +107,17 @@ export class MicrophoneIterator extends LazyIterator<TensorContainer> {
       throw new Error('Could not obtain audio from microphone.');
     }
 
-    if (!this.includeSpectrogram && !this.includeWaveform) {
-      throw new Error(
-          'Both includeSpectrogram and includeWaveform are false. ' +
-          'At least one type of data should be returned.');
-    }
-
     const ctxConstructor =
         // tslint:disable-next-line:no-any
         (window as any).AudioContext || (window as any).webkitAudioContext;
     this.audioContext = new ctxConstructor();
 
-    if (this.audioContext.sampleRate !== this.sampleRateHz) {
+
+    if (!this.sampleRateHz) {
+      // If sample rate is not provided, use the available sample rate on
+      // device.
+      this.sampleRateHz = this.audioContext.sampleRate;
+    } else if (this.audioContext.sampleRate !== this.sampleRateHz) {
       throw new Error(
           `Mismatch in sampling rate: ` +
           `Expected: ${this.sampleRateHz}; ` +
@@ -190,6 +202,11 @@ export class MicrophoneIterator extends LazyIterator<TensorContainer> {
   // Override toArray() function to prevent collecting.
   toArray(): Promise<Tensor[]> {
     throw new Error('Can not convert infinite audio stream to array.');
+  }
+
+  // Return audio sampling rate in Hz
+  getSampleRate(): number {
+    return this.sampleRateHz;
   }
 
   private flattenQueue(queue: Float32Array[]): Float32Array {

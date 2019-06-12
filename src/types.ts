@@ -186,14 +186,16 @@ export interface WebcamConfig {
  */
 export interface MicrophoneConfig {
   // A number representing Audio sampling rate in Hz. either 44,100 or 48,000.
-  // Optional, defaults to 44,100 (48,000 for “pro” standard)
+  // If provided sample rate is not available on the device, it will throw an
+  // error. Optional, defaults to the sample rate available on device.
   sampleRateHz?: 44100|48000;
 
   // The FFT length of each spectrogram column. A higher value will result in
   // more details in the frequency domain but fewer details in the time domain.
   // Must be a power of 2 between 2 to 4 and 2 to 14, so one of: 16, 32, 64,
-  // 128, 256, 512, 1024, 2048, 4096, 8192, and 16384. Defaults to 1024.
-  fftSize?: 16|32|64|128|256|512|1024|2048|4096|8192|16384;
+  // 128, 256, 512, 1024, 2048, 4096, 8192, and 16384. It will throw an error if
+  // it is an invalid number.Defaults to 1024.
+  fftSize?: number;
 
   // Truncate each spectrogram column at how many frequency points. Each audio
   // frame contains fftSize, for example, 1024 samples which covers voice
@@ -221,7 +223,7 @@ export interface MicrophoneConfig {
   // The averaging constant with the last analysis frame -- basically, it makes
   // the transition between values over time smoother. It is used by
   // AnalyserNode interface during FFT. Optional, has to be between 0 and 1,
-  // defaults to 0
+  // defaults to 0.
   smoothingTimeConstant?: number;
 
   // Whether to collect the frequency domain audio spectrogram in
