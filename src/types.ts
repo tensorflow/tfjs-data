@@ -227,10 +227,12 @@ export interface MicrophoneConfig {
   smoothingTimeConstant?: number;
 
   // Whether to collect the frequency domain audio spectrogram in
-  // MicrophoneIterator result. Defaults to true.
+  // MicrophoneIterator result. If both includeSpectrogram and includeWaveform
+  // are false, it will throw an error. Defaults to true.
   includeSpectrogram?: boolean;
 
   // Whether to collect the time domain audio waveform in MicrophoneIterator
-  // result. Defaults to false.
+  // result. If both includeSpectrogram and includeWaveform are false, it will
+  // throw an error. Defaults to false.
   includeWaveform?: boolean;
 }
