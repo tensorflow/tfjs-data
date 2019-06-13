@@ -247,22 +247,22 @@ export async function webcam(
 /**
  * Create an iterator that generate frequency-domain spectrogram `Tensor`s from
  * microphone audio stream with browser's native FFT. This API only works in
- * Browser environment when the device has microphone.
+ * browser environment when the device has microphone.
  *
  * Note: this code snippet only works when the device has a microphone. It will
  * request permission to open the microphone when running.
  * ```js
  * const microphoneIterator = await tf.data.microphone({
- *  fftSize: 1024,
- *  columnTruncateLength: 232,
- *  numFramesPerSpectrogram: 43,
- *  sampleRateHz:44100,
- *  includeSpectrogram: true,
- *  includeWaveform: true
+ *   fftSize: 1024,
+ *   columnTruncateLength: 232,
+ *   numFramesPerSpectrogram: 43,
+ *   sampleRateHz:44100,
+ *   includeSpectrogram: true,
+ *   includeWaveform: true
  * });
- * const audioData = await microphoneIterator.capture();
- * const spectrogramTensor = audioData.spectrogram;
- * const waveformTensor = audioData.waveform;
+ * const audioData = await microphoneIterator.next();
+ * const spectrogramTensor = audioData.value.spectrogram;
+ * const waveformTensor = audioData.value.waveform;
  * microphoneIterator.stop();
  * ```
  *

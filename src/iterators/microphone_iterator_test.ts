@@ -160,4 +160,66 @@ describeBrowserEnvs('MicrophoneIterator', () => {
           [-26], [-27], [-28], [-29], [-30], [-31]
         ]).array());
   });
+
+  it('calls iterator.next() concurrently', async () => {
+    let timesRun = 0;
+    let tensorsReturned = 0;
+    const microphoneIterator = await tfd.microphone();
+
+    // This function will be called 6 times. Between each call there is a 200ms
+    // interval. The spectrogram tensor will be returned after 989ms.
+    /**
+     * The events happen in sequence are:
+     * call 1st at 0ms,    timesRun:1, tensorsReturned:0;
+     * call 2nd at 200ms,  timesRun:2, tensorsReturned:0;
+     * call 3rd at 400ms,  timesRun:3, tensorsReturned:0;
+     * call 4th at 600ms,  timesRun:4, tensorsReturned:0;
+     * call 5th at 800ms,  timesRun:5, tensorsReturned:0;
+     * tensor returned from 1st call at ~989ms, timesRun:5, tensorsReturned:1;
+     * call 6th at 1000ms, timesRun:6, tensorsReturned:1;
+     * tensor returned from 2nd call,  timesRun:6, tensorsReturned:2;
+     * tensor returned from 3rd call,  timesRun:6, tensorsReturned:3;
+     * tensor returned from 4th call,  timesRun:6, tensorsReturned:4;
+     * tensor returned from 5th call,  timesRun:6, tensorsReturned:5;
+     * tensor returned from 6th call,  timesRun:6, tensorsReturned:6.
+     */
+    const getTensor =
+        async () => {
+      // Clear the interval after it ran 6 times.
+      if (timesRun === 6) {
+        clearInterval(interval);
+      } else {
+        timesRun++;
+        if (timesRun < 6) {
+          expect(tensorsReturned).toBe(0);
+        } else if (timesRun === 6) {
+          expect(tensorsReturned).toBe(1);
+        }
+        const result = await microphoneIterator.next();
+        tensorsReturned++;
+        if (tensorsReturned === 1) {
+          expect(timesRun).toBe(5);
+        } else {
+          expect(timesRun).toBe(6);
+        }
+        expect(result.done).toBeFalsy();
+        // tslint:disable-next-line:no-any
+        const value = result.value as any;
+        expect(value.spectrogram.shape).toEqual([43, 1024, 1]);
+      }
+    }
+
+    // Call iterator.next() every 200 milliseconds, stop after 6 times.
+    const interval = setInterval(getTensor, 200);
+
+    // Wait 2.5 seconds for the intervals to run.
+    await new Promise(resolve => {
+      setTimeout(() => {
+        resolve();
+      }, 2500);
+    });
+    // Assert the intervals run 6 times.
+    expect(timesRun).toBe(6);
+    expect(tensorsReturned).toBe(6);
+  });
 });
