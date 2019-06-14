@@ -17,7 +17,8 @@
  */
 
 import {tensor2d, tensor3d, test_util} from '@tensorflow/tfjs-core';
-import * as tfd from '../index';
+// TODO(kangyizhang): import from index once microphone is exported.
+import * as tfd from '../readers';
 import {describeBrowserEnvs, setupFakeAudeoStream} from '../util/test_utils';
 
 describeBrowserEnvs('MicrophoneIterator', () => {
