@@ -164,17 +164,18 @@ describeBrowserEnvs('MicrophoneIterator', () => {
   it('calls iterator.next() concurrently', async () => {
     let timesRun = 0;
     let tensorsReturned = 0;
-    const microphoneIterator = await tfd.microphone();
+    const microphoneIterator = await tfd.microphone(
+        {numFramesPerSpectrogram: 20, columnTruncateLength: 10});
 
-    // This function will be called 4 times. Between each call there is a 400ms
-    // interval. The spectrogram tensor will be returned after 989ms.
+    // This function will be called 4 times. Between each call there is a 200ms
+    // interval. The spectrogram tensor will be returned after 464ms.
     /**
      * The events happen in sequence are:
      * call 1st at 0ms,    timesRun:1, tensorsReturned:0;
-     * call 2nd at 400ms,  timesRun:2, tensorsReturned:0;
-     * call 3rd at 800ms,  timesRun:3, tensorsReturned:0;
-     * tensor returned from 1st call at ~989ms, timesRun:3, tensorsReturned:1;
-     * call 4th at 1200ms,  timesRun:4, tensorsReturned:1;
+     * call 2nd at 200ms,  timesRun:2, tensorsReturned:0;
+     * call 3rd at 400ms,  timesRun:3, tensorsReturned:0;
+     * tensor returned from 1st call at ~464ms, timesRun:4, tensorsReturned:1;
+     * call 4th at 600ms,  timesRun:4, tensorsReturned:1;
      * tensor returned from 2nd call,  timesRun:4, tensorsReturned:2;
      * tensor returned from 3rd call,  timesRun:4, tensorsReturned:3;
      * tensor returned from 4th call,  timesRun:4, tensorsReturned:4.
@@ -200,18 +201,18 @@ describeBrowserEnvs('MicrophoneIterator', () => {
         expect(result.done).toBeFalsy();
         // tslint:disable-next-line:no-any
         const value = result.value as any;
-        expect(value.spectrogram.shape).toEqual([43, 1024, 1]);
+        expect(value.spectrogram.shape).toEqual([20, 10, 1]);
       }
     };
 
-    // Call iterator.next() every 400 milliseconds, stop after 4 times.
-    const interval = setInterval(getTensor, 400);
+    // Call iterator.next() every 200 milliseconds, stop after 4 times.
+    const interval = setInterval(getTensor, 200);
 
     // Wait 4 seconds for the intervals to run.
     await new Promise(resolve => {
       setTimeout(() => {
         resolve();
-      }, 4000);
+      }, 1500);
     });
     // Assert the intervals run 4 times.
     expect(timesRun).toBe(4);
