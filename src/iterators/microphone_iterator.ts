@@ -112,7 +112,6 @@ export class MicrophoneIterator extends LazyIterator<TensorContainer> {
         (window as any).AudioContext || (window as any).webkitAudioContext;
     this.audioContext = new ctxConstructor();
 
-
     if (!this.sampleRateHz) {
       // If sample rate is not provided, use the available sample rate on
       // device.

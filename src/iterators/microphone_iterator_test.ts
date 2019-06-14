@@ -183,8 +183,7 @@ describeBrowserEnvs('MicrophoneIterator', () => {
      * tensor returned from 5th call,  timesRun:6, tensorsReturned:5;
      * tensor returned from 6th call,  timesRun:6, tensorsReturned:6.
      */
-    const getTensor =
-        async () => {
+    const getTensor = async () => {
       // Clear the interval after it ran 6 times.
       if (timesRun === 6) {
         clearInterval(interval);
@@ -207,7 +206,7 @@ describeBrowserEnvs('MicrophoneIterator', () => {
         const value = result.value as any;
         expect(value.spectrogram.shape).toEqual([43, 1024, 1]);
       }
-    }
+    };
 
     // Call iterator.next() every 200 milliseconds, stop after 6 times.
     const interval = setInterval(getTensor, 200);
