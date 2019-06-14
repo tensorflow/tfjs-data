@@ -167,37 +167,27 @@ describeBrowserEnvs('MicrophoneIterator', () => {
     const microphoneIterator = await tfd.microphone(
         {numFramesPerSpectrogram: 20, columnTruncateLength: 10});
 
-    // This function will be called 4 times. Between each call there is a 200ms
+    // This function will be called 3 times. Between each call there is a 200ms
     // interval. The spectrogram tensor will be returned after 464ms.
     /**
      * The events happen in sequence are:
      * call 1st at 0ms,    timesRun:1, tensorsReturned:0;
      * call 2nd at 200ms,  timesRun:2, tensorsReturned:0;
      * call 3rd at 400ms,  timesRun:3, tensorsReturned:0;
-     * tensor returned from 1st call at ~464ms, timesRun:4, tensorsReturned:1;
-     * call 4th at 600ms,  timesRun:4, tensorsReturned:1;
-     * tensor returned from 2nd call,  timesRun:4, tensorsReturned:2;
-     * tensor returned from 3rd call,  timesRun:4, tensorsReturned:3;
-     * tensor returned from 4th call,  timesRun:4, tensorsReturned:4.
+     * tensor returned from 1st call at ~464ms, timesRun:3, tensorsReturned:1;
+     * tensor returned from 2nd call,  timesRun:3, tensorsReturned:2;
+     * tensor returned from 3rd call,  timesRun:3, tensorsReturned:3.
      */
     const getTensor = async () => {
-      // Clear the interval after it ran 4 times.
-      if (timesRun === 4) {
+      // Clear the interval after it ran 3 times.
+      if (timesRun === 3) {
         clearInterval(interval);
       } else {
         timesRun++;
-        if (timesRun < 4) {
-          expect(tensorsReturned).toBe(0);
-        } else {
-          expect(tensorsReturned).toBe(1);
-        }
+        expect(tensorsReturned).toBe(0);
         const result = await microphoneIterator.next();
         tensorsReturned++;
-        if (tensorsReturned === 1) {
-          expect(timesRun).toBe(3);
-        } else {
-          expect(timesRun).toBe(4);
-        }
+        expect(timesRun).toBe(3);
         expect(result.done).toBeFalsy();
         // tslint:disable-next-line:no-any
         const value = result.value as any;
@@ -205,17 +195,17 @@ describeBrowserEnvs('MicrophoneIterator', () => {
       }
     };
 
-    // Call iterator.next() every 200 milliseconds, stop after 4 times.
+    // Call iterator.next() every 200 milliseconds, stop after 3 times.
     const interval = setInterval(getTensor, 200);
 
     // Wait 4 seconds for the intervals to run.
     await new Promise(resolve => {
       setTimeout(() => {
         resolve();
-      }, 1500);
+      }, 2000);
     });
-    // Assert the intervals run 4 times.
-    expect(timesRun).toBe(4);
-    expect(tensorsReturned).toBe(4);
+    // Assert the intervals run 3 times.
+    expect(timesRun).toBe(3);
+    expect(tensorsReturned).toBe(3);
   });
 });
