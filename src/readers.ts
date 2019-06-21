@@ -260,9 +260,9 @@ export async function webcam(
  *   includeSpectrogram: true,
  *   includeWaveform: true
  * });
- * const audioData = await microphoneIterator.next();
- * const spectrogramTensor = audioData.value.spectrogram;
- * const waveformTensor = audioData.value.waveform;
+ * const audioData = await microphoneIterator.capture();
+ * const spectrogramTensor = audioData.spectrogram;
+ * const waveformTensor = audioData.waveform;
  * microphoneIterator.stop();
  * ```
  *
