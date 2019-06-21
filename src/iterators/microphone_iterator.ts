@@ -16,7 +16,7 @@
  * =============================================================================
  */
 
-import {ENV, Tensor, tensor, TensorContainer, util} from '@tensorflow/tfjs-core';
+import {ENV, Tensor, tensor, Tensor2D, Tensor3D, TensorContainer, util} from '@tensorflow/tfjs-core';
 import {MicrophoneConfig} from '../types';
 import {LazyIterator} from './lazy_iterator';
 
@@ -161,8 +161,9 @@ export class MicrophoneIterator extends LazyIterator<TensorContainer> {
 
   // Capture one result from the audio stream, and extract the value from
   // iterator.next() result.
-  async capture(): Promise<TensorContainer> {
-    return (await this.next()).value;
+  async capture(): Promise<{spectrogram: Tensor3D, waveform: Tensor2D}> {
+    return (await this.next()).value as
+        {spectrogram: Tensor3D, waveform: Tensor2D};
   }
 
   private async getAudioData():
