@@ -159,6 +159,12 @@ export class MicrophoneIterator extends LazyIterator<TensorContainer> {
     };
   }
 
+  // Capture one result from the audio stream, and extract the value from
+  // iterator.next() result.
+  async capture(): Promise<TensorContainer> {
+    return (await this.next()).value;
+  }
+
   private async getAudioData():
       Promise<{freqDataQueue: Float32Array[], timeDataQueue: Float32Array[]}> {
     const freqDataQueue: Float32Array[] = [];
