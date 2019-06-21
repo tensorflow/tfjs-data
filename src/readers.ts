@@ -269,6 +269,13 @@ export async function webcam(
  * @param microphoneConfig A `MicrophoneConfig` object that contains
  *     configurations of reading audio data from microphone.
  */
+/**
+ * @doc {
+ *   heading: 'Data',
+ *   subheading: 'Creation',
+ *   namespace: 'data'
+ *  }
+ */
 export async function microphone(microphoneConfig?: MicrophoneConfig):
     Promise<MicrophoneIterator> {
   return MicrophoneIterator.create(microphoneConfig);
