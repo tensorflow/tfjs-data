@@ -18,7 +18,6 @@
 
 import * as tf from '@tensorflow/tfjs-core';
 import {TensorContainerObject} from '@tensorflow/tfjs-core';
-import {array} from './dataset';
 import * as tfd from './index';
 import {iteratorFromItems, LazyIterator} from './iterators/lazy_iterator';
 import {DatasetContainer} from './types';
@@ -431,25 +430,6 @@ describeAllEnvs('Dataset', () => {
     expect(tf.memory().numTensors).toBe(0);
   });
   */
-
-  it('throws an error when given an array of inconsistent shape',
-     async done => {
-       const dataset = array([[[1, 2], [3]], [[4, 5], [6]]]).batch(2);
-       try {
-         // Using toArray() rather than toArrayForTest().  The prefetch in
-         // the latter, in combination with expecting an exception, causes
-         // unrelated tests to fail (See
-         // https://github.com/tensorflow/tfjs/issues/1330.
-         await (await dataset.iterator()).toArray();
-         done.fail();
-       } catch (e) {
-         expect(e.message).toEqual(
-             'Element arr[0][1] should have 2 elements, ' +
-             'but has 1 elements');
-         done();
-       }
-       expect(tf.memory().numTensors).toBe(0);
-     });
 
   it('batch creates a small last batch', async () => {
     const ds = new TestDataset();
