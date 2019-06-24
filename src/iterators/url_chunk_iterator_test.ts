@@ -19,7 +19,6 @@
 import {ENV, util} from '@tensorflow/tfjs-core';
 import {urlChunkIterator} from './url_chunk_iterator';
 
-
 const TEST_STRING = 'abcdefghijklmnopqrstuvwxyz';
 
 // node-fetch requires absolute url syntax even though the response is mocked.
