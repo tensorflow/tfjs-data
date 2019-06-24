@@ -28,10 +28,15 @@ import {FileChunkIterator, FileChunkIteratorOptions} from './file_chunk_iterator
  */
 export async function urlChunkIterator(
     url: RequestInfo, options: FileChunkIteratorOptions = {}) {
-  const response = (typeof url) === 'string' ?
-      await util.fetch(url as string) :
-      await util.fetch(
-          (url as Request).url, getRequestInitFromRequest(url as Request));
+  let urlString;
+  let requestInit;
+  if ((typeof url) === 'string') {
+    urlString = url as string;
+  } else {
+    urlString = (url as Request).url;
+    requestInit = getRequestInitFromRequest(url as Request);
+  }
+  const response = await util.fetch(urlString, requestInit);
   if (response.ok) {
     const uint8Array = new Uint8Array(await response.arrayBuffer());
     return new FileChunkIterator(uint8Array, options);
