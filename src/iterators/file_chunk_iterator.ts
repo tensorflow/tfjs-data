@@ -44,7 +44,7 @@ export class FileChunkIterator extends ByteChunkIterator {
       protected options: FileChunkIteratorOptions = {}) {
     super();
     util.assert(
-        (file instanceof Uint8Array) ||
+        (file instanceof Uint8Array || file instanceof ArrayBuffer) ||
             (ENV.get('IS_BROWSER') ?
                  (file instanceof File || file instanceof Blob) :
                  false),
@@ -60,14 +60,15 @@ export class FileChunkIterator extends ByteChunkIterator {
   }
 
   async next(): Promise<IteratorResult<Uint8Array>> {
-    if (this.offset >= ((this.file instanceof Uint8Array) ?
+    if (this.offset >= (((this.file instanceof Uint8Array) ||
+                         (this.file instanceof ArrayBuffer)) ?
                             this.file.byteLength :
                             this.file.size)) {
       return {value: null, done: true};
     }
     const chunk = new Promise<Uint8Array>((resolve, reject) => {
       const end = this.offset + this.chunkSize;
-      if (this.file instanceof Uint8Array) {
+      if (this.file instanceof Uint8Array || this.file instanceof ArrayBuffer) {
         // Note if end > this.uint8Array.byteLength, we just get a small last
         // chunk.
         resolve(new Uint8Array(this.file.slice(this.offset, end)));

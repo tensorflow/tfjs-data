@@ -16,32 +16,37 @@
  * =============================================================================
  */
 
-import {ENV, util} from '@tensorflow/tfjs-core';
+import {util} from '@tensorflow/tfjs-core';
 import {urlChunkIterator} from './url_chunk_iterator';
 
 const TEST_STRING = 'abcdefghijklmnopqrstuvwxyz';
 
-// node-fetch requires absolute url syntax even though the response is mocked.
-const URL = 'http://google.com/';
-
 describe('URLChunkIterator', () => {
   beforeAll(() => {
     spyOn(util, 'fetch').and.callFake((path: string) => {
-      if (ENV.get('IS_BROWSER')) {
-        return new Response(TEST_STRING);
-      } else {
-        return {
-          ok: true,
-          text: () => {
-            return TEST_STRING;
-          }
-        };
+      const buf =
+          new ArrayBuffer(TEST_STRING.length * 2);  // 2 bytes for each char
+      const bufView = new Uint8Array(buf);
+      for (let i = 0, strLen = TEST_STRING.length; i < strLen; i++) {
+        bufView[i] = TEST_STRING.charCodeAt(i);
       }
+
+
+      // if (ENV.get('IS_BROWSER')) {
+      //   return new Response(TEST_STRING);
+      // } else {
+      return {
+        ok: true,
+        arrayBuffer: async () => {
+          return buf;
+        }
+      };
+      // }
     });
   });
 
   it('Reads the entire file and then closes the stream', async () => {
-    const readIterator = await urlChunkIterator(URL, {chunkSize: 10});
+    const readIterator = await urlChunkIterator('', {chunkSize: 10});
     const result = await readIterator.toArrayForTest();
     expect(result.length).toEqual(3);
     const totalBytes = result.map(x => x.length).reduce((a, b) => a + b);
@@ -49,7 +54,7 @@ describe('URLChunkIterator', () => {
   });
 
   it('Reads chunks in order', async () => {
-    const readIterator = await urlChunkIterator(URL, {chunkSize: 10});
+    const readIterator = await urlChunkIterator('', {chunkSize: 10});
 
     const result = await readIterator.toArrayForTest();
     expect(result[0][0]).toEqual('a'.charCodeAt(0));
@@ -58,7 +63,7 @@ describe('URLChunkIterator', () => {
   });
 
   it('Reads chunks of expected sizes', async () => {
-    const readIterator = await urlChunkIterator(URL, {chunkSize: 10});
+    const readIterator = await urlChunkIterator('', {chunkSize: 10});
 
     const result = await readIterator.toArrayForTest();
     expect(result[0].length).toEqual(10);

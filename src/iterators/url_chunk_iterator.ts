@@ -16,7 +16,7 @@
  * =============================================================================
  */
 
-import {ENV, util} from '@tensorflow/tfjs-core';
+import {util} from '@tensorflow/tfjs-core';
 import {FileChunkIterator, FileChunkIteratorOptions} from './file_chunk_iterator';
 
 /**
@@ -33,14 +33,16 @@ export async function urlChunkIterator(
       await util.fetch(
           (url as Request).url, getRequestInitFromRequest(url as Request));
   if (response.ok) {
-    let blob;
-    if (ENV.get('IS_BROWSER')) {
-      blob = await response.blob();
-    } else {
-      // TODO(kangyizhang): the text has already been decoded in the response,
-      // try to remove the work of byte_chunk_iterator
-      blob = Buffer.from(await response.text());
-    }
+    const blob = await response.arrayBuffer();
+    // if (ENV.get('IS_BROWSER')) {
+    //   blob = await response.blob();
+    //   const test = await response.arrayBuffer();
+    // } else {
+    //   // TODO(kangyizhang): the text has already been decoded in the
+    //   response,
+    //   // try to remove the work of byte_chunk_iterator
+    //   blob = Buffer.from(await response.text());
+    // }
     return new FileChunkIterator(blob, options);
   } else {
     throw new Error(response.statusText);
