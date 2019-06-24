@@ -34,15 +34,6 @@ export async function urlChunkIterator(
           (url as Request).url, getRequestInitFromRequest(url as Request));
   if (response.ok) {
     const uint8Array = new Uint8Array(await response.arrayBuffer());
-    // if (ENV.get('IS_BROWSER')) {
-    //   blob = await response.blob();
-    //   const test = await response.arrayBuffer();
-    // } else {
-    //   // TODO(kangyizhang): the text has already been decoded in the
-    //   response,
-    //   // try to remove the work of byte_chunk_iterator
-    //   blob = Buffer.from(await response.text());
-    // }
     return new FileChunkIterator(uint8Array, options);
   } else {
     throw new Error(response.statusText);
