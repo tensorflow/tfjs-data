@@ -24,24 +24,18 @@ const TEST_STRING = 'abcdefghijklmnopqrstuvwxyz';
 describe('URLChunkIterator', () => {
   beforeAll(() => {
     spyOn(util, 'fetch').and.callFake((path: string) => {
-      const buf =
-          new ArrayBuffer(TEST_STRING.length * 2);  // 2 bytes for each char
+      const buf = new ArrayBuffer(TEST_STRING.length);
       const bufView = new Uint8Array(buf);
       for (let i = 0, strLen = TEST_STRING.length; i < strLen; i++) {
         bufView[i] = TEST_STRING.charCodeAt(i);
       }
 
-
-      // if (ENV.get('IS_BROWSER')) {
-      //   return new Response(TEST_STRING);
-      // } else {
       return {
         ok: true,
         arrayBuffer: async () => {
           return buf;
         }
       };
-      // }
     });
   });
 

@@ -33,7 +33,7 @@ export async function urlChunkIterator(
       await util.fetch(
           (url as Request).url, getRequestInitFromRequest(url as Request));
   if (response.ok) {
-    const blob = await response.arrayBuffer();
+    const uint8Array = new Uint8Array(await response.arrayBuffer());
     // if (ENV.get('IS_BROWSER')) {
     //   blob = await response.blob();
     //   const test = await response.arrayBuffer();
@@ -43,7 +43,7 @@ export async function urlChunkIterator(
     //   // try to remove the work of byte_chunk_iterator
     //   blob = Buffer.from(await response.text());
     // }
-    return new FileChunkIterator(blob, options);
+    return new FileChunkIterator(uint8Array, options);
   } else {
     throw new Error(response.statusText);
   }

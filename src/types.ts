@@ -50,7 +50,7 @@ export type IteratorContainer = Container<LazyIterator<DataElement>>;
 /**
  * Types supported by FileChunkIterator in both Browser and Node Environment.
  */
-export type FileElement = File|Blob|Uint8Array|ArrayBuffer;
+export type FileElement = File|Blob|Uint8Array;
 
 /**
  * A dictionary containing column level configurations when reading and decoding
