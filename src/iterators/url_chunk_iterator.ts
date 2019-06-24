@@ -16,7 +16,7 @@
  * =============================================================================
  */
 
-import {ENV} from '@tensorflow/tfjs-core';
+import {ENV, util} from '@tensorflow/tfjs-core';
 import {FileChunkIterator, FileChunkIteratorOptions} from './file_chunk_iterator';
 
 /**
@@ -28,31 +28,37 @@ import {FileChunkIterator, FileChunkIteratorOptions} from './file_chunk_iterator
  */
 export async function urlChunkIterator(
     url: RequestInfo, options: FileChunkIteratorOptions = {}) {
-  let response;
-  if (ENV.get('IS_BROWSER')) {
-    response = await fetch(url);
-    if (response.ok) {
-      const blob = await response.blob();
-      return new FileChunkIterator(blob, options);
+  const response = (typeof url) === 'string' ?
+      await util.fetch(url as string) :
+      await util.fetch(
+          (url as Request).url, getRequestInitFromRequest(url as Request));
+  if (response.ok) {
+    let blob;
+    if (ENV.get('IS_BROWSER')) {
+      blob = await response.blob();
     } else {
-      throw new Error(response.statusText);
+      // TODO(kangyizhang): the text has already been decoded in the response,
+      // try to remove the work of byte_chunk_iterator
+      blob = Buffer.from(await response.text());
     }
+    return new FileChunkIterator(blob, options);
   } else {
-    // TODO(kangyizhang): Provide argument for users to use http.request with
-    // headers in node.
-    // tslint:disable-next-line:no-require-imports
-    const nodeFetch = require('node-fetch');
-    if (typeof url !== 'string') {
-      throw new Error(
-          'URL must be a string. Request objects are not supported ' +
-          'in the node.js environment yet.');
-    }
-    response = await nodeFetch(url);
-    if (response.ok) {
-      const unitArray = await response.buffer();
-      return new FileChunkIterator(unitArray, options);
-    } else {
-      throw new Error(response.statusText);
-    }
+    throw new Error(response.statusText);
   }
 }
+
+// Generate RequestInit from Request to match tf.util.fetch signature.
+const getRequestInitFromRequest = (request: Request) => {
+  const init = {
+    method: request.method,
+    headers: request.headers,
+    body: request.body,
+    mode: request.mode,
+    credentials: request.credentials,
+    cache: request.cache,
+    redirect: request.redirect,
+    referrer: request.referrer,
+    integrity: request.integrity,
+  };
+  return init;
+};
