@@ -432,25 +432,6 @@ describeAllEnvs('Dataset', () => {
   });
   */
 
-  it('throws an error when given an array of inconsistent shape',
-     async done => {
-       const dataset = array([[[1, 2], [3]], [[4, 5], [6]]]).batch(2);
-       try {
-         // Using toArray() rather than toArrayForTest().  The prefetch in
-         // the latter, in combination with expecting an exception, causes
-         // unrelated tests to fail (See
-         // https://github.com/tensorflow/tfjs/issues/1330.
-         await (await dataset.iterator()).toArray();
-         done.fail();
-       } catch (e) {
-         expect(e.message).toEqual(
-             'Element arr[0][1] should have 2 elements, ' +
-             'but has 1 elements');
-         done();
-       }
-       expect(tf.memory().numTensors).toBe(0);
-     });
-
   it('batch creates a small last batch', async () => {
     const ds = new TestDataset();
     const bds = ds.batch(8);
@@ -670,6 +651,52 @@ describeAllEnvs('Dataset', () => {
        });
        expect(count).toEqual(6);
        expect(tf.memory().numTensors).toEqual(2);
+
+       expect(a.isDisposed).toBeFalsy();
+       expect(b.isDisposed).toBeFalsy();
+     });
+
+  it('clone tensors in nested structures when returning iterator of a ' +
+         'dataset generated from existing tensors',
+     async () => {
+       expect(tf.memory().numTensors).toEqual(0);
+       const a = tf.ones([2, 1]);
+       const b = tf.ones([2, 1]);
+       const c = tf.ones([2, 1]);
+       const d = tf.ones([2, 1]);
+       expect(tf.memory().numTensors).toEqual(4);
+       const ds = tfd.array([{foo: a, bar: b}, {foo: c, bar: d}]);
+       // Pre-existing tensors are not cloned during dataset creation.
+       expect(tf.memory().numTensors).toEqual(4);
+
+       let count = 0;
+       // ds.forEachAsync() automatically disposes incoming Tensors after
+       // processing them.
+       await ds.forEachAsync(elem => {
+         count++;
+         expect(elem.foo.isDisposed).toBeFalsy();
+         expect(elem.bar.isDisposed).toBeFalsy();
+       });
+       expect(count).toEqual(2);
+       // Cloned tensors are disposed after traverse, while original tensors
+       // stay.
+       expect(tf.memory().numTensors).toEqual(4);
+
+       await ds.forEachAsync(elem => {
+         count++;
+         expect(elem.foo.isDisposed).toBeFalsy();
+         expect(elem.bar.isDisposed).toBeFalsy();
+       });
+       expect(count).toEqual(4);
+       expect(tf.memory().numTensors).toEqual(4);
+
+       await ds.forEachAsync(elem => {
+         count++;
+         expect(elem.foo.isDisposed).toBeFalsy();
+         expect(elem.bar.isDisposed).toBeFalsy();
+       });
+       expect(count).toEqual(6);
+       expect(tf.memory().numTensors).toEqual(4);
 
        expect(a.isDisposed).toBeFalsy();
        expect(b.isDisposed).toBeFalsy();
@@ -936,5 +963,30 @@ describeAllEnvs('Dataset', () => {
              'Can not convert infinite data stream to array.');
          done();
        }
+     });
+});
+
+describeAllEnvs('Dataset with DEBUG mode', () => {
+  beforeAll(() => {
+    tf.ENV.set('DEBUG', true);
+  });
+
+  it('throws an error when given an array of inconsistent shape',
+     async done => {
+       const dataset = array([[[1, 2], [3]], [[4, 5], [6]]]).batch(2);
+       try {
+         // Using toArray() rather than toArrayForTest().  The prefetch in
+         // the latter, in combination with expecting an exception, causes
+         // unrelated tests to fail (See
+         // https://github.com/tensorflow/tfjs/issues/1330.
+         await (await dataset.iterator()).toArray();
+         done.fail();
+       } catch (e) {
+         expect(e.message).toEqual(
+             'Element arr[0][1] should have 2 elements, ' +
+             'but has 1 elements');
+         done();
+       }
+       expect(tf.memory().numTensors).toBe(0);
      });
 });

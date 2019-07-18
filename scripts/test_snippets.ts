@@ -1,6 +1,6 @@
 /**
  * @license
- * Copyright 2018 Google LLC. All Rights Reserved.
+ * Copyright 2019 Google LLC. All Rights Reserved.
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
@@ -14,12 +14,15 @@
  * limitations under the License.
  * =============================================================================
  */
+import * as tfc from '@tensorflow/tfjs-core';
+import {parseAndEvaluateSnippets} from '@tensorflow/tfjs-core/dist/scripts/test_snippets/util';
+import * as tfl from '@tensorflow/tfjs-layers';
 
-export {array, Dataset, zip} from './dataset';
-export {CSVDataset} from './datasets/csv_dataset';
-export {TextLineDataset} from './datasets/text_line_dataset';
-export {csv, func, generator, microphone, webcam} from './readers';
-export {FileDataSource} from './sources/file_data_source';
-export {URLDataSource} from './sources/url_data_source';
-export {ColumnConfig, DataElement} from './types';
-export {version as version_data} from './version';
+import * as tfd from '../src/index';
+
+const tf = {
+  data: {...tfd},
+  ...tfc,
+  ...tfl
+};
+parseAndEvaluateSnippets(tf);
