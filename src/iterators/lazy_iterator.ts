@@ -17,9 +17,10 @@
  */
 
 import * as tf from '@tensorflow/tfjs-core';
-import {getTensorsInContainer, isTensorInList} from '@tensorflow/tfjs-core/dist/tensor_util';
 import * as seedrandom from 'seedrandom';
-import {DataElement, IteratorContainer} from '../types';
+
+import {IteratorContainer} from '../types';
+import {deepClone} from '../util/deep_clone';
 import {deepMapAndAwaitAll, DeepMapAsyncResult, DeepMapResult, deepZip, zipToList} from '../util/deep_map';
 import {GrowingRingBuffer} from '../util/growing_ring_buffer';
 import {RingBuffer} from '../util/ring_buffer';
@@ -51,7 +52,7 @@ export function iteratorFromIncrementing(start: number): LazyIterator<number> {
  * const func = () =>
  *    ++i < 5 ? {value: i, done: false} : {value: null, done: true};
  * const iter = tf.data.iteratorFromFunction(func);
- * await iter.forEach(e => console.log(e));
+ * await iter.forEachAsync(e => console.log(e));
  * ```
  *
  * @param func A function that produces data on each call.
@@ -127,7 +128,7 @@ export function iteratorFromConcatenatedFunction<T>(
  * `ZipMismatchMode.LONGEST` causes the zipped stream to continue, filling
  * in nulls for the exhausted streams, until all streams are exhausted.
  */
-export function iteratorFromZipped<O extends DataElement>(
+export function iteratorFromZipped<O extends tf.TensorContainer>(
     iterators: IteratorContainer,
     mismatchMode: ZipMismatchMode = ZipMismatchMode.FAIL): LazyIterator<O> {
   return new ZipIterator<O>(iterators, mismatchMode);
@@ -161,27 +162,36 @@ export abstract class LazyIterator<T> {
    * Obviously this will succeed only for small streams that fit in memory.
    * Useful for testing.
    *
-   * @param maxItems the maximum number of items to return.  If the stream
-   *   terminates, fewer items will be returned.  (default 1000)
-   * @param prefetch the size of the prefetch buffer to use when collecting
-   *   items.  Some amount of prefetch is important to test parallel streams,
-   *   i.e. with multiple Promises outstanding.  Without prefetch, this method
-   *   makes purely serial next() calls.
+   * @returns A Promise for an array of stream elements, which will resolve
+   *   when the stream is exhausted.
+   */
+  async toArray(): Promise<T[]> {
+    const result: T[] = [];
+    let x = await this.next();
+    while (!x.done) {
+      result.push(x.value);
+      x = await this.next();
+    }
+    return result;
+  }
+
+  /**
+   * Collect all elements of this dataset into an array with prefetching 100
+   * elements. This is useful for testing, because the prefetch changes the
+   * order in which the Promises are resolved along the processing pipeline.
+   * This may help expose bugs where results are dependent on the order of
+   * Promise resolution rather than on the logical order of the stream (i.e.,
+   * due to hidden mutable state).
    *
    * @returns A Promise for an array of stream elements, which will resolve
    *   when the stream is exhausted.
    */
-  async collect(maxItems = 1000, prefetch = 100): Promise<T[]> {
-    const stream = prefetch > 0 ? this.prefetch(prefetch) : this;
+  async toArrayForTest(): Promise<T[]> {
+    const stream = this.prefetch(100);
     const result: T[] = [];
-    let count = 0;
     let x = await stream.next();
     while (!x.done) {
       result.push(x.value);
-      count++;
-      if (count >= maxItems) {
-        return result;
-      }
       x = await stream.next();
     }
     return result;
@@ -300,7 +310,7 @@ export abstract class LazyIterator<T> {
    *
    * @param f A function to apply to each stream element.
    */
-  async forEach(f: (value: T) => void): Promise<void> {
+  async forEachAsync(f: (value: T) => void): Promise<void> {
     return this.map(f).resolveFully();
   }
 
@@ -373,7 +383,7 @@ export abstract class LazyIterator<T> {
       batchSize: number, smallLastBatch = true,
       // tslint:disable-next-line:no-any
       zipFn: (xs: any[]) => DeepMapResult = zipToList):
-      LazyIterator<DataElement> {
+      LazyIterator<tf.TensorContainer> {
     // First collect the desired number of input elements as a row-major batch.
     const rowBatches = this.rowMajorBatch(batchSize, smallLastBatch);
     // Now 'rotate' or 'pivot' the data, collecting all values from each column
@@ -485,14 +495,8 @@ class ArrayIterator<T> extends LazyIterator<T> {
       return {value: null, done: true};
     }
     const item = this.items[this.trav];
-    let result;
-    if (item instanceof tf.Tensor) {
-      result = tf.clone(item);
-    } else {
-      result = item;
-    }
     this.trav++;
-    return {value: result, done: false};
+    return {value: deepClone(item), done: false};
   }
 }
 
@@ -703,7 +707,7 @@ class MapIterator<I, O> extends LazyIterator<O> {
     if (item.done) {
       return {value: null, done: true};
     }
-    const inputTensors = getTensorsInContainer(item.value as {});
+    const inputTensors = tf.tensor_util.getTensorsInContainer(item.value as {});
     // Careful: the transform may mutate the item in place.
     // That's why we have to remember the input Tensors above, and then
     // below dispose only those that were not passed through to the output.
@@ -711,12 +715,12 @@ class MapIterator<I, O> extends LazyIterator<O> {
     // any intermediate Tensors.  Here we are concerned only about the
     // inputs.
     const mapped = this.transform(item.value);
-    const outputTensors = getTensorsInContainer(mapped as {});
+    const outputTensors = tf.tensor_util.getTensorsInContainer(mapped as {});
 
     // TODO(soergel) faster intersection
     // TODO(soergel) move to tf.disposeExcept(in, out)?
     for (const t of inputTensors) {
-      if (!isTensorInList(t, outputTensors)) {
+      if (!tf.tensor_util.isTensorInList(t, outputTensors)) {
         t.dispose();
       }
     }
@@ -784,7 +788,7 @@ class AsyncMapIterator<I, O> extends LazyIterator<O> {
     if (item.done) {
       return {value: null, done: true};
     }
-    const inputTensors = getTensorsInContainer(item.value as {});
+    const inputTensors = tf.tensor_util.getTensorsInContainer(item.value as {});
     // Careful: the transform may mutate the item in place.
     // That's why we have to remember the input Tensors above, and then
     // below dispose only those that were not passed through to the output.
@@ -792,12 +796,12 @@ class AsyncMapIterator<I, O> extends LazyIterator<O> {
     // any intermediate Tensors.  Here we are concerned only about the
     // inputs.
     const mapped = await this.transform(item.value);
-    const outputTensors = getTensorsInContainer(mapped as {});
+    const outputTensors = tf.tensor_util.getTensorsInContainer(mapped as {});
 
     // TODO(soergel) faster intersection
     // TODO(soergel) move to tf.disposeExcept(in, out)?
     for (const t of inputTensors) {
-      if (!isTensorInList(t, outputTensors)) {
+      if (!tf.tensor_util.isTensorInList(t, outputTensors)) {
         t.dispose();
       }
     }
@@ -882,20 +886,21 @@ class FlatmapIterator<I, O> extends OneToManyIterator<O> {
     if (item.done) {
       return false;
     }
-    const inputTensors = getTensorsInContainer(item.value as {});
+    const inputTensors = tf.tensor_util.getTensorsInContainer(item.value as {});
     // Careful: the transform may mutate the item in place.
     // that's why we have to remember the input Tensors above, and then
     // below dispose only those that were not passed through to the output.
     // Note too that the transform function is responsible for tidying any
     // intermediate Tensors.  Here we are concerned only about the inputs.
     const mappedArray = this.transform(item.value);
-    const outputTensors = getTensorsInContainer(mappedArray as {});
+    const outputTensors =
+        tf.tensor_util.getTensorsInContainer(mappedArray as {});
     this.outputQueue.pushAll(mappedArray);
 
     // TODO(soergel) faster intersection, and deduplicate outputTensors
     // TODO(soergel) move to tf.disposeExcept(in, out)?
     for (const t of inputTensors) {
-      if (!isTensorInList(t, outputTensors)) {
+      if (!tf.tensor_util.isTensorInList(t, outputTensors)) {
         t.dispose();
       }
     }
@@ -1002,7 +1007,7 @@ export enum ZipMismatchMode {
  * `ZipMismatchMode.LONGEST` causes the zipped stream to continue, filling
  * in nulls for the exhausted streams, until all streams are exhausted.
  */
-class ZipIterator<O extends DataElement> extends LazyIterator<O> {
+class ZipIterator<O extends tf.TensorContainer> extends LazyIterator<O> {
   private count = 0;
   private currentPromise: Promise<IteratorResult<O>> = null;
 

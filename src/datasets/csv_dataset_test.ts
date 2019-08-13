@@ -66,14 +66,35 @@ const csvMixedType = `A,B,C,D
 1,True,3,1
 2,False,2,0`;
 
-const csvWithQuote = `A,B,C
+const csvWithQuote = `"A",B,"C"
 1,"2",3
 2,2,3
 3,"""2",3
 4,"2,",
-"5"",2,3
+"5",2,3
 6,2,"345"123,456""
 7,"2",3`;
+
+const csvWithMultiWhitespaces = `A B    C
+1 2  3
+2 2 3
+3  2 3
+4 2 3
+5    2    3
+6 2 3
+7 2 3`;
+
+const csvWithSingleWhitespace = `A B C\n` +
+    `1 2 3\n` +
+    `2  \n` +
+    `3 2 3`;
+
+const csvWithMissingElement = `A,B,C
+1,2,3
+2,
+3,2,3`;
+
+const csvWithDOSLineBreaker = `A,B,C\r\n1,2,3\r\nv,\rw,x\r\n3,2,3`;
 
 const csvDataWithHeadersExtra = ENV.get('IS_BROWSER') ?
     new Blob([csvDataExtra]) :
@@ -85,6 +106,18 @@ const csvDataWithMixedType = ENV.get('IS_BROWSER') ? new Blob([csvMixedType]) :
                                                      Buffer.from(csvMixedType);
 const csvDataWithQuote = ENV.get('IS_BROWSER') ? new Blob([csvWithQuote]) :
                                                  Buffer.from(csvWithQuote);
+const csvDataWithMultiWhitespaces = ENV.get('IS_BROWSER') ?
+    new Blob([csvWithMultiWhitespaces]) :
+    Buffer.from(csvWithMultiWhitespaces);
+const csvDataWithMissingElement = ENV.get('IS_BROWSER') ?
+    new Blob([csvWithMissingElement]) :
+    Buffer.from(csvWithMissingElement);
+const csvDataWithSingleWhitespace = ENV.get('IS_BROWSER') ?
+    new Blob([csvWithSingleWhitespace]) :
+    Buffer.from(csvWithSingleWhitespace);
+const csvDataWithDOSLineBreaker = ENV.get('IS_BROWSER') ?
+    new Blob([csvWithDOSLineBreaker]) :
+    Buffer.from(csvWithDOSLineBreaker);
 
 describe('CSVDataset', () => {
   it('produces a stream of dicts containing UTF8-decoded csv data',
@@ -96,7 +129,7 @@ describe('CSVDataset', () => {
        expect(await dataset.columnNames()).toEqual(['foo', 'bar', 'baz']);
 
        const iter = await dataset.iterator();
-       const result = await iter.collect();
+       const result = await iter.toArrayForTest();
 
        expect(result).toEqual([
          {'foo': 'ab', 'bar': 'cd', 'baz': 'ef'},
@@ -115,7 +148,7 @@ describe('CSVDataset', () => {
 
     expect(await dataset.columnNames()).toEqual(['foo', 'bar', 'baz']);
     const iter = await dataset.iterator();
-    const result = await iter.collect();
+    const result = await iter.toArrayForTest();
 
     expect(result).toEqual([
       {'foo': 'ab', 'bar': 'cd', 'baz': 'ef'},
@@ -166,7 +199,7 @@ describe('CSVDataset', () => {
     const dataset = new CSVDataset(source);
     expect(await dataset.columnNames()).toEqual(['foo', 'bar', 'baz']);
     const iter = await dataset.iterator();
-    const result = await iter.collect();
+    const result = await iter.toArrayForTest();
 
     expect(result).toEqual([
       {'foo': 'ab', 'bar': 'cd', 'baz': 'ef'},
@@ -206,7 +239,7 @@ describe('CSVDataset', () => {
       });
       expect(await dataset.columnNames()).toEqual(['foo', 'bar', 'baz']);
       const iter = await dataset.iterator();
-      await iter.collect();
+      await iter.toArrayForTest();
       done.fail();
     } catch (error) {
       expect(error.message)
@@ -225,7 +258,7 @@ describe('CSVDataset', () => {
 
     expect(await dataset.columnNames()).toEqual(['foo', 'bar', 'baz']);
     const iter = await dataset.iterator();
-    const result = await iter.collect();
+    const result = await iter.toArrayForTest();
 
     expect(result).toEqual([
       {'foo': 'ab', 'bar': 'cd', 'baz': 'ef'},
@@ -243,7 +276,7 @@ describe('CSVDataset', () => {
     const dataset = new CSVDataset(source, {delimiter: ';'});
     expect(await dataset.columnNames()).toEqual(['A', 'B', 'C']);
     const iter = await dataset.iterator();
-    const result = await iter.collect();
+    const result = await iter.toArrayForTest();
 
     expect(result[0]).toEqual({A: 1, B: 2, C: 3});
     expect(result[1]).toEqual({A: 2, B: 2, C: 3});
@@ -265,7 +298,7 @@ describe('CSVDataset', () => {
        });
        expect(await dataset.columnNames()).toEqual(['A', 'B', 'C', 'D']);
        const iter = await dataset.iterator();
-       const result = await iter.collect();
+       const result = await iter.toArrayForTest();
 
        expect(result).toEqual([
          {'A': 1, 'B': 1, 'C': 3, 'D': 1}, {'A': 2, 'B': 0, 'C': 2, 'D': 0},
@@ -283,7 +316,7 @@ describe('CSVDataset', () => {
 
     expect(await dataset.columnNames()).toEqual(['bar', 'foo']);
     const iter = await dataset.iterator();
-    const result = await iter.collect();
+    const result = await iter.toArrayForTest();
 
     expect(result).toEqual([
       {'bar': 'cd', 'foo': 'ab'},
@@ -316,7 +349,7 @@ describe('CSVDataset', () => {
     const dataset = new CSVDataset(source, {columnNames: ['a', 'b', 'c']});
     expect(await dataset.columnNames()).toEqual(['a', 'b', 'c']);
     const iter = await dataset.iterator();
-    const result = await iter.collect();
+    const result = await iter.toArrayForTest();
 
     expect(result).toEqual([
       {'a': 'ab', 'b': 'cd', 'c': 'ef'},
@@ -336,7 +369,11 @@ describe('CSVDataset', () => {
           new CSVDataset(source, {columnConfigs: {'baz': {isLabel: true}}});
       expect(await dataset.columnNames()).toEqual(['foo', 'bar', 'baz']);
       const iter = await dataset.iterator();
-      await iter.collect(1000, 0);
+      // Using toArray() rather than toArrayForTest().  The prefetch in
+      // the latter, in combination with expecting an exception, causes
+      // unrelated tests to fail (See
+      // https://github.com/tensorflow/tfjs/issues/1330.
+      await iter.toArray();
       done.fail();
     } catch (e) {
       expect(e.message).toEqual(
@@ -351,13 +388,15 @@ describe('CSVDataset', () => {
         new CSVDataset(source, {columnConfigs: {'C': {isLabel: true}}});
     expect(await dataset.columnNames()).toEqual(['A', 'B', 'C']);
     const iter = await dataset.iterator();
-    const result = await iter.collect();
+    const result = await iter.toArrayForTest();
 
     expect(result).toEqual([
-      [{'A': 1, 'B': 2}, {'C': 3}], [{'A': 2, 'B': 2}, {'C': 3}],
-      [{'A': 3, 'B': 2}, {'C': 3}], [{'A': 4, 'B': 2}, {'C': 3}],
-      [{'A': 5, 'B': 2}, {'C': 3}], [{'A': 6, 'B': 2}, {'C': 3}],
-      [{'A': 7, 'B': 2}, {'C': 3}]
+      {xs: {'A': 1, 'B': 2}, ys: {'C': 3}},
+      {xs: {'A': 2, 'B': 2}, ys: {'C': 3}},
+      {xs: {'A': 3, 'B': 2}, ys: {'C': 3}},
+      {xs: {'A': 4, 'B': 2}, ys: {'C': 3}},
+      {xs: {'A': 5, 'B': 2}, ys: {'C': 3}},
+      {xs: {'A': 6, 'B': 2}, ys: {'C': 3}}, {xs: {'A': 7, 'B': 2}, ys: {'C': 3}}
     ]);
   });
 
@@ -366,12 +405,12 @@ describe('CSVDataset', () => {
     const dataset = new CSVDataset(source);
     expect(await dataset.columnNames()).toEqual(['A', 'B', 'C']);
     const iter = await dataset.iterator();
-    const result = await iter.collect();
+    const result = await iter.toArrayForTest();
 
     expect(result).toEqual([
       {'A': 1, 'B': 2, 'C': 3}, {'A': 2, 'B': 2, 'C': 3},
       {'A': 3, 'B': '""2', 'C': 3}, {'A': 4, 'B': '2,', 'C': undefined},
-      {'A': '"5""', 'B': 2, 'C': 3}, {'A': 6, 'B': 2, 'C': '345"123,456"'},
+      {'A': 5, 'B': 2, 'C': 3}, {'A': 6, 'B': 2, 'C': '345"123,456"'},
       {'A': 7, 'B': 2, 'C': 3}
     ]);
   });
@@ -391,5 +430,79 @@ describe('CSVDataset', () => {
       expect(e.message).toEqual('Duplicate column names found: foo');
       done();
     }
+  });
+
+  it('throw error with missing elements', async done => {
+    try {
+      const source =
+          new FileDataSource(csvDataWithMissingElement, {chunkSize: 10});
+      const dataset = new CSVDataset(source);
+      expect(await dataset.columnNames()).toEqual(['A', 'B', 'C']);
+      const iter = await dataset.iterator();
+      await iter.toArrayForTest();
+      done.fail();
+    } catch (e) {
+      expect(e.message).toEqual(
+          'Invalid row in csv file. Should have 3 elements in a row, ' +
+          'but got 2,');
+      done();
+    }
+  });
+
+  it('collapse continuous white spaces', async () => {
+    const source =
+        new FileDataSource(csvDataWithMultiWhitespaces, {chunkSize: 10});
+    const dataset = new CSVDataset(source, {delimWhitespace: true});
+    expect(await dataset.columnNames()).toEqual(['A', 'B', 'C']);
+    const iter = await dataset.iterator();
+    const result = await iter.toArrayForTest();
+
+    expect(result[0]).toEqual({A: 1, B: 2, C: 3});
+    expect(result[1]).toEqual({A: 2, B: 2, C: 3});
+    expect(result[2]).toEqual({A: 3, B: 2, C: 3});
+    expect(result[3]).toEqual({A: 4, B: 2, C: 3});
+    expect(result[4]).toEqual({A: 5, B: 2, C: 3});
+  });
+
+  it('parse correctly with single white spaces delimiter', async () => {
+    const source =
+        new FileDataSource(csvDataWithSingleWhitespace, {chunkSize: 10});
+    const dataset = new CSVDataset(source, {delimiter: ' '});
+    expect(await dataset.columnNames()).toEqual(['A', 'B', 'C']);
+    const iter = await dataset.iterator();
+    const result = await iter.toArrayForTest();
+
+    expect(result[0]).toEqual({A: 1, B: 2, C: 3});
+    expect(result[1]).toEqual({A: 2, B: undefined, C: undefined});
+    expect(result[2]).toEqual({A: 3, B: 2, C: 3});
+  });
+
+  it('throw error when delimiter is provided and delimWhitespace is true',
+     async done => {
+       try {
+         const source =
+             new FileDataSource(csvDataWithMultiWhitespaces, {chunkSize: 10});
+         const dataset =
+             new CSVDataset(source, {delimiter: ',', delimWhitespace: true});
+         expect(await dataset.columnNames()).toEqual(['A', 'B', 'C']);
+         done.fail();
+       } catch (e) {
+         expect(e.message).toEqual(
+             'Delimiter should not be provided when delimWhitespace is true.');
+         done();
+       }
+     });
+
+  it('parse correctly when csv file has extra line breaker', async () => {
+    const source =
+        new FileDataSource(csvDataWithDOSLineBreaker, {chunkSize: 10});
+    const dataset = new CSVDataset(source);
+    expect(await dataset.columnNames()).toEqual(['A', 'B', 'C']);
+    const iter = await dataset.iterator();
+    const result = await iter.toArrayForTest();
+
+    expect(result[0]).toEqual({A: 1, B: 2, C: 3});
+    expect(result[1]).toEqual({A: 'v', B: '\rw', C: 'x'});
+    expect(result[2]).toEqual({A: 3, B: 2, C: 3});
   });
 });

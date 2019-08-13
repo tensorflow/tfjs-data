@@ -12,14 +12,24 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
  * =============================================================================
  */
 
-export {array, Dataset, zip} from './dataset';
-export {CSVDataset} from './datasets/csv_dataset';
-export {TextLineDataset} from './datasets/text_line_dataset';
-export {csv, func, generator, microphone, webcam} from './readers';
-export {FileDataSource} from './sources/file_data_source';
-export {URLDataSource} from './sources/url_data_source';
-export {ColumnConfig, DataElement} from './types';
-export {version as version_data} from './version';
+import * as tf from '@tensorflow/tfjs-core';
+import {deepMap, DeepMapResult, isIterable} from './deep_map';
+
+export function deepClone<T>(container: T): T {
+  return deepMap(container, cloneIfTensor);
+}
+
+// tslint:disable-next-line: no-any
+function cloneIfTensor(item: any): DeepMapResult {
+  if (item instanceof tf.Tensor) {
+    return ({value: item.clone(), recurse: false});
+  } else if (isIterable(item)) {
+    return {value: null, recurse: true};
+  } else {
+    return {value: item, recurse: false};
+  }
+}

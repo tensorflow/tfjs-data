@@ -16,14 +16,24 @@
  * =============================================================================
  */
 
+import {TensorContainer} from '@tensorflow/tfjs-core';
 import {Dataset, datasetFromIteratorFn} from './dataset';
 import {CSVDataset} from './datasets/csv_dataset';
 import {iteratorFromFunction} from './iterators/lazy_iterator';
+import {MicrophoneIterator} from './iterators/microphone_iterator';
+import {WebcamIterator} from './iterators/webcam_iterator';
 import {URLDataSource} from './sources/url_data_source';
-import {CSVConfig, DataElement} from './types';
+import {CSVConfig, MicrophoneConfig, WebcamConfig} from './types';
 
 /**
- * Create a `CSVDataset` by reading and decoding CSV file(s) from provided URLs.
+ * Create a `CSVDataset` by reading and decoding CSV file(s) from provided URL
+ * or local path if it's in Node environment.
+ *
+ * Note: If isLabel in columnConfigs is `true` for at least one column, the
+ * element in returned `CSVDataset` will be an object of
+ * `{xs:features, ys:labels}`: xs is a dict of features key/value pairs, ys
+ * is a dict of labels key/value pairs. If no column is marked as label,
+ * returns a dict of features only.
  *
  * ```js
  * const csvUrl =
@@ -48,9 +58,12 @@ import {CSVConfig, DataElement} from './types';
  *   // Prepare the Dataset for training.
  *   const flattenedDataset =
  *     csvDataset
- *     .map(([rawFeatures, rawLabel]) =>
- *       // Convert rows from object form (keyed by column name) to array form.
- *       [Object.values(rawFeatures), Object.values(rawLabel)])
+ *     .map(({xs, ys}) =>
+ *       {
+ *         // Convert xs(features) and ys(labels) from object form (keyed by
+ *         // column name) to array form.
+ *         return {xs:Object.values(xs), ys:Object.values(ys)};
+ *       })
  *     .batch(10);
  *
  *   // Define the model.
@@ -78,18 +91,21 @@ import {CSVConfig, DataElement} from './types';
  * await run();
  * ```
  *
- * @param source URL to fetch CSV file.
+ * @param source URL or local path to get CSV file. If it's a local path, it
+ * must have prefix `file://` and it only works in node environment.
  * @param csvConfig (Optional) A CSVConfig object that contains configurations
  *     of reading and decoding from CSV file(s).
  */
-/** @doc {
+/**
+ * @doc {
  *   heading: 'Data',
  *   subheading: 'Creation',
  *   namespace: 'data',
  *   configParamIndices: [1]
  *  }
  */
-export function csv(source: string, csvConfig: CSVConfig = {}): CSVDataset {
+export function csv(
+    source: RequestInfo, csvConfig: CSVConfig = {}): CSVDataset {
   return new CSVDataset(new URLDataSource(source), csvConfig);
 }
 
@@ -111,21 +127,160 @@ export function csv(source: string, csvConfig: CSVConfig = {}): CSVDataset {
  * let i = -1;
  * const func = () =>
  *    ++i < 5 ? {value: i, done: false} : {value: null, done: true};
- * const ds = tf.data.generator(func);
- * await ds.forEach(e => console.log(e));
+ * const ds = tf.data.func(func);
+ * await ds.forEachAsync(e => console.log(e));
  * ```
  *
  * @param f A function that produces one data element on each call.
  */
-/** @doc {
+export function func<T extends TensorContainer>(
+    f: () => IteratorResult<T>| Promise<IteratorResult<T>>): Dataset<T> {
+  const iter = iteratorFromFunction(f);
+  return datasetFromIteratorFn(async () => iter);
+}
+
+/**
+ * Create a `Dataset` that produces each element from provided JavaScript
+ * generator, which is a function*
+ * (https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Iterators_and_Generators#Generator_functions),
+ * or a function that returns an
+ * iterator
+ * (https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Iterators_and_Generators#Generator_functions).
+ *
+ * The returned iterator should have `.next()` function that returns element in
+ * format of `{value: TensorContainer, done:boolean}`.
+ *
+ * Example of creating a dataset from an iterator factory:
+ * ```js
+ * function makeIterator() {
+ *   const numElements = 10;
+ *   let index = 0;
+ *
+ *   const iterator = {
+ *     next: () => {
+ *       let result;
+ *       if (index < numElements) {
+ *         result = {value: index, done: false};
+ *         index++;
+ *         return result;
+ *       }
+ *       return {value: index, done: true};
+ *     }
+ *   };
+ *   return iterator;
+ * }
+ * const ds = tf.data.generator(makeIterator);
+ * ds.forEachAsync(e => console.log(e));
+ * ```
+ *
+ * Example of creating a dataset from a generator:
+ * ```js
+ * function* dataGenerator() {
+ *   const numElements = 10;
+ *   let index = 0;
+ *   while (index < numElements) {
+ *     const x = index;
+ *     index++;
+ *     yield x;
+ *   }
+ * }
+ *
+ * const ds = tf.data.generator(dataGenerator);
+ * ds.forEachAsync(e => console.log(e));
+ * ```
+ *
+ * @param generator A Javascript generator function that returns a JavaScript
+ *     iterator.
+ */
+/**
+ * @doc {
  *   heading: 'Data',
  *   subheading: 'Creation',
  *   namespace: 'data',
  *   configParamIndices: [1]
  *  }
  */
-export function generator<T extends DataElement>(
-  f: () =>IteratorResult<T>| Promise<IteratorResult<T>>): Dataset<T> {
-  const iter = iteratorFromFunction(f);
-  return datasetFromIteratorFn(async () => iter);
+export function generator<T extends TensorContainer>(
+    generator: () => Iterator<T>| Promise<Iterator<T>>): Dataset<T> {
+  return datasetFromIteratorFn(async () => {
+    const gen = await generator();
+    return iteratorFromFunction(() => gen.next());
+  });
+}
+
+/**
+ * Create an iterator that generate `Tensor`s from webcam video stream. This API
+ * only works in Browser environment when the device has webcam.
+ *
+ * Note: this code snippet only works when the device has a webcam. It will
+ * request permission to open the webcam when running.
+ * ```js
+ * const videoElement = document.createElement('video');
+ * videoElement.width = 100;
+ * videoElement.height = 100;
+ * const cam = await tf.data.webcam(videoElement);
+ * const img = await cam.capture();
+ * img.print();
+ * cam.stop();
+ * ```
+ *
+ * @param webcamVideoElement A `HTMLVideoElement` used to play video from
+ *     webcam. If this element is not provided, a hidden `HTMLVideoElement` will
+ *     be created. In that case, `resizeWidth` and `resizeHeight` must be
+ *     provided to set the generated tensor shape.
+ * @param webcamConfig A `WebcamConfig` object that contains configurations of
+ *     reading and manipulating data from webcam video stream.
+ */
+/**
+ * @doc {
+ *   heading: 'Data',
+ *   subheading: 'Creation',
+ *   namespace: 'data',
+ *   ignoreCI: true
+ *  }
+ */
+export async function webcam(
+    webcamVideoElement?: HTMLVideoElement,
+    webcamConfig?: WebcamConfig): Promise<WebcamIterator> {
+  return WebcamIterator.create(webcamVideoElement, webcamConfig);
+}
+
+/**
+ * Create an iterator that generate frequency-domain spectrogram `Tensor`s from
+ * microphone audio stream with browser's native FFT. This API only works in
+ * browser environment when the device has microphone.
+ *
+ * Note: this code snippet only works when the device has a microphone. It will
+ * request permission to open the microphone when running.
+ * ```js
+ * const mic = await tf.data.microphone({
+ *   fftSize: 1024,
+ *   columnTruncateLength: 232,
+ *   numFramesPerSpectrogram: 43,
+ *   sampleRateHz:44100,
+ *   includeSpectrogram: true,
+ *   includeWaveform: true
+ * });
+ * const audioData = await mic.capture();
+ * const spectrogramTensor = audioData.spectrogram;
+ * spectrogramTensor.print();
+ * const waveformTensor = audioData.waveform;
+ * waveformTensor.print();
+ * mic.stop();
+ * ```
+ *
+ * @param microphoneConfig A `MicrophoneConfig` object that contains
+ *     configurations of reading audio data from microphone.
+ */
+/**
+ * @doc {
+ *   heading: 'Data',
+ *   subheading: 'Creation',
+ *   namespace: 'data',
+ *   ignoreCI: true
+ *  }
+ */
+export async function microphone(microphoneConfig?: MicrophoneConfig):
+    Promise<MicrophoneIterator> {
+  return MicrophoneIterator.create(microphoneConfig);
 }

@@ -16,15 +16,15 @@
  */
 
 import {setTestEnvs} from '@tensorflow/tfjs-core/dist/jasmine_util';
-import {MathBackendCPU} from '@tensorflow/tfjs-core/dist/kernels/backend_cpu';
 
 // tslint:disable-next-line:no-require-imports
 const jasmine = require('jasmine');
 
-process.on('unhandledRejection', e => { throw e; });
+process.on('unhandledRejection', e => {
+  throw e;
+});
 
-setTestEnvs(
-    [{name: 'node', factory: () => new MathBackendCPU(), features: {}}]);
+setTestEnvs([{name: 'node', backendName: 'cpu'}]);
 
 const runner = new jasmine();
 runner.loadConfig({spec_files: ['src/**/*_test.ts'], random: false});

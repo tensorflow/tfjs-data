@@ -252,23 +252,26 @@ export function isIterable(obj: any): boolean {
 }
 
 /**
- * Determine whether the argument is an array of numbers.
+ * Determine whether the argument can be converted to Tensor.
  *
- * @returns true if the argument is an array and all of its children are
- *   numbers; false otherwise.
+ * Tensors, primitives, arrays, and TypedArrays all qualify; anything else does
+ * not.
+ *
+ * @returns true if the argument can be converted to Tensor.
  */
 // tslint:disable-next-line:no-any
-export function isNumericArray(obj: any): boolean {
-  if (obj == null) {
-    return false;
-  }
-  if (!Array.isArray(obj)) {
-    return false;
-  }
-  for (const k in obj) {
-    if (typeof obj[k] !== 'number') {
-      return false;
-    }
-  }
-  return true;
+export function canTensorify(obj: any): boolean {
+  return obj == null || isPrimitive(obj) || Array.isArray(obj) ||
+      (typeof obj === 'object' && (obj instanceof tf.Tensor)) ||
+      tf.util.isTypedArray(obj);
+}
+
+/**
+ * Returns true if the given `value` is a primitive type. Otherwise returns
+ * false. This is equivalant to node util.isPrimitive
+ */
+function isPrimitive(value: any): boolean {
+  return (
+      value === null ||
+      (typeof value !== 'object' && typeof value !== 'function'));
 }

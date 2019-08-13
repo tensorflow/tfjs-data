@@ -32,7 +32,7 @@ module.exports = function (config) {
       }
     },
     reporters: ['progress', 'karma-typescript'],
-    browsers: ['Chrome', 'Firefox'],
+    browsers: ['Chrome'],
     browserStack: {
       username: process.env.BROWSERSTACK_USERNAME,
       accessKey: process.env.BROWSERSTACK_KEY
@@ -45,14 +45,16 @@ module.exports = function (config) {
         browser: 'chrome',
         browser_version: 'latest',
         os: 'OS X',
-        os_version: 'Sierra'
+        os_version: 'High Sierra'
       },
       bs_firefox_mac: {
         base: 'BrowserStack',
         browser: 'firefox',
-        browser_version: 'latest',
+        // TODO(kangyizhang): Change to latest after browser stack infrastructure
+        // stabilizes. https://github.com/tensorflow/tfjs/issues/1620
+        browser_version: '66.0',
         os: 'OS X',
-        os_version: 'Sierra'
+        os_version: 'High Sierra'
       },
       chrome_with_swift_shader: {
         base: 'Chrome',

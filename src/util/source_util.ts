@@ -12,14 +12,13 @@
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
  * See the License for the specific language governing permissions and
  * limitations under the License.
+ *
  * =============================================================================
  */
 
-export {array, Dataset, zip} from './dataset';
-export {CSVDataset} from './datasets/csv_dataset';
-export {TextLineDataset} from './datasets/text_line_dataset';
-export {csv, func, generator, microphone, webcam} from './readers';
-export {FileDataSource} from './sources/file_data_source';
-export {URLDataSource} from './sources/url_data_source';
-export {ColumnConfig, DataElement} from './types';
-export {version as version_data} from './version';
+// Skip tslint any type check cause this method is aiming to check type of
+// input.
+// tslint:disable-next-line:no-any
+export function isLocalPath(source: any): boolean {
+  return (typeof source === 'string') && source.substr(0, 7) === 'file://';
+}

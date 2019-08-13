@@ -16,48 +16,52 @@
  * =============================================================================
  */
 
-import * as fetchMock from 'fetch-mock';
-import * as nock from 'nock';
-
+import {util} from '@tensorflow/tfjs-core';
 import {urlChunkIterator} from './url_chunk_iterator';
 
-const testString = 'abcdefghijklmnopqrstuvwxyz';
-
-// node-fetch requires absolute url syntax even though the response is mocked.
-const url = 'http://google.com/';
-
-// fetch-mock is for browser env, and nock is for node env.
-fetchMock.get('*', testString);
-
-// Call .times() so that nock could repeat the response for all tests.
-nock(url).get('/').times(3).reply(200, testString);
+const TEST_STRING = 'abcdefghijklmnopqrstuvwxyz';
 
 describe('URLChunkIterator', () => {
+  beforeAll(() => {
+    spyOn(util, 'fetch').and.callFake((path: string) => {
+      const buf = new ArrayBuffer(TEST_STRING.length);
+      const bufView = new Uint8Array(buf);
+      for (let i = 0, strLen = TEST_STRING.length; i < strLen; i++) {
+        bufView[i] = TEST_STRING.charCodeAt(i);
+      }
+
+      return {
+        ok: true,
+        arrayBuffer: async () => {
+          return buf;
+        }
+      };
+    });
+  });
+
   it('Reads the entire file and then closes the stream', async () => {
-    const readIterator = await urlChunkIterator(url, {chunkSize: 10});
-    const result = await readIterator.collect();
+    const readIterator = await urlChunkIterator('', {chunkSize: 10});
+    const result = await readIterator.toArrayForTest();
     expect(result.length).toEqual(3);
     const totalBytes = result.map(x => x.length).reduce((a, b) => a + b);
     expect(totalBytes).toEqual(26);
   });
 
   it('Reads chunks in order', async () => {
-    const readIterator = await urlChunkIterator(url, {chunkSize: 10});
+    const readIterator = await urlChunkIterator('', {chunkSize: 10});
 
-    const result = await readIterator.collect();
+    const result = await readIterator.toArrayForTest();
     expect(result[0][0]).toEqual('a'.charCodeAt(0));
     expect(result[1][0]).toEqual('k'.charCodeAt(0));
     expect(result[2][0]).toEqual('u'.charCodeAt(0));
   });
 
   it('Reads chunks of expected sizes', async () => {
-    const readIterator = await urlChunkIterator(url, {chunkSize: 10});
+    const readIterator = await urlChunkIterator('', {chunkSize: 10});
 
-    const result = await readIterator.collect();
+    const result = await readIterator.toArrayForTest();
     expect(result[0].length).toEqual(10);
     expect(result[1].length).toEqual(10);
     expect(result[2].length).toEqual(6);
   });
 });
-
-fetchMock.reset();

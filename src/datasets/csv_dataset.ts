@@ -16,13 +16,11 @@
  * =============================================================================
  */
 
-import {util} from '@tensorflow/tfjs-core';
-
+import {TensorContainer, util} from '@tensorflow/tfjs-core';
 import {Dataset} from '../dataset';
 import {DataSource} from '../datasource';
 import {LazyIterator} from '../iterators/lazy_iterator';
-import {ColumnConfig, CSVConfig, DataElement} from '../types';
-
+import {ColumnConfig, CSVConfig} from '../types';
 import {TextLineDataset} from './text_line_dataset';
 
 const CODE_QUOTE = '"';
@@ -35,7 +33,7 @@ const STATE_WITHIN_QUOTE_IN_QUOTE = Symbol('quoteinquote');
 /**
  * Represents a potentially large collection of delimited text records.
  *
- * The produced `DataElement`s each contain one key-value pair for
+ * The produced `TensorContainer`s each contain one key-value pair for
  * every column of the table.  When a field is empty in the incoming data, the
  * resulting value is `undefined`, or throw error if it is required.  Values
  * that can be parsed as numbers are emitted as type `number`, other values
@@ -43,7 +41,8 @@ const STATE_WITHIN_QUOTE_IN_QUOTE = Symbol('quoteinquote');
  *
  * The results are not batched.
  */
-export class CSVDataset extends Dataset<DataElement> {
+/** @doc {heading: 'Data', subheading: 'Classes', namespace: 'data'} */
+export class CSVDataset extends Dataset<TensorContainer> {
   base: TextLineDataset;
   private hasHeader = true;
   private fullColumnNames: string[] = null;
@@ -51,7 +50,17 @@ export class CSVDataset extends Dataset<DataElement> {
   private columnConfigs: {[key: string]: ColumnConfig} = null;
   private configuredColumnsOnly = false;
   private delimiter = ',';
+  private delimWhitespace = false;
 
+  /**
+   * Returns column names of the csv dataset. If `configuredColumnsOnly` is
+   * true, return column names in `columnConfigs`. If `configuredColumnsOnly` is
+   * false and `columnNames` is provided, `columnNames`. If
+   * `configuredColumnsOnly` is false and `columnNames` is not provided, return
+   * all column names parsed from the csv file. For example usage please go to
+   * `tf.data.csv`.
+   */
+  /** @doc {heading: 'Data', subheading: 'Classes'} */
   async columnNames() {
     if (!this.columnNamesValidated) {
       await this.setColumnNames();
@@ -78,7 +87,7 @@ export class CSVDataset extends Dataset<DataElement> {
       // Check provided columnNames match header line.
       util.assert(
           columnNamesFromFile.length === this.fullColumnNames.length,
-          'The length of provided columnNames (' +
+          () => 'The length of provided columnNames (' +
               this.fullColumnNames.length.toString() +
               ') does not match the length of the header line read from ' +
               'file (' + columnNamesFromFile.length.toString() + ').');
@@ -97,7 +106,7 @@ export class CSVDataset extends Dataset<DataElement> {
         Object.keys(counts).filter((name) => (counts[name] > 1));
     util.assert(
         duplicateNames.length === 0,
-        'Duplicate column names found: ' + duplicateNames.toString());
+        () => 'Duplicate column names found: ' + duplicateNames.toString());
     // Check if keys in columnConfigs match columnNames.
     if (this.columnConfigs) {
       for (const key of Object.keys(this.columnConfigs)) {
@@ -121,7 +130,8 @@ export class CSVDataset extends Dataset<DataElement> {
         throw new Error('No data was found for CSV parsing.');
       }
       const firstLine: string = firstElement.value;
-      return firstLine.split(this.delimiter);
+      const headers = this.parseRow(firstLine, false);
+      return headers;
     } else {
       return null;
     }
@@ -169,10 +179,19 @@ export class CSVDataset extends Dataset<DataElement> {
     this.fullColumnNames = csvConfig.columnNames;
     this.columnConfigs = csvConfig.columnConfigs;
     this.configuredColumnsOnly = csvConfig.configuredColumnsOnly;
-    this.delimiter = csvConfig.delimiter ? csvConfig.delimiter : ',';
+    if (csvConfig.delimWhitespace) {
+      util.assert(
+          csvConfig.delimiter == null,
+          () =>
+              'Delimiter should not be provided when delimWhitespace is true.');
+      this.delimWhitespace = true;
+      this.delimiter = ' ';
+    } else {
+      this.delimiter = csvConfig.delimiter ? csvConfig.delimiter : ',';
+    }
   }
 
-  async iterator(): Promise<LazyIterator<DataElement>> {
+  async iterator(): Promise<LazyIterator<TensorContainer>> {
     if (!this.columnNamesValidated) {
       await this.setColumnNames();
     }
@@ -185,10 +204,10 @@ export class CSVDataset extends Dataset<DataElement> {
     return lines.map(x => this.makeDataElement(x));
   }
 
-  makeDataElement(line: string): DataElement {
+  makeDataElement(line: string): TensorContainer {
     const values = this.parseRow(line);
-    const features: {[key: string]: DataElement} = {};
-    const labels: {[key: string]: DataElement} = {};
+    const features: {[key: string]: TensorContainer} = {};
+    const labels: {[key: string]: TensorContainer} = {};
 
     for (let i = 0; i < this.fullColumnNames.length; i++) {
       const key = this.fullColumnNames[i];
@@ -249,13 +268,13 @@ export class CSVDataset extends Dataset<DataElement> {
                                      features[key] = parsedValue;
       }
     }
-    // If label exists, return an array of features and labels, otherwise
-    // return features only.
+    // If label exists, return an object of features and labels as {xs:features,
+    // ys:labels}, otherwise return features only.
     if (Object.keys(labels).length === 0) {
       return features;
 
     } else {
-      return [features, labels];
+      return {xs: features, ys: labels};
     }
   }
 
@@ -268,11 +287,11 @@ export class CSVDataset extends Dataset<DataElement> {
   }
 
   // adapted from https://beta.observablehq.com/@mbostock/streaming-csv
-  private parseRow(line: string): string[] {
+  private parseRow(line: string, validateElementCount = true): string[] {
     const result: string[] = [];
     let readOffset = 0;
     const readLength = line.length;
-    let currentState = STATE_FIELD;
+    let currentState = STATE_OUT;
     // Goes through the line to parse quote.
     for (let i = 0; i < readLength; i++) {
       switch (currentState) {
@@ -286,9 +305,14 @@ export class CSVDataset extends Dataset<DataElement> {
               break;
             // Read an empty field
             case this.delimiter:
+              readOffset = i + 1;
+              // If delimiter is white space and configured to collapse
+              // multiple white spaces, ignore this white space.
+              if (this.delimiter === ' ' && this.delimWhitespace) {
+                break;
+              }
               result.push('');
               currentState = STATE_OUT;
-              readOffset = i + 1;
               break;
             // Enter an unquoted field
             default:
@@ -355,6 +379,11 @@ export class CSVDataset extends Dataset<DataElement> {
       result.push(line.substring(readOffset, readLength - 1));
     } else {
       result.push(line.substring(readOffset));
+    }
+    // Check if each row has the same number of elements as column names.
+    if (validateElementCount && result.length !== this.fullColumnNames.length) {
+      throw new Error(`Invalid row in csv file. Should have ${
+          this.fullColumnNames.length} elements in a row, but got ${result}`);
     }
     return result;
   }
